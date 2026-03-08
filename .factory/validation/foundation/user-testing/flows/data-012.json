@@ -1,0 +1,48 @@
+{
+  "groupId": "data-012",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "read-only data"
+  },
+  "toolsUsed": ["python3 -c"],
+  "assertions": [
+    {
+      "id": "VAL-DATA-012",
+      "title": "Partial bar handling matches pipeline",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load 1m CSV data",
+          "expected": "7177 rows loaded",
+          "observed": "7177 rows loaded"
+        },
+        {
+          "action": "Aggregate 1m bars to 5m",
+          "expected": "1440 5m bars produced",
+          "observed": "1440 5m bars produced"
+        },
+        {
+          "action": "Identify first 5m bar and count its constituent 1m bars",
+          "expected": "First 5m bar exists at 17:04 NY with fewer than 5 constituent 1m bars (partial)",
+          "observed": "First 5m bar at 2024-01-07 17:04:00-05:00 has 1 constituent 1m bar (partial)"
+        },
+        {
+          "action": "Verify partial bar IS included in output (not discarded)",
+          "expected": "Partial bar included, total count remains 1440",
+          "observed": "Partial bar included, total count is 1440. Aggregator emits all clock-aligned groups regardless of constituent bar count, which matches pipeline ground truth."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A (pure Python library)",
+        "network": "N/A (no network calls)",
+        "pythonOutput": "1m bars loaded: 7177\n5m bars produced: 1440\nCount is 1440: True\nFirst 5m bar timestamp_ny: 2024-01-07 17:04:00-05:00\nConstituent 1m bars in first 5m window: 1\nFirst 5m bar is partial (fewer than 5 constituent bars): True\nPASS: Aggregator includes partial bars and produces 1440 total 5m bars"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 1 assertion: 1 passed. VAL-DATA-012 confirms the TF aggregator includes partial bars at dataset boundaries — the first 5m window at 17:04 NY has only 1 constituent 1m bar but is correctly included in the output, producing the expected 1,440 total 5m bars."
+}
