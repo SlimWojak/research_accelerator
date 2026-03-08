@@ -15,6 +15,7 @@ from typing import Optional
 
 import pandas as pd
 
+from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, map_session
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -24,56 +25,10 @@ from ra.engine.base import (
 
 logger = logging.getLogger(__name__)
 
-PIP = 0.0001
-
-# Pipeline session mapping: RA adds pre_london/pre_ny which pipeline classifies
-# as "other". Map back for baseline-compatible output.
-_SESSION_MAP = {
-    "asia": "asia",
-    "lokz": "lokz",
-    "nyokz": "nyokz",
-    "pre_london": "other",
-    "pre_ny": "other",
-    "other": "other",
-}
-
-# Timeframe to minutes mapping
-_TF_MINUTES = {
-    "1m": 1,
-    "5m": 5,
-    "15m": 15,
-    "1H": 60,
-    "4H": 240,
-    "1D": 1440,
-}
-
-
-def _map_session(session: str) -> str:
-    """Map RA session label to pipeline-compatible session label."""
-    return _SESSION_MAP.get(session, session)
-
-
-def _bar_time_str(ts_ny: pd.Timestamp, tf_minutes: int) -> str:
-    """Compute the clock-aligned group-key time string for a bar.
-
-    The pipeline uses floor(minute / period) * period as the canonical
-    time label.
-
-    Args:
-        ts_ny: Bar's NY timezone timestamp.
-        tf_minutes: Timeframe period in minutes (1, 5, 15, etc.).
-
-    Returns:
-        NY time string in ISO format (YYYY-MM-DDTHH:MM:SS).
-    """
-    if tf_minutes <= 1:
-        return ts_ny.strftime("%Y-%m-%dT%H:%M:%S")
-
-    total_min = ts_ny.hour * 60 + ts_ny.minute
-    floored = (total_min // tf_minutes) * tf_minutes
-    gh = floored // 60
-    gm = floored % 60
-    return ts_ny.strftime("%Y-%m-%d") + f"T{gh:02d}:{gm:02d}:00"
+# Keep local aliases for backward compatibility within this module
+_map_session = map_session
+_bar_time_str = bar_time_str
+_TF_MINUTES = TF_MINUTES
 
 
 class SwingPointDetector(PrimitiveDetector):

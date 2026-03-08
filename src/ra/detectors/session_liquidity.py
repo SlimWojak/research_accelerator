@@ -16,6 +16,7 @@ from typing import Optional
 
 import pandas as pd
 
+from ra.detectors._common import PIP
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -24,8 +25,6 @@ from ra.engine.base import (
 )
 
 logger = logging.getLogger(__name__)
-
-PIP = 0.0001
 
 # Session box type -> session filter config
 # Maps box type name to the session/hour filter criteria

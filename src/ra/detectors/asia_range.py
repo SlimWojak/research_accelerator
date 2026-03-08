@@ -13,6 +13,7 @@ from typing import Optional
 
 import pandas as pd
 
+from ra.detectors._common import PIP
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -21,8 +22,6 @@ from ra.engine.base import (
 )
 
 logger = logging.getLogger(__name__)
-
-PIP = 0.0001
 
 # Default thresholds from the pipeline (used when config doesn't specify)
 _DEFAULT_THRESHOLDS = [12, 15, 18, 20, 25, 30]

@@ -14,6 +14,7 @@ from typing import Optional
 
 import pandas as pd
 
+from ra.detectors._common import PIP
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -22,8 +23,6 @@ from ra.engine.base import (
 )
 
 logger = logging.getLogger(__name__)
-
-PIP = 0.0001
 
 
 class ReferenceLevelDetector(PrimitiveDetector):

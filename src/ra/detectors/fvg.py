@@ -15,6 +15,7 @@ from typing import Optional
 
 import pandas as pd
 
+from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, map_session
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -24,8 +25,6 @@ from ra.engine.base import (
 
 logger = logging.getLogger(__name__)
 
-PIP = 0.0001
-
 # Look-ahead windows for state tracking, scaled by TF
 _LOOKAHEAD = {
     "1m": 500,
@@ -34,57 +33,10 @@ _LOOKAHEAD = {
 }
 _LOOKAHEAD_DEFAULT = 200
 
-# Pipeline session mapping: the pipeline only uses asia/lokz/nyokz/other.
-# The RA data layer adds pre_london and pre_ny, which the pipeline classifies
-# as "other". Map back for baseline-compatible output.
-_SESSION_MAP = {
-    "asia": "asia",
-    "lokz": "lokz",
-    "nyokz": "nyokz",
-    "pre_london": "other",
-    "pre_ny": "other",
-    "other": "other",
-}
-
-
-def _map_session(session: str) -> str:
-    """Map RA session label to pipeline-compatible session label."""
-    return _SESSION_MAP.get(session, session)
-
-
-def _bar_time_str(ts_ny: pd.Timestamp, tf_minutes: int) -> str:
-    """Compute the clock-aligned group-key time string for a bar.
-
-    The pipeline uses floor(minute / period) * period as the canonical
-    time label. For 1m bars, this is just the bar's own timestamp.
-    For 5m bars, a bar at 17:04 gets key 17:00, a bar at 17:07 gets 17:05, etc.
-
-    Args:
-        ts_ny: Bar's NY timezone timestamp.
-        tf_minutes: Timeframe period in minutes (1, 5, 15, etc.).
-
-    Returns:
-        NY time string in ISO format (YYYY-MM-DDTHH:MM:SS).
-    """
-    if tf_minutes <= 1:
-        return ts_ny.strftime("%Y-%m-%dT%H:%M:%S")
-
-    total_min = ts_ny.hour * 60 + ts_ny.minute
-    floored = (total_min // tf_minutes) * tf_minutes
-    gh = floored // 60
-    gm = floored % 60
-    return ts_ny.strftime("%Y-%m-%d") + f"T{gh:02d}:{gm:02d}:00"
-
-
-# Timeframe to minutes mapping
-_TF_MINUTES = {
-    "1m": 1,
-    "5m": 5,
-    "15m": 15,
-    "1H": 60,
-    "4H": 240,
-    "1D": 1440,
-}
+# Keep local aliases for backward compatibility within this module
+_map_session = map_session
+_bar_time_str = bar_time_str
+_TF_MINUTES = TF_MINUTES
 
 
 class FVGDetector(PrimitiveDetector):
