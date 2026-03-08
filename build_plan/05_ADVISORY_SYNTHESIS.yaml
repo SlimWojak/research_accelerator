@@ -1,0 +1,330 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# a8ra RESEARCH ACCELERATOR — ADVISORY SYNTHESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# PURPOSE: Canonical synthesis of CTO + Advisor review feedback.
+#          Opus (Master Builder) accepts, rejects, or amends each item.
+#          This document + the original build_plan/ docs = implementation-ready.
+# DATE: 2026-03-08
+# STATUS: LOCKED — ready for Mission Control
+# INPUT: CTO Claude review + Olya's Advisor review of ADVISORY_REVIEW_BRIEF.yaml
+# VERDICT: CLEAR FOR BUILD (both reviewers)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── CTO REVIEW: Q1 — CASCADE GRAPH EDGE CORRECTION ─────────────────────────
+
+cto_q1_cascade_edge:
+  feedback: |
+    Remove direct swing_points → liquidity_sweep edge. Raw previous swings
+    are excluded from sweep pool (locked March 7). Swing points reach sweeps
+    only via htf_liquidity (which applies promotion/quality gate).
+    Direct edge causes false cache invalidation on swing param changes.
+  verdict: ACCEPTED
+  rationale: |
+    Correct. The promoted swing path in the pipeline (lines 1515-1531) gates
+    on strength >= 10 AND height >= 10 pip AND current forex day, then feeds
+    into the curated level pool. This is a filter applied during pool assembly,
+    not a direct swing → sweep dependency. However, there IS a subtlety:
+    promoted swings are filtered from the swing_points output during pool
+    assembly in detect_sweeps(), not in htf_liquidity. So the dependency is
+    technically swing_points → [promotion filter in sweep pool assembly] →
+    liquidity_sweep. The htf_liquidity module handles the EQH/EQL structural
+    pools only.
+  resolution: |
+    Keep swing_points as upstream of liquidity_sweep BUT mark it as a
+    "filtered dependency" — only the promoted subset triggers re-evaluation.
+    In practice: the cascade engine should track that swing_points →
+    liquidity_sweep is filtered through the promotion gate. If swing N
+    changes, the promoted swing set may change, which may change the sweep
+    level pool. This is correct behavior — we WANT sweep re-evaluation
+    when swing params change, because the promoted swing gate depends on
+    strength/height which depend on N.
+  config_update: |
+    In 01_RUNTIME_CONFIG_SCHEMA.yaml, annotate the dependency:
+    liquidity_sweep.upstream:
+      - session_liquidity
+      - reference_levels
+      - htf_liquidity          # EQH/EQL pools
+      - swing_points           # promoted swings only (strength>=10, height>=10pip)
+
+# ─── CTO REVIEW: Q2 — DISPLACEMENT REGRESSION ───────────────────────────────
+
+cto_q2_displacement:
+  feedback: "819 is correct. Full candidate set with grade metadata."
+  verdict: CONFIRMED
+  action: none
+
+# ─── CTO REVIEW: Q3 — MSS IMPULSE SUPPRESSION ──────────────────────────────
+
+cto_q3_mss_suppression:
+  feedback: |
+    Impulse suppression pullback threshold is hardcoded. Should be L1.5 param.
+    CTO advisor said "50% pullback" but actual pipeline code uses:
+      min_pb = max(5 * PIP, 0.25 * ATR)
+    This is already documented in v0.5 (L15_parameters.ltf.impulse_suppression).
+  verdict: ACCEPTED_WITH_CORRECTION
+  correction: |
+    The threshold is max(5pip, 0.25*ATR), NOT 50%. CTO advisor's memory
+    was off on the number. The v0.5 YAML correctly documents this.
+    The pipeline (line 2116) confirms: max(5 * PIP, 0.25 * atr_at).
+  resolution: |
+    Parameterise in runtime config as:
+      mss.params.ltf.impulse_suppression:
+        pullback_pip_floor: 5
+        pullback_atr_factor: 0.25
+    These already exist in 01_RUNTIME_CONFIG_SCHEMA.yaml — confirmed correct.
+  cluster_straddle_note: |
+    CTO also flagged cluster-straddle timestamp handling. Pipeline logic
+    (lines 2145-2250): when checking displacement match for a swing break,
+    it searches disp_by_idx at indices [i-1, i, i+1, i+2, i+3] where i is
+    the break bar. For clusters, the displacement dict is keyed by the
+    cluster's FIRST bar index. So a cluster starting at i-1 and ending at i
+    naturally covers the straddle case via the i-1 lookup. Module must
+    replicate this indexing behavior exactly.
+
+# ─── CTO REVIEW: Q4 — OB FALLBACK TERMINATION ──────────────────────────────
+
+cto_q4_ob_fallback:
+  feedback: "Exhausted fallback = no OB. Correct. No deeper scan."
+  verdict: CONFIRMED
+  action: "Module logs the miss for diagnostic visibility, emits no OB."
+
+# ─── CTO REVIEW: Q5 — SWEEP TEMPORAL GATING ─────────────────────────────────
+
+cto_q5_temporal_gating:
+  feedback: "Extract exact rules from pipeline. Gap in v0.5 documentation."
+  verdict: ACCEPTED
+  resolution: |
+    Extracted from preprocess_data_v2.py (lines 1488-1631, 1690-1710).
+    Table below is the canonical temporal gating specification.
+
+# CANONICAL TEMPORAL GATING TABLE — extracted from pipeline code
+# This is the definitive reference for the liquidity_sweep module.
+temporal_gates:
+
+  ASIA_H_L:
+    valid_from: "00:00 NY on the forex day"
+    valid_until: "end of forex day (17:00 NY)"
+    scope: "current forex day only"
+    pipeline_ref: "_session_close_time(forex_day, 'asia') → day.replace(hour=0)"
+    note: "Asia session ends at 00:00 NY. Level valid from session close."
+
+  LONDON_H_L:
+    valid_from: "05:00 NY on the forex day"
+    valid_until: "end of forex day"
+    scope: "current forex day only"
+    pipeline_ref: "_session_close_time(forex_day, 'lokz') → day.replace(hour=5)"
+    note: "LOKZ session ends at 05:00 NY. Level valid from session close."
+
+  LTF_BOX_H_L:
+    valid_from: "box.end_time (specific to each box object)"
+    valid_until: "end of forex day"
+    scope: "current forex day only"
+    pipeline_ref: "box.get('end_time') — varies per box type"
+    end_times:
+      asia_box: "00:00 NY"
+      pre_london_box: "02:00 NY"
+      pre_ny_box: "07:00 NY"
+    note: "Each box's H/L becomes valid when the box's session window closes."
+
+  PDH_PDL:
+    valid_from: "17:00 NY on the PREVIOUS calendar day (= forex day open)"
+    valid_until: "end of forex day"
+    scope: "current forex day only"
+    pipeline_ref: "prev.replace(hour=17, minute=0)"
+    note: |
+      PDH/PDL are known from the moment the new forex day opens.
+      The previous day's high/low are facts by 17:00 NY.
+
+  PWH_PWL:
+    valid_from: "17:00 NY on Sunday (= week open)"
+    valid_until: "end of trading week (Friday 17:00 NY)"
+    scope: "entire week"
+    pipeline_ref: "hardcoded '2024-01-07T17:00:00' for calibration dataset"
+    note: |
+      Pipeline uses hardcoded date for the 1-week dataset.
+      RA module must compute dynamically: previous week's high/low,
+      valid from current week's open (Sunday 17:00 NY).
+
+  HTF_EQH_EQL:
+    valid_from: "pool.last_touch_time (second touch confirms pool)"
+    valid_until: "consumed (TAKEN) or indefinite"
+    scope: "no expiry — valid until price trades through"
+    pipeline_ref: "pool.get('last_touch_time')"
+    note: |
+      HTF pools become actionable at second touch. Pool emitted with
+      first_touch_time (display origin) but gated by last_touch_time.
+
+  PROMOTED_SWING:
+    valid_from: "swing detection time (bar time)"
+    valid_until: "staleness gate: 20 bars on native TF OR end of forex day"
+    scope: "current forex day only"
+    pipeline_ref: "lv['bar_index'] >= i → skip; i - lv['bar_index'] > 20 → skip; forex_day mismatch → skip"
+    gate: "bar_index < current_bar AND age <= 20 bars AND same forex day"
+    note: |
+      Promoted swings use bar_index comparison (not timestamp string).
+      Three gates: not-future, not-stale, same-day. This is the only
+      source that uses bar_index rather than valid_from timestamp.
+
+  temporal_comparison_rule: |
+    For all non-promoted-swing sources: string comparison bar_time < valid_from.
+    Timestamps in NY time format 'YYYY-MM-DDTHH:MM:SS'.
+    For promoted swings: integer bar_index comparison.
+    The off-by-one concern (CTO Issue 7): the pipeline uses strict less-than
+    (bar_time < valid_from), meaning a bar AT exactly the valid_from time
+    CAN see the level. A bar BEFORE it cannot. This is correct — the level
+    becomes valid at the exact close of its formation session, and the bar
+    at that timestamp is the first bar of the next period.
+
+# ─── CTO REVIEW (SECOND REVIEWER): ISSUES 1-7 ──────────────────────────────
+
+cto2_issue1_cache_invalidation:
+  feedback: "Make invalidation rule explicit: node + all downstream dependents."
+  verdict: ACCEPTED
+  resolution: |
+    Rule for cascade.py:
+      on_param_change(primitive_name):
+        invalidated = {primitive_name} ∪ all_transitive_downstream(primitive_name)
+        for node in topological_order:
+          if node in invalidated: re-run
+          else: serve from cache
+    This is standard DAG invalidation. Explicit in cascade engine code.
+
+cto2_issue2_schema_validation:
+  feedback: "Use pydantic or jsonschema for config validation."
+  verdict: ACCEPTED
+  resolution: |
+    Use pydantic v2 for runtime config validation. Type-safe, fast,
+    produces clear error messages. Schema defined as pydantic models
+    that mirror the YAML structure. Reject unknown fields (extra='forbid').
+    Add pydantic to requirements.txt.
+
+cto2_issue3_detection_ids:
+  feedback: "Deterministic IDs for cross-module referencing."
+  verdict: ACCEPTED
+  resolution: |
+    Format: {primitive}_{tf}_{timestamp_ny}_{direction}
+    Example: fvg_5m_2024-01-08T09:10:00_bull
+    For composites with upstream refs: mss_5m_2024-01-08T09:35:00_bear
+      with upstream_refs: [swing_5m_2024-01-08T09:20:00_high, disp_5m_2024-01-08T09:35:00_bear]
+    Timestamp is bar time in NY (matches v0.5 convention).
+    ID is deterministic: same inputs → same ID.
+    Add 'id' field to Detection dataclass in engine/base.py.
+
+cto2_issue4_partial_bars:
+  feedback: "Discard partial bars at dataset boundaries."
+  verdict: ACCEPTED
+  resolution: |
+    TF aggregator must check: first and last aggregation windows may be
+    partial if dataset doesn't start/end on TF boundary. Discard any
+    aggregated bar where the constituent 1m bar count < expected count
+    for the TF (e.g., 5m bar must have 5 constituent 1m bars, or all
+    ghosts for the missing slots). This is already handled implicitly
+    by the current pipeline (forex day boundaries at 17:00 NY align
+    with standard TF boundaries), but the RA module should guard
+    explicitly.
+
+cto2_issue5_cluster_straddle:
+  feedback: "MSS should treat displacement cluster as single event."
+  verdict: CONFIRMED
+  resolution: "Already addressed in cto_q3 above. Pipeline indexes displacement by first bar of cluster."
+
+cto2_issue6_ob_fallback:
+  feedback: "Max 3 bars, no deeper."
+  verdict: CONFIRMED
+  resolution: "Already addressed in cto_q4 above."
+
+cto2_issue7_sweep_offbyone:
+  feedback: "Level valid after formation bar closes. Confirm off-by-one."
+  verdict: CONFIRMED
+  resolution: |
+    Confirmed from pipeline code (line 1704-1706):
+      vf = lv.get('valid_from', '')
+      if vf and bar_time < vf:
+          continue
+    Strict less-than. Bar at valid_from time CAN see the level.
+    Bar before it cannot. Documented in temporal_gates section above.
+
+# ─── ADVISOR REVIEW: Q1-Q5 ──────────────────────────────────────────────────
+
+advisor_q1_counts:
+  feedback: "Counts align with Olya's calibration sessions."
+  verdict: CONFIRMED
+  note: |
+    Sweep base count of 14 on 5m is the curated-pool result, which IS the
+    locked architecture from March 7. The "before cleanup" count was 102.
+    The 14 is the correct regression target.
+
+advisor_q2_strength:
+  feedback: "Tag only. Never gate. Locked by Olya."
+  verdict: CONFIRMED
+
+advisor_q3_session_liquidity:
+  feedback: "Implement as specified, flag as PROPOSED. Perfect first RA use case."
+  verdict: ACCEPTED
+  resolution: |
+    Module implements four-gate model with params from config. Status remains
+    PROPOSED. When Olya reviews via the RA comparison interface, parameters
+    adjust via config, not code. This is the design validation moment.
+
+advisor_q4_fvg_tag:
+  feedback: "20% MSS without FVG is expected. Sub-floor gaps, wick coverage."
+  verdict: CONFIRMED
+
+advisor_q5_sweep_pool:
+  feedback: "Matches March 7 locked architecture. EQL/EQH DEFERRED correct."
+  verdict: CONFIRMED
+
+# ─── PRE-LAUNCH ACTIONS (from first CTO reviewer) ───────────────────────────
+
+pre_launch_actions:
+  action_1:
+    description: "Temporal gating table for sweep levels"
+    status: DONE
+    location: "temporal_gates section above in this document"
+
+  action_2:
+    description: "Impulse suppression reset as parameterizable value"
+    status: DONE
+    note: |
+      Already in 01_RUNTIME_CONFIG_SCHEMA.yaml as:
+        mss.params.ltf.impulse_suppression.pullback_reset_pips: 5
+        mss.params.ltf.impulse_suppression.pullback_reset_atr_factor: 0.25 (NOT 50%)
+      CTO advisor's "50%" was a memory error. Actual pipeline: 0.25 * ATR.
+
+  action_3:
+    description: "Document displacement count discrepancy"
+    status: DONE
+    location: "tests/fixtures/BASELINE_MANIFEST.md note #1"
+    note: "819 (pipeline, all candidates) vs 460 (v0.5, filtered presentation)"
+
+# ─── ADDITIONS TO BUILD PLAN ─────────────────────────────────────────────────
+
+additions_to_module_manifest:
+  - "Add pydantic v2 to requirements.txt for config schema validation"
+  - "Add 'id: str' field to Detection dataclass (deterministic ID generation)"
+  - "Add partial bar guard to tf_aggregator.py"
+  - "Cascade engine: explicit DAG invalidation (node + transitive downstream)"
+
+additions_to_runtime_config:
+  - |
+    annotate liquidity_sweep upstream dependency:
+      swing_points: "promoted swings only — filtered through strength/height gate"
+
+additions_to_phase1_brief:
+  - "D2 (data layer): add partial bar discard guard to TF aggregator"
+  - "D3 (leaf detectors): displacement must emit full candidate set with grade metadata"
+  - "D5 (MSS): cluster-straddle lookup via displacement first-bar indexing"
+  - "D6 (sweep): temporal gating rules from this document's canonical table"
+  - "D7 (cascade): DAG invalidation with transitive downstream propagation"
+
+# ─── FINAL STATUS ─────────────────────────────────────────────────────────────
+
+status: CLEAR_FOR_BUILD
+reviewers:
+  cto_claude: APPROVED
+  advisor: APPROVED
+  opus_builder: ALL_ITEMS_RESOLVED
+remaining_blockers: NONE
+next_step: "Launch Phase 1 Mission Control on branch phase1/detection-engine"
+
+# ═══════════════════════════════════════════════════════════════════════════════
