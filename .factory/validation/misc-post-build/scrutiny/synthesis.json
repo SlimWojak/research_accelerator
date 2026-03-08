@@ -1,0 +1,39 @@
+{
+  "milestone": "misc-post-build",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider", "exitCode": 0 },
+    "typecheck": { "passed": true, "command": "(not configured)", "exitCode": 0 },
+    "lint": { "passed": true, "command": "(not configured)", "exitCode": 0 }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Add a lightweight procedure path to ra-engine-worker for housekeeping/refactoring features that skips the TDD cycle (Steps 2-4: spec study, baseline fixture, failing tests). These non-detector features have no new tests to write and the red-green cycle adds friction without value.",
+      "evidence": "Both misc-gitignore-cleanup (worker 9e85029a) and misc-post-build-cleanup (worker 28bc5aed) workers reported the same skill mismatch. Their skillFeedback both note the TDD-oriented procedure doesn't map well to config changes, refactoring, and gitignore cleanup.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document the HTF timeframe key format convention: config YAML uses '1H'/'4H'/'1D' format while some detector internals and baseline fixtures use 'H1'/'H4'/'D1'. Workers implementing HTF-aware detectors should use the config format (1H/4H/1D) as canonical and provide mapping if needed.",
+      "evidence": "Feature misc-post-build-cleanup (commit a3ec6b0) added a _TF_TO_CONFIG_KEY mapping dict in htf_liquidity.py to bridge the two formats. This format mismatch was not documented and could confuse future workers.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "AGENTS.md states config-driven convention but AsiaRangeDetector originally hardcoded thresholds — convention enforcement gap.",
+      "reason": "already-documented: The convention is already in AGENTS.md ('If you hardcode a threshold, the system has failed'). This was an implementation oversight in the original leaf-detectors milestone, not a documentation gap. The misc-gitignore-cleanup feature corrected it."
+    }
+  ],
+  "previousRound": null
+}

@@ -1,0 +1,33 @@
+{
+  "featureId": "misc-post-build-cleanup",
+  "reviewedAt": "2026-03-08T11:25:00.000Z",
+  "commitId": "a3ec6b0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Commit a3ec6b0 implements two of the five feature items (items 4 and 5). Items 1-3 (gitignore egg-info, config-driven AsiaRange thresholds, displacement in liquidity_sweep dependency_graph) were correctly identified as already completed by the prior 'misc-gitignore-cleanup' feature (commit 058ac72). Item 4 (HTF Liquidity TF key mismatch) adds a clean _TF_TO_CONFIG_KEY mapping dict that bridges internal labels (H1/H4/D1) to config format (1H/4H/1D), with dual fallback (try config key first, then internal key, then default) for backward compatibility. Item 5 (extract _compute_atr) cleanly extracts the duplicated ATR computation into two shared functions in _common.py: compute_atr(DataFrame) and compute_atr_from_dicts(list[dict]). All 4 detector files now import from _common. The algorithm is preserved identically. The liquidity_sweep.py variant that used iloc row access was functionally equivalent and the numpy-array version in _common.py is slightly more efficient. No bugs, no regressions, clean refactoring.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/htf_liquidity.py",
+        "line": 63,
+        "severity": "non_blocking",
+        "description": "Extra blank line after _TF_TO_CONFIG_KEY dict definition (two consecutive blank lines before the extraction comment). Minor style nit — PEP 8 convention is two blank lines between top-level definitions, which this technically satisfies, but the empty line 63 between the closing brace and the blank-plus-comment feels like a leftover."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The HTF Liquidity detector uses internal TF labels (H1/H4/D1) while the config YAML uses a different format (1H/4H/1D). This mismatch required a runtime mapping dict. AGENTS.md doesn't document this dual-format convention, which could cause confusion for future detectors that need to read per-TF config params for HTF timeframes.",
+      "evidence": "src/ra/detectors/htf_liquidity.py:52-60 (_TF_TO_CONFIG_KEY mapping) vs configs/locked_baseline.yaml:316-342 (htf_liquidity per_tf keys use 1H/4H/1D). The baseline fixtures and _HTF_TF_CONFIG dict use H1/H4/D1."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker's skillFeedback correctly notes the ra-engine-worker skill procedure is TDD-oriented (write failing tests first, then implement) which doesn't map well to housekeeping/refactoring features that have no new tests to write. A streamlined procedure for cleanup/refactoring features would reduce friction.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The skill procedure is oriented toward new detector implementation (write failing tests first, then implement). For housekeeping/refactoring features, a streamlined procedure that skips the red-green TDD cycle would be more appropriate.'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. Clean implementation of 2 items (HTF Liquidity TF key mismatch fix + _compute_atr extraction to _common.py). Items 1-3 were correctly skipped as already completed by the prior misc-gitignore-cleanup feature. The TF key mapping provides backward-compatible config lookup with dual fallback. The ATR extraction consolidates identical logic from 4 files into 2 shared functions with proper type annotations. All 378 tests pass. One non-blocking style nit (extra blank line). Two shared-state observations: undocumented HTF TF key format mismatch convention, and skill procedure mismatch for housekeeping tasks."
+}

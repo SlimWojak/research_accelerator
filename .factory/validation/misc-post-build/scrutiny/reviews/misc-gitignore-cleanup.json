@@ -1,0 +1,33 @@
+{
+  "featureId": "misc-gitignore-cleanup",
+  "reviewedAt": "2026-03-08T11:15:00.000Z",
+  "commitId": "058ac72",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "All three housekeeping sub-tasks implemented correctly. (1) .gitignore updated with *.egg-info/ glob pattern (broader than just src/ra.egg-info/, which is good) and the 5 tracked egg-info files removed from git. (2) Thresholds moved to config: added thresholds field to locked_baseline.yaml asia_range.params, added thresholds field to AsiaRangeParams pydantic schema with matching default, and updated AsiaRangeDetector.detect() to read from params.get('thresholds', _DEFAULT_THRESHOLDS). The _DEFAULT_THRESHOLDS module constant is retained as a fallback — redundant with the schema default but harmless defensive coding. (3) 'displacement' added to liquidity_sweep upstream in dependency_graph, which now correctly matches the detector's required_upstream() method (line 926 of liquidity_sweep.py). All 378 tests pass with no regressions.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/asia_range.py",
+        "line": 26,
+        "severity": "non_blocking",
+        "description": "The _DEFAULT_THRESHOLDS fallback constant is now redundant — the Pydantic schema (AsiaRangeParams.thresholds) already provides a default [12,15,18,20,25,30], and the config file explicitly sets the same value. The params.get('thresholds', _DEFAULT_THRESHOLDS) fallback at line 62 will never activate in normal config-driven usage. Not harmful, but could be simplified in a future cleanup."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker's skillFeedback notes that the ra-engine-worker skill procedure (Steps 2-4: spec study, baseline fixture, failing tests) is oriented toward TDD detector implementation and is excessive for housekeeping/config-only features. A lighter-weight procedure path for non-detector features would improve efficiency.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The ra-engine-worker skill is oriented toward detector implementation with TDD. For housekeeping/config-only features, a lighter-weight procedure would be more appropriate — skip Steps 2-4 and go straight to implementation + verification.'"
+    },
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md states 'Config-driven: Every L1.5 parameter lives in YAML config. If you hardcode a threshold, the system has failed.' This feature corrects a pre-existing violation where AsiaRangeDetector hardcoded thresholds. The convention was apparently not enforced when the detector was first built. No AGENTS.md change needed — the convention is already documented; this was an implementation oversight in the original feature.",
+      "evidence": "Diff shows asia_range.py previously had 'thresholds = _DEFAULT_THRESHOLDS' (always hardcoded), now changed to 'thresholds = params.get(\"thresholds\", _DEFAULT_THRESHOLDS)' (config-driven with fallback)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Clean housekeeping commit covering all three sub-tasks: gitignore+egg-info cleanup, config-driven Asia thresholds, and dependency_graph fix for liquidity_sweep. Implementation is correct and backward-compatible. One non-blocking observation about a redundant fallback constant. All 378 tests pass."
+}
