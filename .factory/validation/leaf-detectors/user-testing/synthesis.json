@@ -1,0 +1,27 @@
+{
+  "milestone": "leaf-detectors",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 25,
+    "passed": 25,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-FVG-001", "VAL-FVG-002", "VAL-FVG-003", "VAL-FVG-004", "VAL-FVG-005", "VAL-FVG-006", "VAL-FVG-007",
+    "VAL-SW-001", "VAL-SW-002", "VAL-SW-003", "VAL-SW-004", "VAL-SW-005",
+    "VAL-DISP-001", "VAL-DISP-002", "VAL-DISP-003", "VAL-DISP-004", "VAL-DISP-005", "VAL-DISP-006", "VAL-DISP-007", "VAL-DISP-008",
+    "VAL-SESS-001", "VAL-SESS-002", "VAL-ASIA-001", "VAL-REF-001", "VAL-EQHL-001"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Created user-testing.md with testing surface docs, key imports, flow validator guidance for this pure Python library project",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}

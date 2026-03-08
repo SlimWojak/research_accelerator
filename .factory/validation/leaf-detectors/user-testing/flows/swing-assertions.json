@@ -1,0 +1,97 @@
+{
+  "groupId": "swing-assertions",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "pure-python-library"
+  },
+  "toolsUsed": ["python3 -c inline checks"],
+  "assertions": [
+    {
+      "id": "VAL-SW-001",
+      "title": "Swing 1m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and 1m bars (N=5, height_filter_pips=0.5, strength_cap=20)", "expected": "Config loaded, 7177 bars", "observed": "Config loaded, 7177 bars" },
+        { "action": "Run SwingPointDetector on 1m bars", "expected": "833 swings (420 highs, 413 lows)", "observed": "833 swings (420 highs, 413 lows)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A - pure Python library",
+        "stdout": "VAL-SW-001: total=833 (expected 833), highs=420 (expected 420), lows=413 (expected 413)\nVAL-SW-001 PASS: True"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SW-002",
+      "title": "Swing 5m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and aggregate to 5m bars (N=3, height_filter_pips=3.0)", "expected": "1440 5m bars", "observed": "1440 5m bars" },
+        { "action": "Run SwingPointDetector on 5m bars", "expected": "267 swings (135 highs, 132 lows)", "observed": "267 swings (135 highs, 132 lows)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A - pure Python library",
+        "stdout": "VAL-SW-002: total=267 (expected 267), highs=135 (expected 135), lows=132 (expected 132)\nVAL-SW-002 PASS: True"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SW-003",
+      "title": "Swing 15m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and aggregate to 15m bars (N=2, height_filter_pips=3.0)", "expected": "480 15m bars", "observed": "480 15m bars" },
+        { "action": "Run SwingPointDetector on 15m bars", "expected": "124 swings (62 highs, 62 lows)", "observed": "124 swings (62 highs, 62 lows)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A - pure Python library",
+        "stdout": "VAL-SW-003: total=124 (expected 124), highs=62 (expected 62), lows=62 (expected 62)\nVAL-SW-003 PASS: True"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SW-004",
+      "title": "Swing per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detector on all 3 TFs (1m, 5m, 15m)", "expected": "Detections produced for each TF", "observed": "833 + 267 + 124 detections" },
+        { "action": "Compare each swing's type, bar_index, time, price, strength, height_pips against baseline fixture", "expected": "0 mismatches across all TFs (price tolerance 1e-6, height_pips tolerance 0.011)", "observed": "0 mismatches: 1m=0, 5m=0, 15m=0" },
+        { "action": "Verify boundary swings have height_pips=999.0 sentinel", "expected": "First swings in each TF have height_pips=999.0", "observed": "Confirmed via field match — baseline first swings have 999.0 and detector reproduces exactly" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A - pure Python library",
+        "stdout": "VAL-SW-004 1m: 833 detections, 0 mismatches -> PASS\nVAL-SW-004 5m: 267 detections, 0 mismatches -> PASS\nVAL-SW-004 15m: 124 detections, 0 mismatches -> PASS\nVAL-SW-004 OVERALL: PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SW-005",
+      "title": "Strength cap and tag-only behavior",
+      "status": "pass",
+      "steps": [
+        { "action": "Check max strength across all TFs", "expected": "max_strength <= 20 on all TFs", "observed": "1m max=20, 5m max=20, 15m max=20" },
+        { "action": "Check strength_as_gate config param", "expected": "strength_as_gate=False", "observed": "strength_as_gate=False on all TFs" },
+        { "action": "Verify swings with strength=0 exist (proves no strength filtering)", "expected": "Non-zero count of strength=0 swings", "observed": "1m: 55 zero-strength, 5m: 37, 15m: 10" },
+        { "action": "Verify total count matches baseline (all swings passing height filter emitted)", "expected": "Count equals baseline fixture length", "observed": "1m: 833==833, 5m: 267==267, 15m: 124==124" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A - pure Python library",
+        "stdout": "1m max_strength=20 (cap=20): OK\n1m strength_as_gate=False: OK\n1m swings with strength=0: 55\n5m max_strength=20 (cap=20): OK\n5m strength_as_gate=False: OK\n5m swings with strength=0: 37\n15m max_strength=20 (cap=20): OK\n15m strength_as_gate=False: OK\n15m swings with strength=0: 10\nVAL-SW-005 OVERALL: PASS"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 5 assertions: 5 passed, 0 failed. All swing point counts match exactly (1m=833, 5m=267, 15m=124). Per-detection field comparison shows 0 mismatches across all 1,224 total swings. Strength correctly capped at 20 and used as tag only (strength_as_gate=False), with zero-strength swings present in output proving no filtering."
+}

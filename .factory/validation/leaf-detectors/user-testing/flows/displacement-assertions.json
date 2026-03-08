@@ -1,0 +1,142 @@
+{
+  "groupId": "displacement-assertions",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "pure-python-library"
+  },
+  "toolsUsed": ["python3 -c inline checks"],
+  "assertions": [
+    {
+      "id": "VAL-DISP-001",
+      "title": "Displacement 1m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars via load_csv + aggregate", "expected": "7177 bars loaded", "observed": "7177 bars loaded" },
+        { "action": "Run DisplacementDetector.detect on 1m bars with locked params", "expected": "4170 total displacements", "observed": "4170 total displacements" },
+        { "action": "Count FVG-creating displacements", "expected": "608 FVG-creating", "observed": "608 FVG-creating" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "1m total=4170, FVG-creating=608"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-002",
+      "title": "Displacement 5m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m bars to 5m", "expected": "1440 bars", "observed": "1440 bars" },
+        { "action": "Run DisplacementDetector.detect on 5m bars with locked params", "expected": "819 total displacements", "observed": "819 total displacements" },
+        { "action": "Count FVG-creating displacements", "expected": "171 FVG-creating", "observed": "171 FVG-creating" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "5m total=819, FVG-creating=171"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-003",
+      "title": "Displacement 15m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m bars to 15m", "expected": "480 bars", "observed": "480 bars" },
+        { "action": "Run DisplacementDetector.detect on 15m bars with locked params", "expected": "258 total displacements", "observed": "258 total displacements" },
+        { "action": "Count FVG-creating displacements", "expected": "76 FVG-creating", "observed": "76 FVG-creating" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "15m total=258, FVG-creating=76"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-004",
+      "title": "Displacement per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detector on all 3 TFs, compare time/direction/atr_multiple/body_ratio/displacement_type/quality_grade/qualification_path per detection against baseline", "expected": "0 mismatches across all TFs", "observed": "0 mismatches: 1m (29190 comparisons), 5m (5733 comparisons), 15m (1806 comparisons)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "1m: 0 mismatches/29190, 5m: 0 mismatches/5733, 15m: 0 mismatches/1806"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-005",
+      "title": "Quality grade distribution on 5m",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detector on 5m, count quality_grade distribution", "expected": "STRONG=65, VALID=133, WEAK=138, null=483", "observed": "STRONG=65, VALID=133, WEAK=138, null=483" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "STRONG: 65, VALID: 133, WEAK: 138, null: 483"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-006",
+      "title": "Decisive override detection",
+      "status": "pass",
+      "steps": [
+        { "action": "Filter 5m results for qualification_path=='DECISIVE_OVERRIDE'", "expected": "Exactly 6 overrides", "observed": "6 overrides" },
+        { "action": "Verify each override has body_ratio>=0.75, range_pips>=5.0", "expected": "All 6 meet criteria", "observed": "All 6 meet criteria" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "6 DECISIVE_OVERRIDE, all meet body>=0.75 and range_pips>=5.0 criteria"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-007",
+      "title": "Cluster-2 detection count",
+      "status": "pass",
+      "steps": [
+        { "action": "Filter 5m results for displacement_type=='CLUSTER_2'", "expected": "Exactly 72 CLUSTER_2 displacements", "observed": "72 CLUSTER_2 displacements" },
+        { "action": "Verify each has cluster_net_eff>=0.65 and cluster_overlap<=0.35", "expected": "All 72 meet constraints", "observed": "All 72 meet constraints" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "72 CLUSTER_2, all with net_eff>=0.65 and overlap<=0.35"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DISP-008",
+      "title": "Evaluation order enforcement",
+      "status": "pass",
+      "steps": [
+        { "action": "For each DECISIVE_OVERRIDE, check if atr_multiple>=1.25 (which would give it a quality grade and be caught by single_atr first)", "expected": "No override has atr_multiple>=1.25", "observed": "No override has atr_multiple>=1.25 — all correctly below ATR threshold, confirming evaluation order" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "0 overrides also qualify via ATR_RELATIVE (none have atr_multiple >= 1.25)"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 8 assertions: 8 passed, 0 failed, 0 blocked. All displacement regression counts (1m: 4170/608, 5m: 819/171, 15m: 258/76), per-detection field matching (36729 field comparisons, 0 mismatches), quality grade distribution, decisive override detection (6), cluster-2 detection (72), and evaluation order enforcement all confirmed working correctly."
+}

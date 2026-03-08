@@ -1,0 +1,129 @@
+{
+  "groupId": "fvg-assertions",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "pure-python-library"
+  },
+  "toolsUsed": ["python3 -c inline checks"],
+  "assertions": [
+    {
+      "id": "VAL-FVG-001",
+      "title": "FVG 1m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars from CSV, tag sessions", "expected": "7177 bars loaded", "observed": "7177 bars loaded" },
+        { "action": "Run FVGDetector on 1m bars with floor_threshold_pips=0.5", "expected": "2017 FVGs (1026 bullish, 991 bearish)", "observed": "2017 FVGs (1026 bullish, 991 bearish)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "VAL-FVG-001 (1m): total=2017 (expect 2017), bull=1026 (expect 1026), bear=991 (expect 991) — PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-002",
+      "title": "FVG 5m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m bars to 5m, tag sessions", "expected": "1440 bars", "observed": "1440 bars" },
+        { "action": "Run FVGDetector on 5m bars with floor_threshold_pips=0.5", "expected": "345 FVGs (179 bullish, 166 bearish)", "observed": "345 FVGs (179 bullish, 166 bearish)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "VAL-FVG-002 (5m): total=345 (expect 345), bull=179 (expect 179), bear=166 (expect 166) — PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-003",
+      "title": "FVG 15m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m bars to 15m, tag sessions", "expected": "480 bars", "observed": "480 bars" },
+        { "action": "Run FVGDetector on 15m bars with floor_threshold_pips=0.5", "expected": "118 FVGs (58 bullish, 60 bearish)", "observed": "118 FVGs (58 bullish, 60 bearish)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "VAL-FVG-003 (15m): total=118 (expect 118), bull=58 (expect 58), bear=60 (expect 60) — PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-004",
+      "title": "FVG per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare all FVG detection fields (anchor_time, detect_time, bar_index, top, bottom, gap_pips, ce, type, session, forex_day, tf, vi_confluent) against baseline fixtures for 1m/5m/15m", "expected": "All fields match within 1e-6 tolerance for price fields", "observed": "15m: ALL 118 detections match, 5m: ALL 345 detections match, 1m: ALL 2017 detections match" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "15m: ALL 118 detections match baseline - PASS; 5m: ALL 345 detections match baseline - PASS; 1m: ALL 2017 detections match baseline - PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-005",
+      "title": "IFVG state transitions",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare ce_touched_bar, ce_touched_time, boundary_closed_bar, boundary_closed_time fields for all FVGs against baseline on 1m/5m/15m", "expected": "All IFVG state fields match baseline", "observed": "15m: 111 CE_TOUCHED, 104 BOUNDARY_CLOSED match; 5m: 322 CE_TOUCHED, 308 BOUNDARY_CLOSED match; 1m: 1961 CE_TOUCHED, 1908 BOUNDARY_CLOSED match" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "15m: IFVG states match (111 CE_TOUCHED, 104 BOUNDARY_CLOSED) - PASS; 5m: IFVG states match (322 CE_TOUCHED, 308 BOUNDARY_CLOSED) - PASS; 1m: IFVG states match (1961 CE_TOUCHED, 1908 BOUNDARY_CLOSED) - PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-006",
+      "title": "BPR overlap zones",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify BPR zones computed correctly: source FVG types (bull/bear), overlap_top = min(bull_top, bear_top), overlap_bottom = max(bull_bottom, bear_bottom), positive overlap", "expected": "All BPR zone boundaries correct", "observed": "15m: 284 BPR zones correct; 5m: 1249 BPR zones correct; 1m: 21992 BPR zones correct" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "15m: 284 BPR zones, all boundaries correct - PASS; 5m: 1249 BPR zones, all boundaries correct - PASS; 1m: 21992 BPR zones, all boundaries correct - PASS"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FVG-007",
+      "title": "Floor threshold as metadata not hard filter",
+      "status": "pass",
+      "steps": [
+        { "action": "Run FVGDetector on 5m with floor_threshold_pips=0.5, verify sub-floor FVGs are emitted and only metadata tracks the split", "expected": "345 total FVGs including sub-floor ones; floor is metadata annotation only", "observed": "345 total: 109 sub-floor (gap_pips < 0.5) + 236 above-floor; metadata correctly tracks above_floor_count=236, below_floor_count=109" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "VAL-FVG-007 (5m): total=345, sub_floor=109, above_floor=236. Floor threshold is metadata/stats only, not a hard filter. PASS"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The task prompt's setup code uses 'aggregate_tf' but the actual function name is 'aggregate'. Also, config params are Pydantic models (not dicts), so params must be passed as a flat dict {'floor_threshold_pips': 0.5} rather than using config.primitives['fvg'].params directly.",
+      "resolved": true,
+      "resolution": "Used correct import 'from ra.data.tf_aggregator import aggregate' and flat dict params as shown in existing test_fvg.py",
+      "affectedAssertions": ["VAL-FVG-001", "VAL-FVG-002", "VAL-FVG-003", "VAL-FVG-004", "VAL-FVG-005", "VAL-FVG-006", "VAL-FVG-007"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 7 assertions: all 7 passed. FVG detector produces exact regression counts on 1m (2017), 5m (345), 15m (118). Per-detection fields match baseline within 1e-6 tolerance. IFVG state transitions (CE_TOUCHED, BOUNDARY_CLOSED) match baseline across all TFs. BPR overlap zones have correct boundaries. Floor threshold is metadata-only annotation — 109 sub-floor FVGs emitted on 5m."
+}

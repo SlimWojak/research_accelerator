@@ -1,0 +1,102 @@
+{
+  "groupId": "supporting-leaf-assertions",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "pure-python-library"
+  },
+  "toolsUsed": ["python3 -c inline checks"],
+  "assertions": [
+    {
+      "id": "VAL-SESS-001",
+      "title": "Session Liquidity box classifications",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and 1m bars", "expected": "Config loaded, 7177 bars tagged", "observed": "Config loaded, bars tagged successfully" },
+        { "action": "Run SessionLiquidityDetector.detect()", "expected": "15 boxes (5 days x 3)", "observed": "15 boxes produced" },
+        { "action": "Compare classifications against baseline", "expected": "All 15 match: Jan8(CONSOLIDATION_BOX/TREND_OR_EXPANSION-UP/TREND_OR_EXPANSION-UP), Jan9(CONSOLIDATION_BOX/TREND_OR_EXPANSION-DOWN/TREND_OR_EXPANSION-DOWN), Jan10(CONSOLIDATION_BOX/TREND_OR_EXPANSION-DOWN/CONSOLIDATION_BOX), Jan11(CONSOLIDATION_BOX/TREND_OR_EXPANSION-UP/TREND_OR_EXPANSION-UP), Jan12(CONSOLIDATION_BOX/CONSOLIDATION_BOX/TREND_OR_EXPANSION-DOWN)", "observed": "All 15 classifications and trend_direction values match baseline exactly" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "15 boxes produced. All 15 classification+trend_direction pairs match: Jan8(CONSOLIDATION_BOX/None, TREND_OR_EXPANSION/UP, TREND_OR_EXPANSION/UP), Jan9(CONSOLIDATION_BOX/None, TREND_OR_EXPANSION/DOWN, TREND_OR_EXPANSION/DOWN), Jan10(CONSOLIDATION_BOX/None, TREND_OR_EXPANSION/DOWN, CONSOLIDATION_BOX/None), Jan11(CONSOLIDATION_BOX/None, TREND_OR_EXPANSION/UP, TREND_OR_EXPANSION/UP), Jan12(CONSOLIDATION_BOX/None, CONSOLIDATION_BOX/None, TREND_OR_EXPANSION/DOWN)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SESS-002",
+      "title": "Session Liquidity range values",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and 1m bars", "expected": "Config loaded, bars tagged", "observed": "Config loaded, bars tagged successfully" },
+        { "action": "Run SessionLiquidityDetector.detect()", "expected": "15 boxes with range_pips values", "observed": "15 boxes produced" },
+        { "action": "Compare range_pips against baseline", "expected": "Asia Jan8=22.4, Jan9=17.0, Jan10=10.3, Jan11=11.7, Jan12=12.7 plus PreLondon and PreNY values", "observed": "All 15 range_pips match: Asia(22.4,17.0,10.3,11.7,12.7), PreLondon(14.7,8.2,10.4,14.0,7.2), PreNY(16.4,19.4,13.7,23.8,17.5)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "All 15 range_pips match baseline exactly: Jan8 ASIA=22.4/PRE_LONDON=14.7/PRE_NY=16.4, Jan9 ASIA=17.0/PRE_LONDON=8.2/PRE_NY=19.4, Jan10 ASIA=10.3/PRE_LONDON=10.4/PRE_NY=13.7, Jan11 ASIA=11.7/PRE_LONDON=14.0/PRE_NY=23.8, Jan12 ASIA=12.7/PRE_LONDON=7.2/PRE_NY=17.5"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ASIA-001",
+      "title": "Asia Range parametric classification",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and 1m bars", "expected": "Config loaded, bars tagged", "observed": "Config loaded, bars tagged successfully" },
+        { "action": "Run AsiaRangeDetector.detect()", "expected": "5 days of Asia range data", "observed": "5 days produced" },
+        { "action": "Compare range_pips against expected", "expected": "Jan8=22.4, Jan9=17.0, Jan10=10.3, Jan11=11.7, Jan12=12.7", "observed": "All 5 range_pips match exactly" },
+        { "action": "Compare parametric classifications at all thresholds (12,15,18,20,25,30)", "expected": "Classifications match baseline fixture", "observed": "All classifications at all thresholds match baseline. Jan8: WIDE at 12/15/18/20, TIGHT at 25/30. Jan9: WIDE at 12/15, TIGHT at 18/20/25/30. Jan10: all TIGHT. Jan11: all TIGHT. Jan12: WIDE at 12, TIGHT at 15/18/20/25/30." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "5 days, all range_pips and classifications match baseline fixture exactly"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-REF-001",
+      "title": "Reference levels exact match",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and 1m bars", "expected": "Config loaded, bars tagged", "observed": "Config loaded, bars tagged successfully" },
+        { "action": "Run ReferenceLevelDetector.detect()", "expected": "5 days of reference levels", "observed": "5 days produced" },
+        { "action": "Compare PWH/PWL", "expected": "PWH=1.10001, PWL=1.09104", "observed": "PWH=1.10001, PWL=1.09104 — exact match within 1e-6" },
+        { "action": "Compare PDH/PDL per forex day", "expected": "Jan9 PDH=1.09789/PDL=1.09227, Jan10 PDH=1.096635/PDL=1.09104, Jan11 PDH=1.097315/PDL=1.09229, Jan12 PDH=1.10001/PDL=1.093035", "observed": "All PDH/PDL values match baseline within 1e-6 tolerance" },
+        { "action": "Compare day_high/day_low per forex day", "expected": "Values from levels_data.json", "observed": "All day_high/day_low values match baseline within 1e-6" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "PWH=1.10001 (match), PWL=1.09104 (match). All 5 days: day_high, day_low, pdh, pdl, midnight_open match baseline within 1e-6 tolerance."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-EQHL-001",
+      "title": "Equal HL stub raises NotImplementedError",
+      "status": "pass",
+      "steps": [
+        { "action": "Import EqualHLDetector and call detect()", "expected": "NotImplementedError raised", "observed": "NotImplementedError raised with message: 'EqualHLDetector is DEFERRED. Equal High/Low detection is not yet implemented.'" },
+        { "action": "Register EqualHLDetector in Registry", "expected": "Registration succeeds, registry.has('equal_hl') returns True", "observed": "Registration succeeded, registry.has('equal_hl', 'a8ra_v1') returns True" },
+        { "action": "Verify primitive_name", "expected": "primitive_name == 'equal_hl'", "observed": "primitive_name == 'equal_hl'" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "pythonOutput": "detect() raises NotImplementedError as expected. Module registers in Registry with key ('equal_hl', 'a8ra_v1')."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 5 assertions: all 5 passed. VAL-SESS-001 (15/15 box classifications match), VAL-SESS-002 (15/15 range_pips match), VAL-ASIA-001 (5/5 days range_pips + all threshold classifications match), VAL-REF-001 (PWH/PWL + all per-day PDH/PDL/day_high/day_low within 1e-6), VAL-EQHL-001 (NotImplementedError raised, module registered)."
+}
