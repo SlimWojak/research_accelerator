@@ -1,0 +1,51 @@
+{
+  "featureId": "mss-detector",
+  "reviewedAt": "2026-03-08T10:50:00.000Z",
+  "commitId": "1d4fd2836c9da84f7bf4047788593ec94eef0fc4",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "MSSDetector correctly implements composite swing+displacement+FVG detection with exact regression match on all 3 TFs (1m=179, 5m=44, 15m=20). The _common.py extraction is clean with backward-compatible aliases in 6 leaf detectors. 22 new tests with thorough coverage (count regression, per-detection field match, window_used distribution, cluster-straddle, ghost bar, interface). 231 total tests green with no regressions. Code is well-structured, follows the PrimitiveDetector ABC pattern, and correctly implements all specified behaviors: confirmation window, impulse suppression with 3 reset triggers, swing consumption, FVG tag-only, and REVERSAL/CONTINUATION classification.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/mss.py",
+        "line": 31,
+        "severity": "non_blocking",
+        "description": "_compute_atr() is duplicated in 4 detectors (mss.py, displacement.py, htf_liquidity.py, liquidity_sweep.py). Since _common.py was just created to consolidate shared utilities, this would be a natural candidate for extraction there. Not blocking since each copy matches the pipeline implementation."
+      },
+      {
+        "file": "src/ra/detectors/mss.py",
+        "line": 169,
+        "severity": "non_blocking",
+        "description": "disp_key = 'atr1.5_br0.6' is hardcoded rather than derived from displacement config params (atr_multiplier, body_ratio). If displacement thresholds change, this key would silently break. At locked params this works correctly, but coupling the key to config values would be more robust."
+      },
+      {
+        "file": "src/ra/detectors/mss.py",
+        "line": 212,
+        "severity": "non_blocking",
+        "description": "Most-recent-swing lookup is O(n*m) — linear scan through reversed swing list for each bar. Acceptable for current dataset sizes (7177 bars, ~833 swings on 1m), but could use binary search or a pointer-based approach for larger datasets."
+      },
+      {
+        "file": "src/ra.egg-info/SOURCES.txt",
+        "line": 1,
+        "severity": "non_blocking",
+        "description": "Auto-generated SOURCES.txt is committed to git. The misc-gitignore-cleanup feature will address this by adding src/ra.egg-info/ to .gitignore."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker noted that swing Detection objects store price on Detection.price (not in properties dict), which was a debugging gotcha. The ra-engine-worker skill doesn't mention how upstream Detection objects store their fields. Adding a note about Detection field access patterns (especially price vs properties) would help future composite detector workers.",
+      "evidence": "handoff.skillFeedback.suggestedChanges: 'The skill could mention that swing Detection objects store price on Detection.price, not in properties dict — this was a gotcha that required debugging'"
+    },
+    {
+      "area": "conventions",
+      "observation": "_compute_atr() is now duplicated in 4 detector files (displacement.py:89, htf_liquidity.py:52, liquidity_sweep.py:49, mss.py:31). The _common.py extraction in this commit addressed PIP, SESSION_MAP, map_session, bar_time_str, and TF_MINUTES but not _compute_atr. AGENTS.md's 'Shared Detector Utilities' section could note that _compute_atr is another candidate for consolidation.",
+      "evidence": "grep for _compute_atr shows definitions in 4 files; _common.py only has the simpler utilities"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. MSSDetector implementation is correct and complete. All regression targets met exactly (1m=179/88rev/91cont/129fvg, 5m=44/20rev/24cont/35fvg, 15m=20/10rev/10cont/17fvg). The _common.py extraction consolidates shared utilities from 6 leaf detectors cleanly. 22 comprehensive tests added, 231 total tests green. Four non-blocking observations noted: ATR function duplication across 4 files, hardcoded displacement qualification key, O(n*m) swing lookup, and auto-generated SOURCES.txt in git. Worker followed skill procedure and provided helpful feedback about Detection.price access pattern for future composite workers."
+}

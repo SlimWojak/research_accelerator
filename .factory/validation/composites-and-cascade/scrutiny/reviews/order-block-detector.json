@@ -1,0 +1,56 @@
+{
+  "featureId": "order-block-detector",
+  "reviewedAt": "2026-03-08T17:45:00Z",
+  "commitId": "0233c8a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "OrderBlockDetector faithfully reproduces the pipeline's detect_order_blocks() behavior. The algorithm logic (MSS-triggered anchor search, 3-bar conditional fallback with thin candle filter, body-only execution zone, full candle invalidation zone, retest tracking with TF-specific look-ahead windows) is correctly implemented and matches the reference line-for-line. All regression counts are exact (1m=138, 5m=37, 15m=17), per-detection field matching covers zone boundaries, broken swing, direction, times, and retest lists. Test coverage is thorough with 15 tests across 6 test classes. Ghost bar handling is correctly added beyond the pipeline baseline. The code is clean, well-documented, config-driven, and follows all project conventions.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/order_block.py",
+        "line": 1,
+        "severity": "non_blocking",
+        "description": "Module docstring mentions 'State machine: ACTIVE -> MITIGATED/INVALIDATED/EXPIRED' but no state machine is implemented. The pipeline reference also doesn't implement state transitions, and the baseline fixtures don't include state fields. The docstring is aspirational/misleading — should either be removed or annotated as 'future work'."
+      },
+      {
+        "file": "src/ra/detectors/order_block.py",
+        "line": 240,
+        "severity": "non_blocking",
+        "description": "Detection ID uses primitive='ob' while class has primitive_name='order_block'. This abbreviation is likely intentional for shorter IDs but creates a minor naming inconsistency. Other detectors should be checked for consistency in ID prefix vs primitive_name."
+      },
+      {
+        "file": "src/ra/detectors/order_block.py",
+        "line": 158,
+        "severity": "non_blocking",
+        "description": "Fallback scan re-checks the bar at mss_idx-1 that already failed the primary check (when it failed _is_valid_ob_candle but not ghost check). This is redundant but matches pipeline behavior exactly, so it's correct. A micro-optimization could start fallback from mss_idx-2 when primary was non-ghost, but this would risk diverging from pipeline behavior."
+      },
+      {
+        "file": "tests/test_order_block.py",
+        "line": 44,
+        "severity": "non_blocking",
+        "description": "Test params include 'expiration_bars' and 'min_displacement_grade' config keys that the detector never reads. These are dead config params — harmless since the detector uses .get() with defaults, but they suggest the feature description's state machine (expiration) was scoped but not implemented. Not a bug since regression targets don't require it."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Worker noted a pre-existing inconsistency: displacement params in MSS test use flat key names (atr_multiplier, body_ratio, close_gate) vs the config schema's nested ltf/htf structure (single.atr_multiple). Both formats work but inconsistency could confuse future workers. This naming divergence is not documented in AGENTS.md.",
+      "evidence": "Handoff discoveredIssues[0]: 'Displacement params in MSS test use different key names... vs the config schema's nested ltf/htf structure.' Compare tests/test_mss.py locked params vs configs/locked_baseline.yaml."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker suggested skill improvement: 'The skill could mention that composite detector tests need to use the exact same upstream param format as the upstream detector tests, not just the YAML config schema format.' This is a valid gap — composite detector workers need to replicate the exact param dicts from upstream tests, not construct from YAML schema.",
+      "evidence": "Handoff skillFeedback.suggestedChanges[0]. Worker followedProcedure=true with no deviations."
+    },
+    {
+      "area": "conventions",
+      "observation": "Detection ID primitive prefix ('ob') differs from class primitive_name ('order_block'). This pattern may or may not be consistent across other detectors. If it's a convention (short prefixes for IDs), it should be documented. If not, it could lead to inconsistencies.",
+      "evidence": "src/ra/detectors/order_block.py:240 — make_detection_id(primitive='ob', ...) vs line 79 primitive_name='order_block'. Compare with other detectors' ID generation."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "OrderBlockDetector implementation passes review. The code correctly implements MSS-triggered order block detection with conditional 3-bar fallback scan, thin candle filter (body_pct >= 0.10), body-only execution zones, full candle invalidation zones, and TF-specific retest tracking. All regression targets hit exactly (1m=138, 5m=37, 15m=17). Test coverage is comprehensive with 15 tests across count regression, per-detection field match, retest tracking, upstream validation, direction split, ghost bar handling, and metadata verification. Full suite of 246 tests passes with no regressions. Four non-blocking issues noted: aspirational state machine in docstring not implemented, detection ID primitive abbreviation inconsistency, redundant fallback re-check (matching pipeline), and unused config params in tests."
+}

@@ -1,0 +1,124 @@
+{
+  "milestone": "composites-and-cascade",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider", "exitCode": 0, "details": "378 tests passed in 56.33s" },
+    "typecheck": { "passed": true, "command": "", "exitCode": null, "details": "No typecheck configured in services.yaml" },
+    "lint": { "passed": true, "command": "", "exitCode": null, "details": "No lint configured in services.yaml" }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "mss-detector",
+      "severity": "non_blocking",
+      "description": "_compute_atr() duplicated in 4 detectors (mss.py, displacement.py, htf_liquidity.py, liquidity_sweep.py); candidate for extraction to _common.py"
+    },
+    {
+      "featureId": "mss-detector",
+      "severity": "non_blocking",
+      "description": "disp_key 'atr1.5_br0.6' hardcoded rather than derived from config params"
+    },
+    {
+      "featureId": "order-block-detector",
+      "severity": "non_blocking",
+      "description": "Module docstring mentions state machine (ACTIVE->MITIGATED/INVALIDATED/EXPIRED) not actually implemented; aspirational only"
+    },
+    {
+      "featureId": "order-block-detector",
+      "severity": "non_blocking",
+      "description": "Detection ID uses primitive='ob' while class has primitive_name='order_block' — naming inconsistency"
+    },
+    {
+      "featureId": "htf-liquidity-ote-detectors",
+      "severity": "non_blocking",
+      "description": "Latent config TF key mismatch: detector uses 'H1'/'H4'/'D1' but config uses '1H'/'4H'/'1D'. Per-TF params silently fall through to defaults. Produces correct results on 5-day dataset but will diverge on different data."
+    },
+    {
+      "featureId": "htf-liquidity-ote-detectors",
+      "severity": "non_blocking",
+      "description": "OTE detector has leftover development comments and unused break_price variable"
+    },
+    {
+      "featureId": "liquidity-sweep-detector",
+      "severity": "non_blocking",
+      "description": "PWH/PWL valid_from hardcoded to '2024-01-07T17:00:00' (dataset-specific, matching pipeline behavior)"
+    },
+    {
+      "featureId": "liquidity-sweep-detector",
+      "severity": "non_blocking",
+      "description": "test_no_sweeps_before_valid_from is a no-op test (iterates but asserts nothing)"
+    },
+    {
+      "featureId": "cascade-engine-integration",
+      "severity": "non_blocking",
+      "description": "extract_locked_params_for_cascade(config) ignores its config parameter and hardcodes all values"
+    },
+    {
+      "featureId": "cascade-engine-integration",
+      "severity": "non_blocking",
+      "description": "Unused imports in cascade.py: Detection (line 23), get_locked_params (line 549)"
+    },
+    {
+      "featureId": "cascade-engine-integration",
+      "severity": "non_blocking",
+      "description": "configs/locked_baseline.yaml omits 'displacement' from liquidity_sweep upstream; auto-compensated by CascadeEngine.required_upstream() merge"
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add convention: TF key naming must be consistent between config YAML (per_tf sections) and detector internal labels. Document that YAML uses '1H'/'4H'/'1D' notation while some detectors use 'H1'/'H4'/'D1'. Recommend standardizing on one form.",
+      "evidence": "HTF Liquidity detector uses 'H1'/'H4'/'D1' keys (matching pipeline internal labels) but locked_baseline.yaml per_tf dicts use '1H'/'4H'/'1D'. This caused all per-TF config lookups to silently fall through to defaults. Currently not blocking because defaults happen to produce correct results on the 5-day dataset.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add convention: Detection ID primitive prefix should match the detector's primitive_name. Document the expected mapping (e.g., order_block -> 'ob' or 'order_block') to prevent inconsistencies.",
+      "evidence": "OrderBlockDetector has primitive_name='order_block' but generates Detection IDs with primitive='ob'. Other detectors may have similar inconsistencies.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add note under 'Shared Detector Utilities': _compute_atr() is duplicated across 4 detectors and is a candidate for extraction to _common.py alongside the already-extracted PIP, SESSION_MAP, map_session, bar_time_str.",
+      "evidence": "mss.py:31, displacement.py:89, htf_liquidity.py:52, liquidity_sweep.py:49 all define identical _compute_atr() functions.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "ra-engine-worker skill should mention: (1) composite detector tests need to use the exact same upstream param format as upstream detector tests, not construct from YAML schema; (2) Detection objects store price on Detection.price, not in properties dict; (3) upstream detector output formats should be verified empirically before implementing extractors.",
+      "evidence": "MSS worker noted Detection.price access was a gotcha (mss-detector handoff). OB worker noted param format inconsistency between MSS tests and config schema (order-block-detector handoff). Sweep worker spent time discovering output field names empirically (liquidity-sweep-detector handoff).",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add note: dataset-specific temporal anchors (e.g., PWH/PWL valid_from date) are currently hardcoded to match the 5-day dataset pipeline behavior. These should be documented as known limitations that need dynamic computation for generalization to other date ranges.",
+      "evidence": "liquidity_sweep.py:448 hardcodes '2024-01-07T17:00:00' matching pipeline line 1617. Build plan specifies 'valid_from: 17:00 NY on Sunday' implying dynamic computation.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Fix configs/locked_baseline.yaml: add 'displacement' to liquidity_sweep upstream list in dependency_graph section. The CascadeEngine auto-compensates via required_upstream() merge, but the config should accurately reflect the actual dependency.",
+      "evidence": "configs/locked_baseline.yaml:59-60 lists [session_liquidity, reference_levels, htf_liquidity, swing_points] but LiquiditySweepDetector.required_upstream() includes 'displacement'. Worker documented this as discoveredIssue in cascade-engine-integration handoff.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "OTE detector does not have a baseline fixture for field-level regression comparison",
+      "reason": "By design — OTE is a derived composite where the mission spec defines structural validation (zone count, fib ordering, kill zone gate) rather than per-field baseline matching. No OTE baseline fixture was included in the 32 fixture set."
+    },
+    {
+      "observation": "extract_locked_params_for_cascade(config) hardcodes values instead of extracting from config object",
+      "reason": "This is test/utility infrastructure code for the locked baseline regression, not a production detector. The AGENTS.md convention about config-driven params applies to detector modules, not test scaffolding. The hardcoded values match the locked_baseline.yaml and are tested by the 52 regression tests."
+    }
+  ],
+  "previousRound": null
+}

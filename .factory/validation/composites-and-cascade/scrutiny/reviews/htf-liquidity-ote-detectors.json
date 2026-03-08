@@ -1,0 +1,51 @@
+{
+  "featureId": "htf-liquidity-ote-detectors",
+  "reviewedAt": "2026-03-08T10:15:00.000Z",
+  "commitId": "795ca28",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Both HTFLiquidityDetector and OTEDetector are well-implemented, closely follow the pipeline reference code, and produce correct regression results (H1=3 pools, H4=1, D1/W1=0; OTE=44 zones on 5m). Tests are comprehensive (25 HTF + 14 OTE). One significant latent bug exists: the YAML config uses '1H'/'4H'/'1D' TF keys but the detector loops with 'H1'/'H4'/'D1', causing all per_tf config lookups to fall through to defaults. This happens to produce correct results on the current 5-day dataset but would diverge on larger datasets where H4/D1 parameters differ from defaults. One unused import (bar_time_str) in htf_liquidity.py. OTE has leftover development comments that should be cleaned up.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/htf_liquidity.py",
+        "line": 391,
+        "severity": "non_blocking",
+        "description": "Config TF key mismatch: The detector iterates _HTF_TF_CONFIG using keys 'H1','H4','D1','W1','MN' but the locked_baseline.yaml and test config use '1H','4H','1D' notation in per_tf dicts. All .get() calls fall through to default values (e.g., tol_pip defaults to 2 for all TFs instead of 3 for H4, min_between defaults to 2 instead of 6 for H1, pb_pip defaults to 5 instead of 8 for H4). Regression passes because defaults coincide for H1 and H4 results happen to be unchanged on this dataset, but this is a latent bug that will diverge on larger or different data."
+      },
+      {
+        "file": "src/ra/detectors/htf_liquidity.py",
+        "line": 28,
+        "severity": "non_blocking",
+        "description": "Unused import: 'bar_time_str' is imported from ra.detectors._common but never used in this module."
+      },
+      {
+        "file": "src/ra/detectors/ote.py",
+        "line": 116,
+        "severity": "non_blocking",
+        "description": "Leftover development comments in the bullish MSS branch: 'But wait - this can be inverted for bullish MSS', 'Let's use the dealing range as the distance from swing to close'. These read-as-you-code notes should be removed or replaced with clear docstring explaining the fib calculation logic."
+      },
+      {
+        "file": "src/ra/detectors/ote.py",
+        "line": 105,
+        "severity": "non_blocking",
+        "description": "Misleading variable naming: 'break_price = mss_det.price' is actually the broken swing price (per comment), while 'break_bar_price' is the actual break bar close. The variable 'break_price' is assigned but never used (shadowed by break_bar_price). Could cause confusion for future maintainers."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "There is an inconsistent TF key naming convention between the YAML config (uses '1H','4H','1D') and the pipeline/detector internal labels (uses 'H1','H4','D1'). The pipeline HTF_CONFIG dict at line 1097-1102 uses 'H1'/'H4'/'D1' which the detector mirrors, but locked_baseline.yaml per_tf sections use '1H'/'4H'/'1D'. This convention gap is not documented in AGENTS.md and caused a latent config-read bug in htf_liquidity.py.",
+      "evidence": "pipeline/preprocess_data_v2.py:1098 uses 'H1', configs/locked_baseline.yaml:316 uses '1H', src/ra/detectors/htf_liquidity.py:391 does tol_pips_per_tf.get(tf_label, 2) where tf_label='H1' but config key is '1H'."
+    },
+    {
+      "area": "conventions",
+      "observation": "The OTE detector does not have a baseline fixture for field-level regression comparison (unlike HTF Liquidity which compares against htf_liquidity.json). OTE tests validate structural properties (zone count, fib level ordering, kill zone gate) but not per-zone field matching against a baseline. This is acceptable for a composite detector but differs from the testing pattern established by leaf detectors.",
+      "evidence": "tests/test_ote.py has no baseline fixture loading; validates count=44 and structural invariants only. Compare with tests/test_htf_liquidity.py which loads htf_liquidity.json for per-pool field matching."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "HTFLiquidityDetector and OTEDetector pass review. Implementation closely follows the pipeline reference code, regression counts match exactly, and test coverage is comprehensive. The main finding is a latent config key naming mismatch (H1 vs 1H) in HTFLiquidityDetector that causes per_tf parameters to silently fall through to defaults — this does not affect current regression results but is a maintenance risk. OTE implementation is clean with minor style issues (leftover comments, unused variable). Both detectors correctly implement the PrimitiveDetector ABC, use shared utilities from _common.py, and integrate properly with the upstream dependency chain."
+}

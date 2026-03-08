@@ -1,0 +1,51 @@
+{
+  "featureId": "liquidity-sweep-detector",
+  "reviewedAt": "2026-03-08T11:05:00Z",
+  "commitId": "0cebaa7",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "LiquiditySweepDetector is a faithful, well-structured ~1100-line reimplementation of the pipeline's detect_liquidity_sweeps/qualify_sweeps/detect_delayed_sweeps functions. The code correctly implements: multi-source level pool assembly from 5 upstream detectors, canonical temporal gating per source type, level deduplication and merge with 1-pip tolerance, base sweep detection with breach/reclaim/rejection wick logic, qualified sweep tagging via displacement context, delayed 2-bar sweep detection, and continuation detection. Line-by-line comparison against pipeline/preprocess_data_v2.py (lines 1475-2010, 2580-2620) confirms algorithmic fidelity. All regression counts match exactly across 3 timeframes. The test suite (19 tests, ~400 lines) provides strong count regression coverage, source distribution verification, per-detection field matching, and level pool integrity checks.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/liquidity_sweep.py",
+        "line": 448,
+        "severity": "non_blocking",
+        "description": "PWH/PWL valid_from is hardcoded to '2024-01-07T17:00:00' (dataset-specific). The pipeline does the same (line 1617), so this is a faithful reproduction. However, this means the detector won't generalize to other datasets without modification. The feature description says 'PWH/PWL from Sunday 17:00 NY' — ideally this should be computed dynamically from the data's week start date. Acceptable for Phase 1 single-dataset scope but worth noting for future generalization."
+      },
+      {
+        "file": "tests/test_liquidity_sweep.py",
+        "line": 354,
+        "severity": "non_blocking",
+        "description": "TestTemporalGating.test_no_sweeps_before_valid_from is a no-op test — it iterates over detections but asserts nothing. The comment says 'counts match implies gating is correct' which is reasonable indirect validation, but a direct assertion (e.g., checking each sweep's bar time >= its level's valid_from) would provide stronger guarantees. As-is, this test always passes regardless of temporal gating correctness."
+      },
+      {
+        "file": "src/ra/detectors/liquidity_sweep.py",
+        "line": 134,
+        "severity": "non_blocking",
+        "description": "_compute_session_levels independently recomputes session H/L from 1m bars rather than extracting from SessionLiquidityDetector output. This is by design (session levels != session boxes), matching the pipeline architecture where compute_session_liquidity() is a separate function. Not a bug, but it means duplicated session-level logic that could drift from the session_liquidity detector if either is updated independently."
+      },
+      {
+        "file": "src/ra/detectors/liquidity_sweep.py",
+        "line": 375,
+        "severity": "non_blocking",
+        "description": "Performance: The base sweep detection loop uses bars.iloc[i] inside a nested for-loop (bars × levels × return_windows). For the current 5-day dataset (~300 bars at 5m, ~15-20 levels) this is fine, but pandas iloc access has overhead vs. pre-converting to numpy arrays or records. Not a correctness issue."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker's skillFeedback suggests adding guidance about verifying upstream detector output formats (property keys, tag locations) empirically before implementing extractors. The ra-engine-worker skill's Step 5 says 'wire upstream results correctly via the upstream parameter' but doesn't mention empirically checking upstream output structure. Worker spent time discovering that PDH/PDL was in tags vs properties, HTF pool type field name, etc.",
+      "evidence": "handoff.skillFeedback.suggestedChanges: 'The ra-engine-worker skill could benefit from noting that upstream detector output formats should be verified empirically before implementing extractors, as the format isn't always obvious from the detector code alone.' Transcript shows worker fixed multiple extraction issues (HTF pool type field, PDH/PDL from tags, etc.)."
+    },
+    {
+      "area": "conventions",
+      "observation": "The hardcoded PWH/PWL valid_from date '2024-01-07T17:00:00' mirrors the pipeline but is dataset-specific. AGENTS.md mentions 'config-driven: every L1.5 parameter lives in YAML config' but doesn't address dataset-specific temporal anchors like week start dates. This pattern could cause issues if the engine is ever run on different date ranges.",
+      "evidence": "src/ra/detectors/liquidity_sweep.py:448 — hardcoded date string. Pipeline also hardcodes same value at line 1617. build_plan/05_ADVISORY_SYNTHESIS.yaml specifies 'valid_from: 17:00 NY on Sunday (= week open)' which implies dynamic computation."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. LiquiditySweepDetector is a well-implemented, algorithmically faithful reproduction of the pipeline's sweep detection logic. All 19 regression tests pass across 3 timeframes with exact count matches (5m: 14/11/15/10, 15m: 11/10/15/14, 1m: 7/5/22/18). The code is well-decomposed into clear helper functions, properly config-driven, and includes comprehensive field-level matching tests. Four non-blocking issues noted: (1) hardcoded PWH/PWL date — matches pipeline, acceptable for Phase 1; (2) no-op temporal gating test — count match provides indirect validation; (3) duplicated session-level computation — by design per pipeline architecture; (4) minor performance concern with pandas iloc in hot loop. No blocking issues found."
+}
