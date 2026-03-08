@@ -1,0 +1,481 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# a8ra RESEARCH ACCELERATOR — RUNTIME CONFIG SCHEMA
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# PURPOSE: Machine-parseable configuration that the RA detection engine reads
+#          at runtime. Derived from SYNTHETIC_OLYA_METHOD_v0.5.yaml but stripped
+#          to fields the engine actually consumes. No prose, no rationale.
+#
+# RULE: If you're editing Python to explore a parameter, the system has failed.
+#       Every tunable value lives HERE as config, not in detection code.
+#
+# RELATIONSHIP TO v0.5:
+#   v0.5 = canonical specification (L1 pseudocode + L1.5 params + rationale)
+#   This file = runtime extract (L1.5 params + dependency graph + sweep ranges)
+#   Engine code implements v0.5 L1 pseudocode. This file feeds L1.5 values.
+#
+# VERSIONING: This schema version must match the engine version.
+#             Mismatch = engine refuses to start.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+schema_version: "1.0"
+source_spec: "SYNTHETIC_OLYA_METHOD_v0.5"
+source_spec_version: "0.5"
+instrument: EURUSD
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONSTANTS — shared across all primitives
+# ─────────────────────────────────────────────────────────────────────────────
+
+constants:
+  pip: 0.0001
+  forex_day_boundary_ny: "17:00"
+  sessions:
+    asia:  { start_ny: "19:00", end_ny: "00:00" }
+    lokz:  { start_ny: "02:00", end_ny: "05:00" }
+    nyokz: { start_ny: "07:00", end_ny: "10:00" }
+  kill_zones:
+    lokz:  { start_ny: "02:00", end_ny: "05:00" }
+    nyokz: { start_ny: "07:00", end_ny: "10:00" }
+  ny_windows:
+    a: { start_ny: "08:00", end_ny: "09:00" }
+    b: { start_ny: "10:00", end_ny: "11:00" }
+  pre_session_windows:
+    pre_london: { start_ny: "00:00", end_ny: "02:00" }
+    pre_ny:     { start_ny: "05:00", end_ny: "07:00" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TIMEFRAME CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+timeframes:
+  available: [1m, 5m, 15m, 1H, 4H, 1D]
+  execution: [5m, 15m]
+  reference: [1m]
+  direction: [1H, 4H, 1D]
+  primary: 5m
+  aggregation_base: 1m
+
+# ─────────────────────────────────────════════════════════════════════════════
+# CASCADE DEPENDENCY GRAPH
+# Engine resolves this automatically. When upstream re-runs, downstream re-runs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+dependency_graph:
+  # Primitives with no upstream dependencies (leaf nodes)
+  fvg:            { upstream: [] }
+  swing_points:   { upstream: [] }
+  asia_range:     { upstream: [] }
+  displacement:   { upstream: [] }
+  reference_levels: { upstream: [] }
+  session_liquidity: { upstream: [] }
+
+  # Derived primitives
+  ifvg:           { upstream: [fvg] }
+  bpr:            { upstream: [fvg] }
+  equal_hl:       { upstream: [swing_points] }
+
+  # Composites
+  mss:            { upstream: [swing_points, displacement, fvg] }
+  order_block:    { upstream: [displacement, mss] }
+  ote:            { upstream: [mss] }
+
+  # Multi-source composites
+  htf_liquidity:  { upstream: [swing_points] }
+  liquidity_sweep:
+    upstream: [session_liquidity, reference_levels, htf_liquidity, swing_points]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRIMITIVE CONFIGS — L1.5 parameters
+# Each block maps to one PrimitiveDetector module.
+# "locked" fields = current production values.
+# "sweep_range" fields = values the RA can explore without code changes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+primitives:
+
+  # ── FVG ──────────────────────────────────────────────────────────────────
+  fvg:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      floor_threshold_pips:
+        locked: 0.5
+        sweep_range: [0.0, 0.5, 1.0, 1.5, 2.0]
+    per_tf_overrides: {}  # no TF-specific overrides — floor applies universally
+    state_machine:
+      states: [ACTIVE, CE_TOUCHED, BOUNDARY_CLOSED, IFVG]
+      transitions:
+        - { from: ACTIVE, to: CE_TOUCHED, trigger: close_crosses_ce }
+        - { from: ACTIVE, to: BOUNDARY_CLOSED, trigger: close_crosses_boundary }
+        - { from: CE_TOUCHED, to: BOUNDARY_CLOSED, trigger: close_crosses_boundary }
+        - { from: BOUNDARY_CLOSED, to: IFVG, trigger: ifvg_rules }
+
+  # ── IFVG (derived from FVG) ─────────────────────────────────────────────
+  ifvg:
+    variant: a8ra_v1
+    status: LOCKED
+    params: {}  # inherits FVG floor, no additional params
+    note: "State transition on existing FVG, not a new scan"
+
+  # ── BPR (derived from FVG) ──────────────────────────────────────────────
+  bpr:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      min_overlap_pips:
+        locked: null  # TBD — may not need minimum
+        sweep_range: [0.0, 0.5, 1.0, 2.0]
+    note: "Geometric overlap of bullish + bearish FVG. Same TF only."
+
+  # ── SWING POINTS ────────────────────────────────────────────────────────
+  swing_points:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      N:
+        per_tf:
+          1m:  { locked: 5 }
+          5m:  { locked: 3 }
+          15m: { locked: 2 }
+        sweep_range: [2, 3, 4, 5, 6, 7, 8, 10]
+      height_filter_pips:
+        per_tf:
+          1m:  { locked: 0.5 }
+          5m:  { locked: 3.0 }
+          15m: { locked: 3.0 }
+        sweep_range:
+          1m:  [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
+          5m:  [2.0, 3.0, 5.0, 7.0, 10.0, 15.0]
+          15m: [3.0, 5.0, 7.0, 10.0, 15.0, 20.0]
+      strength_cap: 20
+      strength_as_gate: false  # tag only, never a filter
+
+  # ── DISPLACEMENT ────────────────────────────────────────────────────────
+  displacement:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      atr_period: 14
+      combination_mode:
+        locked: AND
+        options: [AND, OR]
+
+      # Two-tier model: LTF and HTF
+      ltf:
+        applies_to: [1m, 5m, 15m]
+        atr_multiplier:
+          locked: 1.50
+          sweep_range: [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+        body_ratio:
+          locked: 0.60
+          sweep_range: [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
+        close_gate:
+          locked: 0.25
+          sweep_range: [0.10, 0.15, 0.20, 0.25, 0.30]
+        structure_close_required: false
+
+      htf:
+        applies_to: [1H, 4H, 1D]
+        atr_multiplier:
+          locked: 1.50
+          sweep_range: [1.0, 1.25, 1.5, 1.75, 2.0]
+        body_ratio:
+          locked: 0.65
+          sweep_range: [0.55, 0.60, 0.65, 0.70, 0.75]
+        close_gate:
+          locked: 0.25
+          sweep_range: [0.10, 0.15, 0.20, 0.25, 0.30]
+        structure_close_required: true
+
+      decisive_override:
+        enabled: true
+        body_min: 0.75
+        close_max: 0.10
+        pip_floor:
+          1m: 3.0
+          5m: 5.0
+          15m: 6.0
+          1H: 8.0
+          4H: 15.0
+          1D: 20.0
+
+      cluster:
+        cluster_2_enabled: true
+        cluster_3_enabled: false
+        net_efficiency_min: 0.65
+        overlap_max: 0.35
+
+    quality_grades:
+      STRONG: { atr_ratio_min: 2.0 }
+      VALID:  { atr_ratio_min: 1.5 }
+      WEAK:   { atr_ratio_min: 1.25 }
+
+    evaluation_order: [check_cluster_2, check_single_atr, check_single_override]
+
+  # ── SESSION LIQUIDITY ───────────────────────────────────────────────────
+  session_liquidity:
+    variant: a8ra_v1
+    status: PROPOSED
+    params:
+      four_gate_model:
+        efficiency_threshold:
+          locked: 0.60
+          sweep_range: [0.40, 0.45, 0.50, 0.55, 0.60, 0.65]
+        mid_cross_min:
+          locked: 2
+          sweep_range: [1, 2, 3, 4]
+        balance_score_min:
+          locked: 0.30
+          sweep_range: [0.20, 0.25, 0.30, 0.35, 0.40]
+      box_objects:
+        asia:
+          window: { start_ny: "19:00", end_ny: "00:00" }
+          range_cap_pips: 30
+        pre_london:
+          window: { start_ny: "00:00", end_ny: "02:00" }
+          range_cap_pips: 15
+        pre_ny:
+          window: { start_ny: "05:00", end_ny: "07:00" }
+          range_cap_pips: 20
+
+  # ── ASIA RANGE ──────────────────────────────────────────────────────────
+  asia_range:
+    variant: a8ra_v1
+    status: PROPOSED
+    params:
+      classification:
+        tight_below_pips: 10
+        mid_below_pips: 20
+        wide_above_pips: 20
+      max_cap_pips: 30
+
+  # ── MSS (Market Structure Shift) ────────────────────────────────────────
+  mss:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      ltf:
+        applies_to: [1m, 5m, 15m]
+        displacement_required: true
+        confirmation_window_bars: 3
+        close_beyond_swing: true  # close only, not wick
+        impulse_suppression:
+          pullback_reset_pips: 5
+          pullback_reset_atr_factor: 0.25
+          opposite_displacement_reset: true
+          new_day_reset: true
+      htf:
+        applies_to: [1H, 4H, 1D]
+        displacement_required: true
+        confirmation_window_bars: 1
+        close_beyond_swing: true
+        structure_close_required: true
+        impulse_suppression:
+          pullback_reset_pips: 5
+          pullback_reset_atr_factor: 0.25
+          opposite_displacement_reset: true
+          new_day_reset: true
+      fvg_tag_only: true  # tag, not gate
+      break_classification: [REVERSAL, CONTINUATION]
+      swing_consumption: true  # each swing breaks once
+
+  # ── ORDER BLOCK ─────────────────────────────────────────────────────────
+  order_block:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      trigger: displacement_plus_mss
+      zone_type: body  # body only for execution zone
+      thin_candle_filter:
+        min_body_pct: 0.10
+      fallback_scan:
+        mode: ENABLED_CONDITIONAL
+        lookback_bars: 3
+        reject_if_none_found: true
+      expiration_bars:
+        per_tf:
+          1m:  10
+          5m:  10
+          15m: 10
+          1H:  15
+          4H:  20
+          1D:  20
+      min_displacement_grade: VALID  # inherits from displacement params
+    state_machine:
+      states: [ACTIVE, MITIGATED, INVALIDATED, EXPIRED]
+      transitions:
+        - { from: ACTIVE, to: MITIGATED, trigger: price_enters_zone }
+        - { from: ACTIVE, to: INVALIDATED, trigger: close_beyond_full_candle_or_opposite_mss }
+        - { from: ACTIVE, to: EXPIRED, trigger: max_age_reached }
+        - { from: MITIGATED, to: INVALIDATED, trigger: close_beyond_full_candle_or_opposite_mss }
+
+  # ── LIQUIDITY SWEEP ─────────────────────────────────────────────────────
+  liquidity_sweep:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      return_window_bars: 1  # same-bar primary
+      rejection_wick_pct:
+        locked: 0.40
+        sweep_range: [0.30, 0.35, 0.40, 0.45, 0.50]
+      min_breach_pips:
+        per_tf:
+          5m:  0.5
+          15m: 1.0
+      min_reclaim_pips:
+        per_tf:
+          5m:  0.5
+          15m: 1.0
+      max_sweep_size_atr_mult: 1.5  # beyond = continuation
+      directional_close: false  # REMOVED per forensic evidence
+
+      # Curated level pool
+      level_sources:
+        pdh_pdl: { enabled: true }
+        asia_h_l: { enabled: true, valid_after_ny: "00:00" }
+        london_h_l: { enabled: true, valid_after_ny: "05:00" }
+        ltf_box_h_l: { enabled: true, valid_after: box_end_time }
+        htf_eqh_eql: { enabled: true }
+        pwh_pwl: { enabled: true, valid_after_ny: "17:00 Monday" }
+        promoted_swing:
+          enabled: true
+          strength_min: 10
+          height_pips_min: 10.0
+          scope: current_forex_day_only
+          staleness_bars: 20
+        # Excluded sources (documented for clarity)
+        raw_previous_swings: { enabled: false }
+        equal_hl: { enabled: false, note: "DEFERRED" }
+        pmh_pml: { enabled: false, note: "FUTURE_PHASE" }
+
+      level_merge_tolerance_pips: 1.0
+
+      # Qualified sweep extension
+      qualified_sweep:
+        displacement_before_lookback: 10
+        displacement_after_forward: 5
+
+      # Delayed sweep extension
+      delayed_sweep:
+        enabled: true
+        min_delayed_wick_pct: 0.30
+        max_delay_bars: 1
+
+  # ── HTF LIQUIDITY MODEL ─────────────────────────────────────────────────
+  htf_liquidity:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      detection_source: swing_points_fractal_2_2
+      price_tolerance_pips:
+        per_tf:
+          1H: 2
+          4H: 3
+          1D: 5
+          W1: 10
+          MN: 15
+      min_bars_between_touches:
+        per_tf:
+          1H: 6
+          4H: 3
+          1D: 2
+          W1: 2
+          MN: 2
+      rotation_required:
+        per_tf:
+          1H: { pip_floor: 5,  atr_factor: 0.25 }
+          4H: { pip_floor: 8,  atr_factor: 0.25 }
+          1D: { pip_floor: 12, atr_factor: 0.25 }
+          W1: { pip_floor: 20, atr_factor: 0.25 }
+          MN: { pip_floor: 30, atr_factor: 0.25 }
+      max_lookback:
+        per_tf:
+          1H: 500
+          4H: 300
+          1D: 180
+          W1: 104
+          MN: 60
+      asia_range_filter: true
+      invalidation_during_formation: true
+      merge_tolerance_factor: 1.5  # merge pools within 1.5x tolerance
+      min_touches: 2
+
+  # ── OTE (Optimal Trade Entry) ───────────────────────────────────────────
+  ote:
+    variant: a8ra_v1
+    status: PROPOSED
+    params:
+      fib_levels:
+        lower: 0.618
+        sweet_spot: 0.705
+        upper: 0.79
+      anchor_rule: most_recent_mss
+      kill_zone_gate: true  # OTE only actionable in LOKZ/NYOKZ
+
+  # ── REFERENCE LEVELS ────────────────────────────────────────────────────
+  reference_levels:
+    variant: a8ra_v1
+    status: LOCKED
+    params:
+      pdh_pdl:
+        boundary: forex_day  # 17:00 NY
+        measurement: wicks  # not closes
+      midnight_open:
+        time_ny: "00:00"
+      equilibrium:
+        formula: midpoint  # (range_high + range_low) / 2
+
+  # ── EQUAL HL (DEFERRED) ─────────────────────────────────────────────────
+  equal_hl:
+    variant: a8ra_v1
+    status: DEFERRED
+    params:
+      tolerance:
+        fixed_floor_pips: 2.0
+        atr_factor: 0.1
+      time_proximity:
+        per_tf:
+          1m: 60
+          5m: 240
+          15m: 720
+      pullback:
+        pip_floor: 5
+        atr_factor: 0.2
+      min_touches: 2
+      session_gate: [asia, pre_london, pre_ny]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPARISON CONFIG — for RA evaluation runs
+# This section is used by the Evaluation Runner, not the Detection Engine.
+# ─────────────────────────────────────────────────────────────────────────────
+
+evaluation:
+  # Default comparison: locked params vs sweep candidates
+  comparison_mode: pairwise
+
+  # Statistical output
+  metrics:
+    - detection_count
+    - detections_per_day
+    - by_session_distribution
+    - cascade_rate  # e.g. displacement -> MSS conversion rate
+    - cascade_completion  # full chain from leaf to terminal
+
+  # Regime slicing (Phase 2+ when multi-month data available)
+  regime_slicing:
+    enabled: false
+    auto_tags: [atr_volatility, adx_trend_range, session]
+    manual_tags: []  # populated when curated regime tags added
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEMA NOTES
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# LOCKED values: current production parameters. Engine uses these as defaults.
+# sweep_range: values the RA can test without code changes (UI sliders, grid search).
+# per_tf: TF-specific overrides. Engine selects based on bar timeframe.
+# The engine MUST reject any parameter not declared in this schema.
+# Unknown params = config error, not silent default.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
