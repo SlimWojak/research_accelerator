@@ -4,6 +4,8 @@ Common constants, helpers, and mappings used across multiple detectors.
 Extracted to avoid duplication across leaf and composite detectors.
 """
 
+from typing import Optional
+
 import pandas as pd
 
 # Pip constant for EURUSD (and most forex pairs with 4 decimal places)
@@ -60,3 +62,86 @@ def bar_time_str(ts_ny: pd.Timestamp, tf_minutes: int) -> str:
     gh = floored // 60
     gm = floored % 60
     return ts_ny.strftime("%Y-%m-%d") + f"T{gh:02d}:{gm:02d}:00"
+
+
+def compute_atr(bars: pd.DataFrame, period: int = 14) -> list[Optional[float]]:
+    """Compute ATR(period) for each bar in a DataFrame.
+
+    Uses classic Wilder smoothing: first ATR = simple average of first
+    ``period`` TRs, then EMA: ATR[i] = (ATR[i-1] * (period-1) + TR[i]) / period.
+
+    Args:
+        bars: DataFrame with high, low, close columns.
+        period: ATR period (default 14).
+
+    Returns:
+        List of ATR values aligned to bars (None for first period-1 bars).
+    """
+    n = len(bars)
+    highs = bars["high"].values
+    lows = bars["low"].values
+    closes = bars["close"].values
+
+    atrs: list[Optional[float]] = [None] * n
+    trs: list[float] = []
+
+    for i in range(n):
+        if i == 0:
+            tr = highs[i] - lows[i]
+        else:
+            prev_close = closes[i - 1]
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - prev_close),
+                abs(lows[i] - prev_close),
+            )
+        trs.append(tr)
+
+        if i >= period - 1:
+            if i == period - 1:
+                atrs[i] = sum(trs[:period]) / period
+            else:
+                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
+
+    return atrs
+
+
+def compute_atr_from_dicts(
+    bars: list[dict], period: int = 14
+) -> list[Optional[float]]:
+    """Compute ATR(period) for a list of bar dicts.
+
+    Same algorithm as :func:`compute_atr` but accepts ``list[dict]`` input
+    (used by HTF detectors that aggregate to dict bars).
+
+    Args:
+        bars: List of bar dicts with ``high``, ``low``, ``close`` keys.
+        period: ATR period (default 14).
+
+    Returns:
+        List of ATR values aligned to bars (None for first period-1 bars).
+    """
+    n = len(bars)
+    atrs: list[Optional[float]] = [None] * n
+    trs: list[float] = []
+
+    for i in range(n):
+        bar = bars[i]
+        if i == 0:
+            tr = bar["high"] - bar["low"]
+        else:
+            prev_close = bars[i - 1]["close"]
+            tr = max(
+                bar["high"] - bar["low"],
+                abs(bar["high"] - prev_close),
+                abs(bar["low"] - prev_close),
+            )
+        trs.append(tr)
+
+        if i >= period - 1:
+            if i == period - 1:
+                atrs[i] = sum(trs[:period]) / period
+            else:
+                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
+
+    return atrs

@@ -17,7 +17,7 @@ from typing import Optional
 
 import pandas as pd
 
-from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, map_session
+from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, compute_atr, map_session
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -28,43 +28,8 @@ from ra.engine.base import (
 logger = logging.getLogger(__name__)
 
 
-def _compute_atr(bars: pd.DataFrame, period: int = 14) -> list[Optional[float]]:
-    """Compute ATR(period) aligned to bar index. Matches pipeline compute_atr().
 
-    Args:
-        bars: DataFrame with open/high/low/close columns.
-        period: ATR period (default 14).
-
-    Returns:
-        List of ATR values (None for first period-1 bars).
-    """
-    n = len(bars)
-    highs = bars["high"].values
-    lows = bars["low"].values
-    closes = bars["close"].values
-
-    atrs: list[Optional[float]] = [None] * n
-    trs: list[float] = []
-
-    for i in range(n):
-        if i == 0:
-            tr = highs[i] - lows[i]
-        else:
-            prev_close = closes[i - 1]
-            tr = max(
-                highs[i] - lows[i],
-                abs(highs[i] - prev_close),
-                abs(lows[i] - prev_close),
-            )
-        trs.append(tr)
-
-        if i >= period - 1:
-            if i == period - 1:
-                atrs[i] = sum(trs[:period]) / period
-            else:
-                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
-
-    return atrs
+# _compute_atr extracted to ra.detectors._common.compute_atr
 
 
 def _find_displacement_in_window(
@@ -184,7 +149,7 @@ class MSSDetector(PrimitiveDetector):
                 fvg_bar_indices.add(f.properties["bar_index"] - 1)
 
         # Compute ATR for suppression
-        atrs = _compute_atr(bars, period=14)
+        atrs = compute_atr(bars, period=14)
 
         # Extract bar arrays for efficient access
         closes = bars["close"].values

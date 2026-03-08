@@ -20,7 +20,7 @@ from typing import Optional
 
 import pandas as pd
 
-from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, map_session
+from ra.detectors._common import PIP, TF_MINUTES, bar_time_str, compute_atr, map_session
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -86,46 +86,8 @@ def _quality_grade(atr_ratio: float) -> Optional[str]:
     return None
 
 
-def _compute_atr(bars: pd.DataFrame, period: int = 14) -> list:
-    """Compute ATR(period) for each bar. Returns list aligned to bars.
 
-    Uses classic Wilder smoothing: first ATR = simple average of first 'period' TRs,
-    then EMA: ATR[i] = (ATR[i-1] * (period-1) + TR[i]) / period.
-
-    Args:
-        bars: DataFrame with high, low, close columns.
-        period: ATR period (default 14).
-
-    Returns:
-        List of ATR values (None for first period-1 bars).
-    """
-    n = len(bars)
-    highs = bars["high"].values
-    lows = bars["low"].values
-    closes = bars["close"].values
-
-    atrs = [None] * n
-    trs = []
-
-    for i in range(n):
-        if i == 0:
-            tr = highs[i] - lows[i]
-        else:
-            prev_close = closes[i - 1]
-            tr = max(
-                highs[i] - lows[i],
-                abs(highs[i] - prev_close),
-                abs(lows[i] - prev_close),
-            )
-        trs.append(tr)
-
-        if i >= period - 1:
-            if i == period - 1:
-                atrs[i] = sum(trs[:period]) / period
-            else:
-                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
-
-    return atrs
+# _compute_atr extracted to ra.detectors._common.compute_atr
 
 
 def _try_cluster2(
@@ -268,7 +230,7 @@ class DisplacementDetector(PrimitiveDetector):
             close_threshold = params.get("ltf", {}).get("close_gate", 0.25)
 
         # Compute ATR
-        atrs = _compute_atr(bars, period=atr_period)
+        atrs = compute_atr(bars, period=atr_period)
 
         # Extract arrays for fast access
         n = len(bars)

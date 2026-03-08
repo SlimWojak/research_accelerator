@@ -25,7 +25,7 @@ from typing import Optional
 
 import pandas as pd
 
-from ra.detectors._common import PIP, bar_time_str
+from ra.detectors._common import PIP, bar_time_str, compute_atr_from_dicts
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -48,33 +48,20 @@ _HTF_TF_CONFIG = {
     "MN": {"minutes": 43200},
 }
 
+# Mapping from internal TF labels (H1/H4/D1) to config format (1H/4H/1D).
+# Config YAML uses '1H'/'4H'/'1D' while detector and baseline fixtures use
+# 'H1'/'H4'/'D1'. W1/MN are the same in both formats.
+_TF_TO_CONFIG_KEY = {
+    "H1": "1H",
+    "H4": "4H",
+    "D1": "1D",
+    "W1": "W1",
+    "MN": "MN",
+}
 
-def _compute_atr(bars: list[dict], period: int = 14) -> list[Optional[float]]:
-    """Compute ATR(period) for a list of bar dicts. Matches pipeline compute_atr()."""
-    n = len(bars)
-    atrs: list[Optional[float]] = [None] * n
-    trs: list[float] = []
 
-    for i in range(n):
-        bar = bars[i]
-        if i == 0:
-            tr = bar["high"] - bar["low"]
-        else:
-            prev_close = bars[i - 1]["close"]
-            tr = max(
-                bar["high"] - bar["low"],
-                abs(bar["high"] - prev_close),
-                abs(bar["low"] - prev_close),
-            )
-        trs.append(tr)
 
-        if i >= period - 1:
-            if i == period - 1:
-                atrs[i] = sum(trs[:period]) / period
-            else:
-                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
-
-    return atrs
+# _compute_atr extracted to ra.detectors._common.compute_atr_from_dicts
 
 
 def _aggregate_htf_from_df(bars_1m: pd.DataFrame, tf_label: str) -> list[dict]:
@@ -474,10 +461,12 @@ class HTFLiquidityDetector(PrimitiveDetector):
         merge_factor = params.get("merge_tolerance_factor", 1.5)
 
         for tf_label in _HTF_TF_CONFIG:
-            tol_pip = tol_pips_per_tf.get(tf_label, 2)
-            min_between = min_between_per_tf.get(tf_label, 2)
-            rotation = rotation_per_tf.get(tf_label, {"pip_floor": 5, "atr_factor": 0.25})
-            max_lb = max_lookback_per_tf.get(tf_label, 500)
+            # Config uses '1H'/'4H'/'1D' keys while detector uses 'H1'/'H4'/'D1'
+            cfg_key = _TF_TO_CONFIG_KEY.get(tf_label, tf_label)
+            tol_pip = tol_pips_per_tf.get(cfg_key, tol_pips_per_tf.get(tf_label, 2))
+            min_between = min_between_per_tf.get(cfg_key, min_between_per_tf.get(tf_label, 2))
+            rotation = rotation_per_tf.get(cfg_key, rotation_per_tf.get(tf_label, {"pip_floor": 5, "atr_factor": 0.25}))
+            max_lb = max_lookback_per_tf.get(cfg_key, max_lookback_per_tf.get(tf_label, 500))
 
             cfg = {
                 "tol_pip": tol_pip,
@@ -501,7 +490,7 @@ class HTFLiquidityDetector(PrimitiveDetector):
                 continue
 
             # Compute ATR on HTF bars
-            atrs = _compute_atr(htf_bars, period=min(14, len(htf_bars)))
+            atrs = compute_atr_from_dicts(htf_bars, period=min(14, len(htf_bars)))
 
             # Detect fractal swings
             swings = _detect_htf_swings(htf_bars)

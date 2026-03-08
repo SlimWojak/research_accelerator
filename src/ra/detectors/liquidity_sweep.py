@@ -23,7 +23,7 @@ from typing import Optional
 
 import pandas as pd
 
-from ra.detectors._common import PIP, bar_time_str, map_session
+from ra.detectors._common import PIP, bar_time_str, compute_atr, map_session
 from ra.engine.base import (
     Detection,
     DetectionResult,
@@ -46,29 +46,8 @@ _SRC_PRIORITY = {
 _TF_RANK = {"MN": 5, "W1": 4, "D1": 3, "H4": 2, "H1": 1}
 
 
-def _compute_atr(bars: pd.DataFrame, period: int = 14) -> list:
-    """Compute ATR(period) aligned to bars. Mirrors pipeline compute_atr()."""
-    n = len(bars)
-    atrs = [None] * n
-    trs = []
-    for i in range(n):
-        row = bars.iloc[i]
-        if i == 0:
-            tr = row["high"] - row["low"]
-        else:
-            prev_close = bars.iloc[i - 1]["close"]
-            tr = max(
-                row["high"] - row["low"],
-                abs(row["high"] - prev_close),
-                abs(row["low"] - prev_close),
-            )
-        trs.append(tr)
-        if i >= period - 1:
-            if i == period - 1:
-                atrs[i] = sum(trs[:period]) / period
-            else:
-                atrs[i] = (atrs[i - 1] * (period - 1) + tr) / period
-    return atrs
+
+# _compute_atr extracted to ra.detectors._common.compute_atr
 
 
 def _session_close_time(forex_day_str: str, session_type: str) -> str:
@@ -987,7 +966,7 @@ class LiquiditySweepDetector(PrimitiveDetector):
         )
 
         # Compute ATR
-        atrs = _compute_atr(bars, period=14)
+        atrs = compute_atr(bars, period=14)
 
         # Phase 1: Base sweep detection (rw=1,2,3)
         sweep_results, swept_levels = _detect_base_sweeps(
