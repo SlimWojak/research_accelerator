@@ -433,13 +433,13 @@ class TestGhostBars:
 # ─── River adapter stub tests ───────────────────────────────────────────
 
 class TestRiverAdapter:
-    """Tests for the River adapter stub."""
+    """Tests for the River adapter (Phase 2: fully implemented)."""
 
-    def test_load_bars_raises(self):
-        """RiverAdapter.load_bars() raises NotImplementedError."""
+    def test_load_bars_works(self):
+        """RiverAdapter.load_bars() returns bars from parquet (Phase 2)."""
         adapter = RiverAdapter()
-        with pytest.raises(NotImplementedError):
-            adapter.load_bars("EURUSD", "2024-01-07", "2024-01-12")
+        df = adapter.load_bars("EURUSD", "2024-01-08", "2024-01-08")
+        assert len(df) == 1440
 
     def test_load_from_csv(self):
         """RiverAdapter.load_from_csv() delegates to csv_loader."""
@@ -447,8 +447,8 @@ class TestRiverAdapter:
         df = adapter.load_from_csv(CSV_PATH)
         assert len(df) == 7177
 
-    def test_available_range_raises(self):
-        """RiverAdapter.available_range() raises NotImplementedError."""
+    def test_available_range_works(self):
+        """RiverAdapter.available_range() returns date bounds (Phase 2)."""
         adapter = RiverAdapter()
-        with pytest.raises(NotImplementedError):
-            adapter.available_range("EURUSD")
+        start, end = adapter.available_range("EURUSD")
+        assert start < end
