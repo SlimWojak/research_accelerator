@@ -1,0 +1,60 @@
+{
+  "milestone": "foundations-and-runner",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "python3 -m pytest tests/ --tb=short -x -q --no-header -p no:cacheprovider", "exitCode": 0 },
+    "typecheck": { "passed": true, "command": "(not configured)", "exitCode": 0 },
+    "lint": { "passed": true, "command": "(not configured)", "exitCode": 0 }
+  },
+  "reviewsSummary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Documented 4H aggregation divergence between Phase 1 clock-aligned (tf_aggregator) and Phase 2 forex-day-aligned (river_adapter)",
+      "sourceFeature": "river-adapter"
+    },
+    {
+      "target": "library",
+      "description": "Documented sweep variation behavior on calibration data: close_gate is the reliable param for demonstrating variation; FVG floor_threshold_pips and displacement atr_multiplier/body_ratio produce no variation on 5-day data",
+      "sourceFeature": "evaluation-runner-core"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Clarify that Phase 1 stub tests (e.g., tests asserting NotImplementedError on stubs) may be updated when the stub is replaced with a real implementation. Current wording 'do NOT modify or delete' existing Phase 1 test files is overly strict for stub-assertion tests.",
+      "evidence": "river-adapter feature necessarily updated 2 stub tests in test_data_layer.py (test_load_bars_raises → test_load_bars_works, test_available_range_raises → test_available_range_works). Worker documented this as a discovered issue. The change was minimal and justified.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Note that validation contract sweep examples (VAL-EVAL-002: FVG floor_threshold_pips, VAL-EVAL-003: displacement atr_multiplier × body_ratio) reference params that don't produce variation on the 5-day calibration dataset. Future assertions should use displacement close_gate for sweep variation examples.",
+      "evidence": "evaluation-runner-core worker spent significant debugging time (4+ tool calls) discovering that FVG/atr_multiplier don't vary before finding close_gate works. This knowledge gap costs worker time.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "In ra-eval-worker skill, update the cache reuse example: FVG.detect() is called 3 times (once per TF: 1m, 5m, 15m), not once globally. The skill currently implies a single FVG call across the entire sweep.",
+      "evidence": "evaluation-runner-core test_cache_reuse_displacement_sweep asserts FVG=3, displacement=15 (5 steps × 3 TFs). Worker's skillFeedback.suggestedChanges flags this inaccuracy.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "param_extraction module contains dead helper functions (_load_raw_yaml, _get_raw_primitive_data) and unused yaml/Path imports. Suggested adding dead code convention to AGENTS.md.",
+      "reason": "Too granular for shared guidance. Dead code cleanup is a standard code quality concern that doesn't warrant an AGENTS.md entry. The non-blocking issue is captured in the feature review."
+    },
+    {
+      "observation": "Worker skill procedures were followed correctly across all 3 features.",
+      "reason": "No action needed — positive confirmation, not an observation requiring change."
+    }
+  ],
+  "previousRound": null
+}

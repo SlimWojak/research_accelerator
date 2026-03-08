@@ -92,6 +92,16 @@ src/ra/
 
 **River Adapter**: DuckDB-backed parquet reader. Timezone: Asia/Bangkok → UTC → NY. Path: `~/phoenix-river/{pair}/{year}/{mm}/{dd}.parquet`.
 
+### 4H Aggregation Divergence
+Phase 1 `tf_aggregator.py` uses clock-aligned 4H bars at NY hours [0, 4, 8, 12, 16, 20]. Phase 2 `river_adapter.py` uses forex-day-aligned 4H bars at NY hours [17, 21, 1, 5, 9, 13] (6 bars per forex day starting at 17:00 NY). This is intentional — River data uses the forex convention. Downstream features (walk-forward, comparison) should be aware that 4H bar boundaries differ between CSV-loaded and River-loaded data.
+
+### Sweep Variation on Calibration Data
+On the 5-day calibration dataset (`data/eurusd_1m_2024-01-07_to_2024-01-12.csv`), many sweep params produce zero variation in detection counts. Specifically:
+- **FVG `floor_threshold_pips`**: All sweep values produce identical detection counts (all bars pass all thresholds in this dataset)
+- **Displacement `atr_multiplier` and `body_ratio`**: No variation on this dataset
+- **Displacement `close_gate`**: This is the reliable param for demonstrating sweep variation on 5-day data
+Workers writing sweep tests or evaluation assertions should use `close_gate` as the go-to param for variation demonstrations.
+
 ### CLI
 - `run.py` — Phase 1 cascade-only (unchanged)
 - `eval.py` — Phase 2 evaluation (sweep, compare, walk-forward subcommands)

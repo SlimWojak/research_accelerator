@@ -1,0 +1,45 @@
+{
+  "featureId": "param-extraction-refactor",
+  "reviewedAt": "2026-03-08T13:15:00.000Z",
+  "commitId": "55b4ac0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of dynamic param extraction replacing the hardcoded extract_locked_params_for_cascade(). The recursive resolution approach in _resolve_locked_recursive and _resolve_sweep_recursive handles the full complexity of the config model (per-TF overrides, {locked: value} wrappers, nested dicts, metadata stripping). The Cartesian product generation in extract_sweep_combos correctly uses deepcopy of locked baseline as template and preserves wrapper structures during value injection. The CascadeEngine round-trip test (9784 detections) provides very strong equivalence validation. The YAML config fix adding 1m values for liquidity_sweep was necessary and correctly done. Two non-blocking issues found: dead code (unused helper functions and imports) and a missing test for invalid mode parameter.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/param_extraction.py",
+        "line": 75,
+        "severity": "non_blocking",
+        "description": "Dead code: _load_raw_yaml() is defined but never called anywhere in the module or codebase. The 'yaml' and 'Path' imports (lines 24-25) are only needed by these dead functions. Similarly _get_raw_primitive_data() at line 82 is unused. These appear to be leftover from an earlier approach that read raw YAML. Should be removed to keep the module clean."
+      },
+      {
+        "file": "tests/test_evaluation_param_extraction.py",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "Missing test for invalid mode parameter. The implementation has explicit validation at line 122 raising ParamExtractionError for invalid modes, but no test covers this path. A simple test like `extract_params(config, 'fvg', mode='invalid')` asserting ParamExtractionError would complete the error-handling coverage."
+      },
+      {
+        "file": "src/ra/evaluation/__init__.py",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "The evaluation package __init__.py exports EvaluationRunner but not the param extraction functions (extract_params, extract_sweep_combos, ParamExtractionError). Consumers must use the full module path. This is consistent with the runner.py importing directly, but worth noting for API discoverability."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The param_extraction module contains two dead helper functions (_load_raw_yaml and _get_raw_primitive_data) and their associated imports (yaml, Path). AGENTS.md does not mention a convention about avoiding dead code or requiring clean imports. Not a major gap, but could be worth a brief note in coding conventions.",
+      "evidence": "src/ra/evaluation/param_extraction.py lines 24-25 (imports yaml, Path), lines 75-101 (two functions defined, zero call sites found via grep)"
+    },
+    {
+      "area": "skills",
+      "observation": "Worker followed procedure correctly. Skill says to write failing tests first, study specs, implement, run full suite. Handoff confirms followedProcedure=true with no deviations. No gaps observed.",
+      "evidence": "Handoff skillFeedback: {followedProcedure: true, deviations: [], suggestedChanges: []}"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The param-extraction-refactor feature is well-implemented with comprehensive test coverage (61 tests covering all 12 VAL-PARAM assertions). The core equivalence guarantee is strongly validated by both parametrized locked extraction tests across all 14 primitives and the CascadeEngine round-trip test confirming identical 9784 detections. Two non-blocking issues found: (1) dead code — two unused helper functions and their imports should be cleaned up, (2) missing test for the invalid-mode error path. No blocking issues, no security concerns, no performance problems. The YAML config fix for liquidity_sweep 1m values was necessary and correctly done."
+}

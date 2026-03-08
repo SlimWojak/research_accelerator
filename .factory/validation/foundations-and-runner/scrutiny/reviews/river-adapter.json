@@ -1,0 +1,62 @@
+{
+  "featureId": "river-adapter",
+  "reviewedAt": "2026-03-08T13:35:00.000Z",
+  "commitId": "070cc8a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of the River adapter replacing the Phase 1 stub. All 8 key requirements are met: (1) load_bars reads parquet via DuckDB with Asia/Bangkok→UTC→NY timezone normalization, adds is_ghost, session tags, sorted ascending with integer index; (2) load_and_aggregate delegates to tf_aggregator for 5m/15m/1H/1D with custom forex-day-aligned 4H; (3) available_range scans filesystem; (4) validate_integrity reports bar/ghost/gap counts; (5) RIVER_ROOT env var override; (6) CSV fallback preserved; (7) sorted, deduped, integer index; (8) 4H alignment at [17,21,1,5,9,13] NY and daily bars use forex day grouping. Code is clean, well-documented, and follows existing patterns (csv_loader, tf_aggregator). 40 tests cover all 17 VAL-RIVER assertions. The test_data_layer.py stub tests were reasonably updated to reflect the working implementation.",
+    "issues": [
+      {
+        "file": "src/ra/data/river_adapter.py",
+        "line": 296,
+        "severity": "non_blocking",
+        "description": "SQL string interpolation in _read_parquets: file paths are interpolated directly into the DuckDB SQL query via f-string. While paths are constructed internally from pair/year/month/day (not user input), a malicious parquet filename containing a single quote could theoretically break or inject SQL. Low risk since filesystem paths are controlled, but using parameterized queries or DuckDB's read_parquet with a list parameter would be safer."
+      },
+      {
+        "file": "src/ra/data/river_adapter.py",
+        "line": 194,
+        "severity": "non_blocking",
+        "description": "validate_integrity calls load_bars (which internally calls _collect_parquet_files and _read_parquets) then calls _collect_parquet_files again independently. This results in redundant filesystem scanning. Minor performance waste; could be refactored to compute bar_count and expected_bars from a single load, or accept the already-loaded bars."
+      },
+      {
+        "file": "tests/test_river_adapter.py",
+        "line": 176,
+        "severity": "non_blocking",
+        "description": "test_correct_bounds asserts exact start/end dates ('2020-11-23' and '2026-02-20') which are coupled to the current state of ~/phoenix-river/EURUSD/ directory. If River data is updated (new dates added), this test will fail. However, per AGENTS.md, River data is read-only, so this is acceptable for now."
+      },
+      {
+        "file": "tests/test_river_adapter.py",
+        "line": 0,
+        "severity": "non_blocking",
+        "description": "No test for empty/invalid date ranges: e.g., start_date > end_date, or a date range with zero parquet files (e.g., all weekends). The _empty_bars_df return path is untested directly. Not blocking since _collect_parquet_files handles missing files gracefully and returns empty list."
+      },
+      {
+        "file": "src/ra/data/river_adapter.py",
+        "line": 157,
+        "severity": "non_blocking",
+        "description": "available_range does not check month_dir.name.isdigit() unlike year_dir.name.isdigit(). Non-numeric directories under a year (e.g., .DS_Store files) could cause issues. However, the try/except ValueError around date() construction provides adequate protection."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Worker updated 2 existing Phase 1 stub tests in tests/test_data_layer.py (test_load_bars_raises → test_load_bars_works, test_available_range_raises → test_available_range_works). AGENTS.md says 'do NOT modify or delete' existing Phase 1 test files, but these stub tests asserting NotImplementedError were necessarily invalidated by implementing the real methods. The handoff documents this clearly as a discovered issue. AGENTS.md could clarify that stub-assertion tests are expected to change when stubs are replaced.",
+      "evidence": "AGENTS.md: 'All existing Phase 1 test files (tests/test_*.py) — do NOT modify or delete'. Handoff discoveredIssues[1] documents the change. Git diff shows minimal, justified edits to test_data_layer.py."
+    },
+    {
+      "area": "conventions",
+      "observation": "The 4H aggregation divergence between Phase 1 (clock-aligned at [0,4,8,12,16,20] NY) and Phase 2 River adapter (forex-day-aligned at [17,21,1,5,9,13] NY) is correctly documented in the handoff but not in AGENTS.md or architecture.md. This is a known behavioral difference that downstream features (walk-forward, comparison) should be aware of.",
+      "evidence": "tf_aggregator.py uses clock-aligned 4H via _compute_group_key floor-division. river_adapter.py uses _aggregate_4h_forex_aligned with _FOREX_DAY_OFFSET_MIN=1020. Handoff discoveredIssues[0] notes this divergence."
+    },
+    {
+      "area": "skills",
+      "observation": "Skill procedure was followed. Worker's suggested skill change (note that implementing River adapter invalidates stub tests) is reasonable and would save future workers time.",
+      "evidence": "handoff.skillFeedback.followedProcedure=true, suggestedChanges includes the stub test note."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "River adapter implementation is correct, complete, and well-tested. All 17 VAL-RIVER assertions are covered by 40 tests against real parquet data. The code follows project conventions (matching csv_loader patterns, using existing session_tagger and tf_aggregator). Five non-blocking issues identified: SQL string interpolation in DuckDB queries (low risk), redundant filesystem scan in validate_integrity, hardcoded date bounds in test, missing empty-range test coverage, and month_dir name validation gap. The minimal edit to test_data_layer.py (2 stub tests updated) is justified and documented. PASS."
+}
