@@ -1,0 +1,53 @@
+{
+  "flowId": "eval-runner",
+  "milestone": "foundations-and-runner",
+  "assertions": {
+    "VAL-EVAL-001": {
+      "status": "pass",
+      "evidence": "EvaluationRunner.run_locked() produced exactly 9784 total detections matching Phase 1 CascadeEngine. Verified via Python inline check and pytest test_locked_matches_phase1."
+    },
+    "VAL-EVAL-002": {
+      "status": "pass",
+      "evidence": "run_sweep(bars_by_tf, 'fvg') produces 5 result sets with correct params_used (floor_threshold_pips: [0.0, 0.5, 1.0, 1.5, 2.0]). FVG counts don't vary on this dataset but displacement close_gate sweep shows variation (39, 41, 43, 44, 45 MSS 5m counts). pytest test_single_param_sweep_fvg and test_single_param_sweep_with_variation both pass."
+    },
+    "VAL-EVAL-003": {
+      "status": "pass",
+      "evidence": "extract_sweep_combos for displacement atr_multiplier × body_ratio produces exactly 49 combinations (7×7). First combo: atr_mult=1.0, body_ratio=0.5. Last: atr_mult=3.0, body_ratio=0.8. pytest test_grid_sweep_2d passes with 49 result sets."
+    },
+    "VAL-EVAL-004": {
+      "status": "pass",
+      "evidence": "pytest test_cache_reuse_displacement_sweep passes - verifies FVG.detect() called once across 7 displacement sweep steps while displacement.detect() called 7 times. 21/21 eval runner tests pass."
+    },
+    "VAL-EVAL-005": {
+      "status": "pass",
+      "evidence": "Displacement close_gate sweep produces 5 results with unique close_gate values [0.1, 0.15, 0.2, 0.25, 0.3] in params_used. All values unique confirming no stale cached params."
+    },
+    "VAL-EVAL-006": {
+      "status": "pass",
+      "evidence": "run_locked with start_date='2024-01-08', end_date='2024-01-09' produces 3912 detections (vs 9784 full). Zero detections found outside the date range. Data windowing correctly constrains results."
+    },
+    "VAL-EVAL-007": {
+      "status": "pass",
+      "evidence": "swing_points locked extraction returns per-TF dict: N={'1m': 5, '5m': 3, '15m': 2}. pytest test_per_tf_sweep_swing_points passes confirming per-TF values preserved during sweep."
+    },
+    "VAL-EVAL-008": {
+      "status": "pass",
+      "evidence": "equal_hl (DEFERRED) produces 0 detections in run_locked(). pytest test_deferred_module_graceful and test_deferred_module_not_in_sweep both pass."
+    },
+    "VAL-EVAL-009": {
+      "status": "pass",
+      "evidence": "extract_sweep_combos(config, 'reference_levels') returns 1 combo (locked values only, no sweep_range defined). pytest test_no_sweep_range_uses_locked passes."
+    },
+    "VAL-EVAL-010": {
+      "status": "pass",
+      "evidence": "Loaded 7200 1m bars from River adapter (EURUSD 2024-01-08 to 2024-01-12). FVG sweep produced 5 valid result sets with 2313 FVG detections each. No errors or memory issues."
+    },
+    "VAL-EVAL-011": {
+      "status": "pass",
+      "evidence": "Displacement close_gate sweep shows MSS 5m counts varying: [39, 41, 43, 44, 45]. pytest test_downstream_rerun_mss_changes passes confirming MSS is correctly re-run when displacement params change."
+    }
+  },
+  "toolsUsed": ["python3 inline checks", "pytest tests/test_evaluation_runner.py"],
+  "frictions": [],
+  "blockers": []
+}

@@ -1,0 +1,263 @@
+{
+  "groupId": "river-adapter",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A (pure Python library)",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["python3 -c inline checks"],
+  "assertions": [
+    {
+      "id": "VAL-RIVER-001",
+      "title": "load_bars returns correct columns and data",
+      "status": "pass",
+      "steps": [
+        { "action": "Call RiverAdapter().load_bars('EURUSD', '2024-01-08', '2024-01-08')", "expected": "DataFrame with expected columns", "observed": "DataFrame returned with 1440 rows" },
+        { "action": "Check column set includes timestamp, open, high, low, close, volume, source, knowledge_time, bar_hash, is_ghost, timestamp_ny", "expected": "All expected columns present", "observed": "All 11 expected columns present plus 4 extra (session, kill_zone, ny_window, forex_day)" },
+        { "action": "Assert DataFrame non-empty", "expected": "len(df) > 0", "observed": "len(df) == 1440" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A (local parquet read via DuckDB)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-002",
+      "title": "Timezone normalization Asia/Bangkok to UTC",
+      "status": "pass",
+      "steps": [
+        { "action": "Load bars for 2024-01-08 and check first timestamp", "expected": "df['timestamp'].iloc[0] == Timestamp('2024-01-08 00:00:00', tz='UTC')", "observed": "2024-01-08 00:00:00+00:00 matches expected" },
+        { "action": "Verify timezone is UTC", "expected": "tz == UTC", "observed": "tz == UTC" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-003",
+      "title": "NY timestamp computation",
+      "status": "pass",
+      "steps": [
+        { "action": "Check timestamp_ny for first bar of 2024-01-08 00:00 UTC", "expected": "NY time is 2024-01-07 19:00 (EST, UTC-5)", "observed": "2024-01-07 19:00:00-05:00 — hour=19, date=2024-01-07" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-004",
+      "title": "Single-day bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "load_bars('EURUSD', '2024-01-08', '2024-01-08')", "expected": "len(df) == 1440", "observed": "len(df) == 1440" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-005",
+      "title": "Multi-day date range filtering",
+      "status": "pass",
+      "steps": [
+        { "action": "load_bars('EURUSD', '2024-01-08', '2024-01-10')", "expected": "4320 bars (3 × 1440)", "observed": "4320 bars returned" },
+        { "action": "Check min/max timestamps", "expected": "Jan 8 00:00 UTC to Jan 10 23:59 UTC", "observed": "min=2024-01-08 00:00:00+00:00, max=2024-01-10 23:59:00+00:00" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-006",
+      "title": "Weekend gap handling",
+      "status": "pass",
+      "steps": [
+        { "action": "load_bars('EURUSD', '2024-01-05', '2024-01-08')", "expected": "2880 bars (Fri + Mon only), no weekend dates", "observed": "2880 bars, 0 weekend dates in output" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-007",
+      "title": "Ghost bar identification",
+      "status": "pass",
+      "steps": [
+        { "action": "Check is_ghost logic on real data: volume==0 → True, volume==-1 → False, volume>0 → False", "expected": "Correct ghost classification", "observed": "All 1440 bars have volume>0, is_ghost=False — correct" },
+        { "action": "Synthetic data injection: volumes [0, -1, 100, 0, 50]", "expected": "is_ghost = [True, False, False, True, False]", "observed": "[True, False, False, True, False] — matches exactly" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-008",
+      "title": "load_and_aggregate 5m/15m/1H correctness",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1440 1m bars to 5m, 15m, 1H", "expected": "288, 96, 24 bars respectively", "observed": "5m=288, 15m=96, 1H=24" },
+        { "action": "Spot-check first 5m bar OHLCV vs first 5 1m bars", "expected": "open=first, high=max, low=min, close=last, volume=sum", "observed": "All match: open_match=true, high_match=true, low_match=true, close_match=true, vol_match=true" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-009",
+      "title": "4H bar alignment to forex day boundary",
+      "status": "pass",
+      "steps": [
+        { "action": "load_and_aggregate 4H for Jan 8-10 and group by forex_day", "expected": "6 bars per complete forex day at hours [17, 21, 1, 5, 9, 13] NY", "observed": "Complete forex days (2024-01-09, 2024-01-10) have exactly 6 bars at hours [1, 5, 9, 13, 17, 21]. First partial forex day (2024-01-08) starts at 19 instead of 17 due to data boundary — expected behavior." },
+        { "action": "Verify bar count for complete forex days", "expected": "6 bars per forex day", "observed": "forex_day 2024-01-09: 6 bars, forex_day 2024-01-10: 6 bars" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "Single-day load (Jan 8 only) produces 7 bars due to data spanning two partial forex days. Multi-day load confirms correct 6-bar alignment for complete forex days."
+    },
+    {
+      "id": "VAL-RIVER-010",
+      "title": "Daily bar uses forex day boundary",
+      "status": "pass",
+      "steps": [
+        { "action": "load_and_aggregate 1D for Jan 8-10", "expected": "Daily bars grouped by forex_day (17:00 NY boundary)", "observed": "4 daily bars: forex_days [2024-01-08, 2024-01-09, 2024-01-10, 2024-01-11], first bar at 19:00 NY, subsequent at 17:00 NY — confirms forex day boundary grouping" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-011",
+      "title": "available_range returns correct bounds",
+      "status": "pass",
+      "steps": [
+        { "action": "Call available_range('EURUSD')", "expected": "Date tuple matching filesystem bounds", "observed": "API returned (2020-11-23, 2026-02-20), filesystem scan confirmed same bounds" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-012",
+      "title": "validate_integrity gap and ghost reporting",
+      "status": "pass",
+      "steps": [
+        { "action": "validate_integrity('EURUSD', '2024-01-08', '2024-01-08')", "expected": "{bar_count: 1440, ghost_count: 0, gap_count: 0}", "observed": "{bar_count: 1440, ghost_count: 0, gap_count: 0}" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-013",
+      "title": "CSV fallback backward compatibility",
+      "status": "pass",
+      "steps": [
+        { "action": "Call load_from_csv('data/eurusd_1m_2024-01-07_to_2024-01-12.csv')", "expected": "DataFrame with bar contract columns", "observed": "7177 rows loaded with all required columns (timestamp, open, high, low, close, volume, is_ghost, timestamp_ny)" },
+        { "action": "Compare column sets between CSV and River outputs", "expected": "Both have core bar contract columns", "observed": "CSV has 12 cols, River has 15 cols (River adds source, knowledge_time, bar_hash from parquet). Core bar contract columns present in both." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-014",
+      "title": "Full month bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify Jan 2024 has 23 trading day parquet files", "expected": "23 files", "observed": "23 parquet files in ~/phoenix-river/EURUSD/2024/01/" },
+        { "action": "load_bars('EURUSD', '2024-01-01', '2024-01-31')", "expected": "33120 bars (23 × 1440)", "observed": "33120 bars" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-015",
+      "title": "Bars sorted ascending, no duplicates",
+      "status": "pass",
+      "steps": [
+        { "action": "Check is_monotonic_increasing on load_bars output", "expected": "True", "observed": "True" },
+        { "action": "Check duplicated().sum() == 0", "expected": "0 duplicates", "observed": "0 duplicates" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-016",
+      "title": "RIVER_ROOT environment variable override",
+      "status": "pass",
+      "steps": [
+        { "action": "Set RIVER_ROOT=/tmp/test_river_root_override, create RiverAdapter()", "expected": "adapter.river_root == /tmp/test_river_root_override", "observed": "/tmp/test_river_root_override — matches" },
+        { "action": "Create RiverAdapter(river_root='/tmp/explicit_override') with env set", "expected": "Explicit arg overrides env var", "observed": "/tmp/explicit_override — explicit arg takes priority" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-RIVER-017",
+      "title": "Cross-month DuckDB glob traversal",
+      "status": "pass",
+      "steps": [
+        { "action": "load_bars('EURUSD', '2024-01-15', '2024-02-15')", "expected": "Bars from both January and February", "observed": "34560 total bars: 18720 from Jan, 15840 from Feb. min_ts=2024-01-15 00:00 UTC, max_ts=2024-02-15 23:59 UTC" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 17 assertions: 17 passed, 0 failed. All River adapter functionality works correctly — timezone normalization, ghost bar logic, aggregation (5m/15m/1H/4H/1D), forex day alignment, weekend handling, CSV fallback, env var override, cross-month traversal, and integrity validation all confirmed."
+}

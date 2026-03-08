@@ -1,0 +1,219 @@
+{
+  "groupId": "param-extraction",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A (pure Python library)",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-PARAM-001",
+      "title": "Locked extraction equivalence for all 14 primitives",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config via load_config('configs/locked_baseline.yaml')", "expected": "Config loaded", "observed": "Config loaded" },
+        { "action": "Call extract_locked_params_for_cascade(config) for old extraction", "expected": "Dict of 14 primitives", "observed": "Dict of 14 primitives returned" },
+        { "action": "Call extract_params(config, prim, mode='locked') for each of 14 primitives", "expected": "Identical dicts to old extraction", "observed": "All 14 primitives match exactly (deep dict equality)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: 14 parametrized tests PASSED; inline check: all 14 primitives confirmed MATCH"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-002",
+      "title": "Sweep mode returns sweep_range values",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_params(config, 'fvg', mode='sweep')", "expected": "floor_threshold_pips == [0.0, 0.5, 1.0, 1.5, 2.0]", "observed": "floor_threshold_pips == [0.0, 0.5, 1.0, 1.5, 2.0]" },
+        { "action": "extract_params(config, 'displacement', mode='sweep') for LTF", "expected": "atr_multiplier, body_ratio, close_gate return sweep_range lists", "observed": "LTF: atr_multiplier=[1.0..3.0], body_ratio=[0.50..0.80], close_gate=[0.10..0.30]" },
+        { "action": "extract_params(config, 'displacement', mode='sweep') for HTF", "expected": "atr_multiplier, body_ratio, close_gate return sweep_range lists", "observed": "HTF: atr_multiplier=[1.0..2.0], body_ratio=[0.55..0.75], close_gate=[0.10..0.30]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_fvg_sweep_mode, test_displacement_sweep_mode_ltf, test_displacement_sweep_mode_htf all PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-003",
+      "title": "Per-TF override resolution in locked mode",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_params(config, 'swing_points', mode='locked')", "expected": "N == {1m: 5, 5m: 3, 15m: 2}", "observed": "N == {'1m': 5, '5m': 3, '15m': 2}" },
+        { "action": "Check N values are plain integers, no {locked: X} wrappers", "expected": "All values are int, no dict wrappers", "observed": "All values are int type, no wrappers found" },
+        { "action": "Check height_filter_pips", "expected": "{1m: 0.5, 5m: 3.0, 15m: 3.0}", "observed": "{'1m': 0.5, '5m': 3.0, '15m': 3.0}" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_swing_points_per_tf_locked PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-004",
+      "title": "Per-TF sweep ranges in sweep mode",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_params(config, 'swing_points', mode='sweep')", "expected": "height_filter_pips returns per-TF sweep ranges", "observed": "height_filter_pips has per-TF sweep range dicts" },
+        { "action": "Check 1m range", "expected": "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]", "observed": "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]" },
+        { "action": "Check 5m range", "expected": "[2.0, 3.0, 5.0, 7.0, 10.0, 15.0]", "observed": "[2.0, 3.0, 5.0, 7.0, 10.0, 15.0]" },
+        { "action": "Check 15m range", "expected": "[3.0, 5.0, 7.0, 10.0, 15.0, 20.0]", "observed": "[3.0, 5.0, 7.0, 10.0, 15.0, 20.0]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_swing_points_height_filter_sweep_per_tf PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-005",
+      "title": "Single-param Cartesian product",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_sweep_combos(config, 'fvg')", "expected": "5 combos", "observed": "len(combos) == 5" },
+        { "action": "Check first combo", "expected": "floor_threshold_pips == 0.0", "observed": "combos[0]['floor_threshold_pips'] == 0.0" },
+        { "action": "Check last combo", "expected": "floor_threshold_pips == 2.0", "observed": "combos[-1]['floor_threshold_pips'] == 2.0" },
+        { "action": "Verify each combo is a valid param dict", "expected": "All dicts with floor_threshold_pips key", "observed": "All 5 combos are dicts with floor_threshold_pips" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_fvg_sweep_combos PASSED; inline: combos=[0.0, 0.5, 1.0, 1.5, 2.0]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-006",
+      "title": "Multi-param Cartesian product",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_sweep_combos(config, 'session_liquidity')", "expected": "120 combos (6×4×5)", "observed": "len(combos) == 120" },
+        { "action": "Verify all three params present in each combo", "expected": "efficiency_threshold, mid_cross_min, balance_score_min in each", "observed": "All 120 combos contain all three params" },
+        { "action": "Verify unique value counts", "expected": "6 efficiency, 4 mid_cross, 5 balance", "observed": "6 unique eff ([0.4..0.65]), 4 unique mid ([1..4]), 5 unique bal ([0.2..0.4])" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_session_liquidity_sweep_combos PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-007",
+      "title": "Selective param sweep",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_sweep_combos(config, 'displacement', params=['ltf.atr_multiplier'])", "expected": "7 combos", "observed": "len(combos) == 7" },
+        { "action": "Verify non-swept params unchanged", "expected": "body_ratio, close_gate, htf.atr_multiplier at locked values", "observed": "All non-swept params constant across all 7 combos" },
+        { "action": "Verify swept param varies", "expected": "atr_multiplier == [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]", "observed": "atr_multiplier values == [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_displacement_selective_sweep PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-008",
+      "title": "Unknown primitive raises error",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_params(config, 'nonexistent', mode='locked')", "expected": "ParamExtractionError raised with 'nonexistent' in message", "observed": "ParamExtractionError: Unknown primitive 'nonexistent'. Valid primitives: [...]" },
+        { "action": "extract_params(config, 'nonexistent', mode='sweep')", "expected": "ParamExtractionError raised", "observed": "ParamExtractionError raised with descriptive message" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_unknown_primitive_raises_error, test_unknown_primitive_sweep_raises_error PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-009",
+      "title": "Locked extraction preserves existing dict format",
+      "status": "pass",
+      "steps": [
+        { "action": "Deep dict equality for all 14 primitives between new and old extraction", "expected": "All identical", "observed": "All 14 primitives deeply equal" },
+        { "action": "Check session_liquidity {locked: value} wrappers", "expected": "efficiency_threshold, mid_cross_min, balance_score_min wrapped", "observed": "All three have {locked: value} wrapper dicts" },
+        { "action": "Check liquidity_sweep rejection_wick_pct wrapper", "expected": "{locked: 0.40}", "observed": "rejection_wick_pct == {'locked': 0.40}" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_session_liquidity_locked_wrappers, test_liquidity_sweep_locked_wrappers PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-010",
+      "title": "Null locked value handling",
+      "status": "pass",
+      "steps": [
+        { "action": "extract_params(config, 'bpr', mode='locked')", "expected": "Empty dict (matches hardcoded behavior)", "observed": "Returns {} (empty dict)" },
+        { "action": "extract_params(config, 'bpr', mode='sweep')", "expected": "min_overlap_pips == [0.0, 0.5, 1.0, 2.0]", "observed": "min_overlap_pips == [0.0, 0.5, 1.0, 2.0]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_bpr_null_locked_value PASSED; inline: locked={}, sweep=[0.0, 0.5, 1.0, 2.0]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-011",
+      "title": "CascadeEngine round-trip produces identical detections",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 5-day CSV, aggregate to 5m/15m", "expected": "bars_by_tf with 1m, 5m, 15m", "observed": "Data loaded successfully" },
+        { "action": "Run CascadeEngine with old extract_locked_params_for_cascade()", "expected": "9784 total detections", "observed": "old_total == 9784" },
+        { "action": "Run CascadeEngine with new extract_params() for all 14 primitives", "expected": "9784 total detections", "observed": "new_total == 9784" },
+        { "action": "Compare per-primitive per-TF counts", "expected": "All counts identical", "observed": "All per-primitive per-TF counts match exactly" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: test_cascade_roundtrip_identical_detections PASSED; inline: old=9784, new=9784, per-prim/TF all match"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PARAM-012",
+      "title": "All primitives valid in both modes",
+      "status": "pass",
+      "steps": [
+        { "action": "Iterate all 14 primitives × 2 modes (locked, sweep)", "expected": "All return dicts without error", "observed": "All 28 combinations return dict type successfully" },
+        { "action": "Check reference_levels (no sweep_range) returns locked values in sweep mode", "expected": "sweep == locked", "observed": "reference_levels sweep == locked: True" },
+        { "action": "Check ote (no sweep_range) returns locked values in sweep mode", "expected": "sweep == locked", "observed": "ote sweep == locked: True" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "pytest: 14 test_all_primitives_locked_mode + 14 test_all_primitives_sweep_mode all PASSED"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 12 assertions (VAL-PARAM-001 through VAL-PARAM-012): all 12 passed. Verified via both pytest suite (61 tests, all passing) and independent python3 -c inline checks. All param extraction functions produce correct output for locked mode equivalence, sweep ranges, per-TF overrides, Cartesian products, error handling, dict format preservation, null handling, and CascadeEngine round-trip (9784 detections identical)."
+}
