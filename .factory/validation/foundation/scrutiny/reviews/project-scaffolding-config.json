@@ -1,0 +1,54 @@
+{
+  "featureId": "project-scaffolding-config",
+  "milestone": "foundation",
+  "status": "pass",
+  "codeReviewIssues": [
+    {
+      "severity": "non_blocking",
+      "file": "src/ra/config/schema.py",
+      "description": "Several pydantic models use `dict[str, Any]` for complex nested config structures (e.g., SwingPointsParams.N, SwingPointsParams.height_filter_pips, LiquiditySweepParams.level_sources, HTFLiquidityParams.price_tolerance_pips, etc.). This bypasses the strict type validation promise of extra='forbid' for those specific nested values — arbitrary data could be placed inside without a ValidationError. Works for current needs but weakens the defense-in-depth that the pydantic schema provides.",
+      "suggestedFix": "For critical per_tf params (N, height_filter_pips), consider creating typed PerTFParam models with locked/sweep_range fields. Lower priority for complex structures like level_sources where flexibility may be intentional."
+    },
+    {
+      "severity": "non_blocking",
+      "file": "src/ra.egg-info/",
+      "description": "The src/ra.egg-info/ directory (build artifact from pip install -e) was committed to git. This is typically excluded via .gitignore and should not be in version control.",
+      "suggestedFix": "Add 'src/ra.egg-info/' to .gitignore and remove from git tracking with 'git rm -r --cached src/ra.egg-info/'."
+    },
+    {
+      "severity": "suggestion",
+      "file": "tests/test_config.py",
+      "description": "Multiple tests manually create temp YAML files and call path.unlink() for cleanup. If a test fails before the unlink() call, the temp file leaks. Consider using pytest's tmp_path fixture or contextlib for more robust cleanup.",
+      "suggestedFix": "Use @pytest.fixture or tmp_path: `path = tmp_path / 'test.yaml'; path.write_text(yaml.dump(data))` — cleanup is automatic."
+    },
+    {
+      "severity": "suggestion",
+      "file": "src/ra/config/loader.py",
+      "description": "resolve_per_tf() handles multiple code paths for pydantic model vs dict access (isinstance checks, getattr, hasattr). While functional, the branching logic could be simplified if params were always accessed as dicts (via model_dump()) at entry. This would reduce the number of code paths and make behavior more predictable.",
+      "suggestedFix": "Consider normalizing params to dict at the start of resolve_per_tf() with `params = params.model_dump() if hasattr(params, 'model_dump') else params` and then operating on the dict uniformly."
+    }
+  ],
+  "sharedStateObservations": [
+    {
+      "target": "AGENTS.md",
+      "observation": "AGENTS.md does not mention that build artifacts like src/ra.egg-info/ should be excluded from git commits. A .gitignore convention note could prevent future accidental commits of build artifacts.",
+      "sourceFeature": "project-scaffolding-config"
+    },
+    {
+      "target": "skills",
+      "observation": "Worker's skillFeedback correctly noted that the 'Write Failing Tests FIRST' (Step 4 red phase) procedure doesn't cleanly apply to scaffolding/config features where there's no regression baseline to match. The skill could add a note that Step 4 applies primarily to detector module features, while scaffolding features can write tests alongside implementation.",
+      "sourceFeature": "project-scaffolding-config"
+    },
+    {
+      "target": "services.yaml",
+      "observation": "services.yaml has empty strings for typecheck, lint, and build commands. The worker used 'python3 -m pip install -e \".[dev]\"' for setup, which is already captured in the install command. No missing services observed.",
+      "sourceFeature": "project-scaffolding-config"
+    },
+    {
+      "target": "library",
+      "observation": "The worker discovered that pyproject.toml initially had an incorrect build-backend ('setuptools.backends._legacy:_Backend') and had to fix it to 'setuptools.build_meta'. This setuptools quirk could be documented in library/environment.md to prevent future issues if pyproject.toml needs recreation.",
+      "sourceFeature": "project-scaffolding-config"
+    }
+  ],
+  "summary": "Feature passes review. The project scaffolding and config system are well-implemented with comprehensive test coverage (43 tests) covering all 6 validation assertions (VAL-CFG-001 through VAL-CFG-006). The pydantic v2 schema correctly enforces extra='forbid' at all levels, the config loader handles per-TF resolution cleanly, and the engine base classes (PrimitiveDetector ABC, Detection, DetectionResult) provide a solid foundation. The main non-blocking issues are: (1) some config schema models use dict[str, Any] which relaxes strict validation for nested per_tf structures, and (2) build artifacts (egg-info) were committed to git. Neither issue blocks downstream features."
+}

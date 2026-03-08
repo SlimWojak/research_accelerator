@@ -30,6 +30,10 @@ All pre-installed:
 - Reference pipeline: `pipeline/preprocess_data_v2.py` (2,816 lines, read-only)
 - Canonical spec: `SYNTHETIC_OLYA_METHOD_v0.5.yaml` (read-only)
 
+## Known Quirks
+
+- **pyproject.toml build-backend**: Must use `setuptools.build_meta` (not `setuptools.backends._legacy:_Backend`). The latter is an internal setuptools path that breaks `pip install -e`.
+
 ## Environment Variables
 
 - `RIVER_ROOT`: Path to phoenix-river directory (default: `~/phoenix-river`). Not needed for Phase 1 (CSV fallback).

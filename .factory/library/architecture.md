@@ -15,8 +15,8 @@ src/ra/
     loader.py          # Parse + validate YAML config via pydantic v2
     schema.py          # Pydantic models for config validation
   data/
+    csv_loader.py      # Load CSV, parse timestamps, convert to NY timezone
     river_adapter.py   # Read-only River/parquet consumer (stub for Phase 1)
-    bar_types.py       # Bar DataFrame contract
     tf_aggregator.py   # 1m -> 5m/15m/1H/4H/1D aggregation
     session_tagger.py  # Tag bars with session/kill zone/forex day
   engine/
