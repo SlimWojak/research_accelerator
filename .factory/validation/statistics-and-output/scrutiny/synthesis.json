@@ -1,0 +1,154 @@
+{
+  "milestone": "statistics-and-output",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd /Users/echopeso/research_accelerator && python3 -m pytest tests/ --tb=short -q --no-header -p no:cacheprovider",
+      "exitCode": 0,
+      "details": "631 passed in 804.99s"
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "details": "No typecheck command configured in services.yaml"
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "details": "No lint command configured in services.yaml"
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "comparison-statistics",
+      "severity": "non_blocking",
+      "description": "cascade_stats.py _is_chain_complete uses detection.id.split('_')[0] to extract primitive name, which fails for order_block ('ob' prefix) and liquidity_sweep ('sweep' prefix). Currently masked by empty upstream_refs and structural fallback."
+    },
+    {
+      "featureId": "comparison-statistics",
+      "severity": "non_blocking",
+      "description": "O(n²) divergence index building in comparison.py — precompute set unions before loop."
+    },
+    {
+      "featureId": "comparison-statistics",
+      "severity": "non_blocking",
+      "description": "test_detections_per_day_mean asserts '> 0' instead of exact expected value 2.0."
+    },
+    {
+      "featureId": "walk-forward-validation",
+      "severity": "non_blocking",
+      "description": "VAL-WF-009 (River adapter multi-month) has no test in walk-forward's own test file, covered by cross-area integration test VAL-XA-002."
+    },
+    {
+      "featureId": "walk-forward-validation",
+      "severity": "non_blocking",
+      "description": "Private function _filter_bars_by_date imported from runner.py — cross-module private API coupling."
+    },
+    {
+      "featureId": "walk-forward-validation",
+      "severity": "non_blocking",
+      "description": "Population std (N) used instead of sample std (N-1) — consistent internally, but undocumented choice."
+    },
+    {
+      "featureId": "structured-output-and-cli",
+      "severity": "non_blocking",
+      "description": "Schema 4B params field always empty {} when generated via serialize_evaluation_run — Phase 3 consumers will get no param data."
+    },
+    {
+      "featureId": "structured-output-and-cli",
+      "severity": "non_blocking",
+      "description": "Redundant sanitization: RAJSONEncoder._sanitize() and _deep_sanitize() implement nearly identical type conversion, both run sequentially."
+    },
+    {
+      "featureId": "structured-output-and-cli",
+      "severity": "non_blocking",
+      "description": "Double progress printing in cmd_sweep — _build_1d_grid() prints progress, then cmd_sweep replays it."
+    },
+    {
+      "featureId": "structured-output-and-cli",
+      "severity": "non_blocking",
+      "description": "Unused imports: time, copy, extract_sweep_combos in eval.py."
+    },
+    {
+      "featureId": "structured-output-and-cli",
+      "severity": "non_blocking",
+      "description": "eval.py compare subcommand only supports single config — no actual pairwise comparison generated."
+    },
+    {
+      "featureId": "cross-area-integration",
+      "severity": "non_blocking",
+      "description": "VAL-XA-007 partial: test uses 6-month data yielding 3 windows, not the 12-month range required for ≥6 windows per validation contract."
+    },
+    {
+      "featureId": "cross-area-integration",
+      "severity": "non_blocking",
+      "description": "PHASE1_TEST_FILES list hardcoded in test_integration.py duplicates services.yaml test_phase1_only — maintenance risk."
+    },
+    {
+      "featureId": "cross-area-integration",
+      "severity": "non_blocking",
+      "description": "Hardcoded 9784 detection count assertion couples test to specific baseline data — acceptable as regression test."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add a note under Coding Conventions documenting that detection ID prefixes don't always match dep_graph primitive names: order_block uses 'ob' prefix, liquidity_sweep uses 'sweep'/'sweep_cont'/'sweep_delayed'. Code extracting primitive name from detection IDs via split('_')[0] must use a mapping dict (e.g., {'ob': 'order_block', 'sweep': 'liquidity_sweep', 'sweep_cont': 'liquidity_sweep', 'sweep_delayed': 'liquidity_sweep'}).",
+      "evidence": "comparison-statistics review found cascade_stats.py line 266 extracts primitive name via detection.id.split('_')[0], which yields 'ob' instead of 'order_block'. src/ra/detectors/order_block.py:252 uses make_detection_id(primitive='ob'), src/ra/detectors/liquidity_sweep.py uses 'sweep'/'sweep_cont'/'sweep_delayed'.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add to test naming conventions: 'Integration test files may use test_integration*.py prefix for cross-area tests.' Currently only test_evaluation_, test_river_, test_output_, test_cli_ prefixes are documented, but the feature spec for cross-area-integration required test_integration.py.",
+      "evidence": "cross-area-integration review: AGENTS.md Test conventions lists only 4 prefixes. Feature description explicitly required 'Create tests/test_integration.py'. Worker correctly followed feature spec over AGENTS.md convention.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add convention: 'When cross-module utility functions are needed (e.g., _filter_bars_by_date), prefer making them public in a shared utils module rather than importing private functions across modules.' Walk-forward imports _filter_bars_by_date from runner.py, creating a fragile cross-module dependency.",
+      "evidence": "walk-forward-validation review: src/ra/evaluation/walk_forward.py:13 imports private _filter_bars_by_date from runner.py.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Note under Output schema conformance: 'Schema 4B params field is currently always empty ({}) in serialize_evaluation_run. Phase 3 consumers should not depend on this field for actual parameter data until it is populated.'",
+      "evidence": "structured-output-and-cli review: src/ra/output/json_export.py:380 passes params={} with TODO comment. Schema 4B specification shows params should contain actual parameter values.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "No typecheck or lint commands configured in services.yaml",
+      "reason": "Already known — services.yaml has empty strings for typecheck and lint. Not this milestone's scope to add tooling."
+    },
+    {
+      "observation": "Upstream_refs are empty in Phase 1 detectors — skill should mention this",
+      "reason": "Already documented in comparison-statistics handoff discoveredIssues. Skill feedback channel, not shared state."
+    },
+    {
+      "observation": "Inline import pattern in eval.py for CLI lazy loading",
+      "reason": "Style choice localized to one file, not systemic. Reasonable for CLI startup performance."
+    },
+    {
+      "observation": "Slow test_evaluation_runner.py (>120s)",
+      "reason": "Operational knowledge. Tests correctly run expensive cascade operations. Not a convention issue."
+    },
+    {
+      "observation": "Worker followed skill correctly for cross-area integration",
+      "reason": "Procedural note confirming procedure was followed. No action needed."
+    }
+  ],
+  "previousRound": null
+}

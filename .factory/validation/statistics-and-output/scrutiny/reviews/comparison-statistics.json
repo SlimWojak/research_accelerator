@@ -1,0 +1,56 @@
+{
+  "featureId": "comparison-statistics",
+  "reviewedAt": "2026-03-08T15:10:00Z",
+  "commitId": "7b41ac6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of comparison statistics (compute_stats, compare_pairwise, compare_multi) and cascade stats (cascade_funnel, cascade_completion). All 12 VAL-COMP assertions covered by 37 tests. Code is well-structured with clear separation of concerns, proper zero-detection handling, and correct 4-category session mapping. Two non-blocking issues found: (1) detection ID parsing bug in cascade_completion that is currently masked by the structural fallback, and (2) a minor O(n²) performance concern in divergence index building.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/cascade_stats.py",
+        "line": 266,
+        "severity": "non_blocking",
+        "description": "_is_chain_complete extracts primitive name via detection.id.split('_')[0], which is incorrect for primitives where the detection ID prefix differs from the dep_graph key. For example, order_block detections use 'ob' as their ID prefix (make_detection_id('ob', ...)) and liquidity_sweep uses 'sweep'/'sweep_cont'/'sweep_delayed'. So dep_graph.get('ob', []) returns [] instead of the actual upstream dependencies for order_block. Currently masked because upstream_refs are always empty and the structural fallback returns True for any primitive not found in dep_graph (treating it as a leaf). When upstream_refs are populated in the future, this code path won't be hit. But the structural fallback itself gives incorrect results for these primitives — it always reports them as 'complete' regardless of upstream state."
+      },
+      {
+        "file": "src/ra/evaluation/comparison.py",
+        "line": 339,
+        "severity": "non_blocking",
+        "description": "_build_divergence_entries creates set unions (agreed_ids | only_a_ids) and (agreed_ids | only_b_ids) inside the loop for every detection ID. This is O(n) per iteration, making the overall complexity O(n²). Should precompute ids_in_a = agreed_ids | only_a_ids and ids_in_b = agreed_ids | only_b_ids before the loop. Not a practical concern for current data sizes but could matter at scale."
+      },
+      {
+        "file": "tests/test_evaluation_comparison.py",
+        "line": 162,
+        "severity": "non_blocking",
+        "description": "test_detections_per_day_mean asserts only '> 0' instead of the exact expected value. The fixture data has 10 detections across 5 forex days with per-day counts [2, 2, 3, 2, 1], so mean should be exactly 2.0. A stronger assertion (assert disp_5m['detections_per_day'] == 2.0) would better verify correctness."
+      },
+      {
+        "file": "src/ra/evaluation/comparison.py",
+        "line": 68,
+        "severity": "non_blocking",
+        "description": "compute_stats returns stats[primitive][timeframe] while Schema 4B expects per_primitive[primitive].per_tf[timeframe]. This is acceptable since this is a computation module (not output serialization), but downstream output code will need to reshape the structure to conform to Schema 4B."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Detection ID prefixes don't always match dep_graph primitive names. order_block uses 'ob', liquidity_sweep uses 'sweep'/'sweep_cont'/'sweep_delayed' in make_detection_id(). Any code extracting primitive name from detection IDs via split('_')[0] will get the wrong key for dep_graph lookups. This pattern is used in cascade_stats.py line 266 and could affect future code. AGENTS.md doesn't document this ID-to-primitive mapping discrepancy.",
+      "evidence": "src/ra/detectors/order_block.py:252 uses make_detection_id(primitive='ob', ...) while dep_graph key is 'order_block'. src/ra/detectors/liquidity_sweep.py:1000 uses 'sweep', :1018 uses 'sweep_cont', :1032 uses 'sweep_delayed' while dep_graph key is 'liquidity_sweep'."
+    },
+    {
+      "area": "skills",
+      "observation": "Skill feedback notes upstream_refs are empty in Phase 1 detectors, suggesting the skill should mention this. The skill's Step 6 (Manual Verification) says 'For comparison: compare two configs, check divergence_index makes sense' — worker followed this procedure. Worker correctly noted the limitation and implemented a structural fallback. skillFeedback.followedProcedure is true.",
+      "evidence": "Transcript shows worker investigated upstream_refs across multiple detectors before implementing fallback. Handoff discoveredIssues documents the limitation. skillFeedback.suggestedChanges proposes mentioning empty upstream_refs in the skill."
+    },
+    {
+      "area": "conventions",
+      "observation": "No typecheck or lint commands configured in services.yaml. Worker did not run any linting or type checking, only pytest. The codebase has type hints throughout but no enforcement mechanism.",
+      "evidence": "services.yaml has empty strings for 'typecheck' and 'lint' commands."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The comparison-statistics feature is well-implemented with compute_stats, compare_pairwise, compare_multi, cascade_funnel, and cascade_completion all covering the feature requirements. 37 tests validate all 12 VAL-COMP assertions including zero-detection edge cases, session distribution summing to 100%, self-comparison agreement=1.0, and C(n,2) multi-config generation. The main finding is a non-blocking bug in cascade_completion's _is_chain_complete where detection ID parsing (split('_')[0]) doesn't correctly resolve primitive names for order_block ('ob') and liquidity_sweep ('sweep'), causing the structural fallback to incorrectly treat them as leaf nodes. This is currently masked because upstream_refs are empty and all upstream primitives have detections in practice, but it will need fixing before upstream_refs are populated."
+}

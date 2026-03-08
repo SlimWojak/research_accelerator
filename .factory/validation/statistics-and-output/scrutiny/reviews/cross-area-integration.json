@@ -1,0 +1,62 @@
+{
+  "featureId": "cross-area-integration",
+  "reviewedAt": "2026-03-08T16:05:00Z",
+  "commitId": "ba0c306",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid 567-line integration test file covering all 6 VAL-XA assertions. Tests exercise the full end-to-end pipeline (sweep→compare→JSON), River→walk-forward, Phase 1 regression gate, locked baseline equivalence, grid sweep determinism, and divergence index arithmetic. Code is well-structured with module-scoped fixtures for shared expensive setup (config, bars, locked_results). Assertions are specific and verify both structural conformance and arithmetic invariants. The one notable deviation — asserting ≥3 windows instead of ≥6 for the 6-month walk-forward — is mathematically correct and well-documented in skillFeedback.",
+    "issues": [
+      {
+        "file": "tests/test_integration.py",
+        "line": 215,
+        "severity": "non_blocking",
+        "description": "VAL-XA-007 partial coverage: The feature claims to fulfill VAL-XA-007 ('Walk-forward with River data produces 6+ windows'), but the test uses 6-month data (2024-01 to 2024-06) which mathematically yields only 3 windows with 3/1/1 config. VAL-XA-007 specifies 12-month data (2024-01 to 2024-12) for ≥6 windows. The test correctly asserts ≥3 for the 6-month scope, but doesn't fully satisfy VAL-XA-007 as written in the validation contract. The worker documented this in skillFeedback with correct reasoning."
+      },
+      {
+        "file": "tests/test_integration.py",
+        "line": 266,
+        "severity": "non_blocking",
+        "description": "import re is inside the test function body (test_phase1_tests_all_pass) rather than at module top. Minor style inconsistency — all other imports are at the top of the file."
+      },
+      {
+        "file": "tests/test_integration.py",
+        "line": 53,
+        "severity": "non_blocking",
+        "description": "PHASE1_TEST_FILES list is hardcoded and duplicates the same list in services.yaml test_phase1_only command. If Phase 1 test files change, both must be updated in sync. Consider referencing a single source of truth."
+      },
+      {
+        "file": "tests/test_integration.py",
+        "line": 316,
+        "severity": "non_blocking",
+        "description": "Hardcoded assertion 'assert total_eval == total_phase1 == 9784' couples the test to a specific detection count. While this value is well-known (documented in VAL-EVAL-001 and architecture.md), it would break if the 5-day CSV dataset or any Phase 1 detector logic changes. Acceptable for a regression test but worth noting."
+      },
+      {
+        "file": "tests/test_integration.py",
+        "line": 147,
+        "severity": "non_blocking",
+        "description": "Schema 4A pairwise validation checks surface-level structure ('per_primitive' in pw, 'divergence_index' in pw) but doesn't verify the internal Schema 4C nesting. The raw compare_pairwise() returns per_primitive[prim][tf] (flat) while Schema 4C specifies per_primitive.{p}.per_tf.{tf} (nested). However, this is a comparison module conformance issue, not an integration test issue — the test correctly validates actual module behavior."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Test file named tests/test_integration.py doesn't follow the AGENTS.md naming convention which specifies prefixes test_evaluation_, test_river_, test_output_, test_cli_ for new test files. However, the feature description explicitly requested this filename, so the worker correctly followed the feature spec over the convention. AGENTS.md should be updated to include test_integration.py as an acceptable test file prefix for cross-area integration tests.",
+      "evidence": "AGENTS.md Test conventions section says 'New test files go in tests/ with prefix test_evaluation_, test_river_, test_output_, test_cli_'. Feature description says 'Create tests/test_integration.py'. Worker followed feature spec."
+    },
+    {
+      "area": "conventions",
+      "observation": "The PHASE1_TEST_FILES list is duplicated between tests/test_integration.py (lines 53-68) and services.yaml test_phase1_only command. This creates a maintenance risk. Consider documenting in AGENTS.md that the canonical Phase 1 test file list lives in services.yaml and should be referenced from there, or that a shared constant should be maintained.",
+      "evidence": "tests/test_integration.py lines 53-68 hardcode the same 16 test files as services.yaml test_phase1_only. No convention exists for keeping these in sync."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker followed the ra-eval-worker skill procedure correctly: read specs, studied existing code, wrote tests, verified with full suite, committed. skillFeedback.followedProcedure=true with no deviations. The suggestedChanges note about walk-forward window count (3 vs 6) is valid and should be incorporated into the feature description or validation contract.",
+      "evidence": "Handoff skillFeedback.followedProcedure=true. Transcript shows reading architecture.md, output_schemas.md, comparison.py, runner.py, walk_forward.py before implementing."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The cross-area-integration feature delivers a well-structured 567-line integration test file with 6 tests covering all VAL-XA assertions. The implementation is thorough: end-to-end sweep→compare→JSON round-trip, River→walk-forward with real parquet data, Phase 1 regression gate via subprocess, locked baseline equivalence with per-primitive per-TF comparison, grid sweep determinism, and divergence index arithmetic validation. All tests pass (6 new integration + 625 existing = 0 regressions). The only notable gap is partial VAL-XA-007 coverage (≥3 windows vs ≥6) due to the feature description specifying 6-month data rather than the 12-month range VAL-XA-007 requires — this is well-documented and mathematically sound. No blocking issues found."
+}
