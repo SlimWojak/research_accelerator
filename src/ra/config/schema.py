@@ -263,6 +263,7 @@ class AsiaClassificationConfig(StrictModel):
 class AsiaRangeParams(StrictModel):
     classification: AsiaClassificationConfig
     max_cap_pips: float
+    thresholds: list[int] = [12, 15, 18, 20, 25, 30]
 
 
 class AsiaRangeConfig(StrictModel):

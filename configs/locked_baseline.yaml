@@ -57,7 +57,7 @@ dependency_graph:
   ote:              { upstream: [mss] }
   htf_liquidity:    { upstream: [swing_points] }
   liquidity_sweep:
-    upstream: [session_liquidity, reference_levels, htf_liquidity, swing_points]
+    upstream: [session_liquidity, reference_levels, htf_liquidity, swing_points, displacement]
 
 # ─── PRIMITIVES ───────────────────────────────────────────────────────────
 
@@ -204,6 +204,7 @@ primitives:
         mid_below_pips: 20
         wide_above_pips: 20
       max_cap_pips: 30
+      thresholds: [12, 15, 18, 20, 25, 30]
 
   mss:
     variant: a8ra_v1

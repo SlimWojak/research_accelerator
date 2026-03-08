@@ -23,7 +23,7 @@ from ra.engine.base import (
 
 logger = logging.getLogger(__name__)
 
-# Default thresholds from the pipeline (used when config doesn't specify)
+# Fallback thresholds if config doesn't specify (matches baseline)
 _DEFAULT_THRESHOLDS = [12, 15, 18, 20, 25, 30]
 
 
@@ -59,8 +59,8 @@ class AsiaRangeDetector(PrimitiveDetector):
         """
         max_cap = params.get("max_cap_pips", 30)
 
-        # Use the fixed pipeline thresholds for baseline compatibility
-        thresholds = _DEFAULT_THRESHOLDS
+        # Read thresholds from config; fall back to defaults for compatibility
+        thresholds = params.get("thresholds", _DEFAULT_THRESHOLDS)
 
         # Filter to asia session bars
         asia_bars = bars[bars["session"] == "asia"]
