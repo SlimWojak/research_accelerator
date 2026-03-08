@@ -1,0 +1,6 @@
+commands:
+  install: cd /Users/echopeso/research_accelerator && python3 -m pip install -e ".[dev]" --quiet
+  test: cd /Users/echopeso/research_accelerator && python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider
+  typecheck: ""
+  lint: ""
+  build: ""
