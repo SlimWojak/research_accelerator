@@ -26,4 +26,16 @@ fi
 
 # Count baseline fixtures
 FIXTURE_COUNT=$(ls -1 tests/fixtures/baseline_output/*.json 2>/dev/null | wc -l | tr -d ' ')
-echo "Environment ready. Baseline fixtures: ${FIXTURE_COUNT} JSON files."
+echo "Baseline fixtures: ${FIXTURE_COUNT} JSON files."
+
+# Verify River parquet data exists (Phase 2)
+RIVER_ROOT="${RIVER_ROOT:-$HOME/phoenix-river}"
+if [ -d "${RIVER_ROOT}/EURUSD" ]; then
+    RIVER_YEARS=$(ls -d "${RIVER_ROOT}/EURUSD"/20* 2>/dev/null | wc -l | tr -d ' ')
+    echo "River data: ${RIVER_YEARS} years of EURUSD parquet at ${RIVER_ROOT}"
+else
+    echo "WARNING: River parquet data not found at ${RIVER_ROOT}/EURUSD/"
+    echo "River adapter tests requiring parquet will be skipped."
+fi
+
+echo "Environment ready."

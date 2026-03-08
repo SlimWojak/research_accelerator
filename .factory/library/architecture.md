@@ -62,3 +62,36 @@ A ghost bar never triggers a detection.
 ### Regression Testing
 Each detector has regression tests comparing against baseline fixtures in `tests/fixtures/baseline_output/`.
 Tests compare: total count, direction split, per-detection field values (time, price, etc.).
+
+---
+
+## Phase 2 Architecture
+
+### Evaluation Layer
+```
+src/ra/
+  evaluation/
+    param_extraction.py  # Dynamic param extraction (locked + sweep modes)
+    runner.py            # EvaluationRunner wrapping CascadeEngine
+    comparison.py        # Pairwise comparison + per-config stats
+    cascade_stats.py     # Cascade funnel + conversion rates
+    walk_forward.py      # Walk-forward validation framework
+  output/
+    json_export.py       # JSON serialization conforming to Schemas 4A-4E
+```
+
+### Key Phase 2 Patterns
+
+**Param Extraction**: `extract_params(config, primitive, mode='locked'|'sweep')` replaces hardcoded extraction. Locked mode preserves exact dict format for backward compatibility. Sweep mode exposes sweep_range lists.
+
+**Sweep Combos**: `extract_sweep_combos(config, primitive, params=None)` generates Cartesian product of sweep_range values. Selective param sweep via `params=['ltf.atr_multiplier']`.
+
+**Cache-Aware Sweep**: EvaluationRunner calls `CascadeEngine.on_param_change(primitive)` before each sweep step. Only the changed primitive + downstream are re-run; upstream serves from cache.
+
+**Output Contract**: All JSON output conforms to schemas in `.factory/library/output_schemas.md`. Schema versioning: `schema_version: "1.0"` in every output file.
+
+**River Adapter**: DuckDB-backed parquet reader. Timezone: Asia/Bangkok → UTC → NY. Path: `~/phoenix-river/{pair}/{year}/{mm}/{dd}.parquet`.
+
+### CLI
+- `run.py` — Phase 1 cascade-only (unchanged)
+- `eval.py` — Phase 2 evaluation (sweep, compare, walk-forward subcommands)
