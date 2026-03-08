@@ -1,0 +1,1420 @@
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Displacement Calibration — Calibration Bible</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface2: #1e222d;
+    --border: #2a2e39;
+    --text-primary: #d1d4dc;
+    --text-muted: #787b86;
+    --accent-teal: #26a69a;
+    --accent-red: #ef5350;
+    --accent-blue: #2962ff;
+    --accent-yellow: #f7c548;
+    --accent-purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .header-primitive {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-red);
+    background: rgba(239,83,80,0.12);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .header-nav {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-link {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .nav-link:hover { color: var(--text-primary); background: var(--surface2); }
+  .nav-link.active { color: var(--accent-red); background: rgba(239,83,80,0.1); }
+
+  /* TIMEFRAME TOGGLE */
+  .tf-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px;
+  }
+  .tf-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tf-btn:hover { color: var(--text-primary); background: var(--surface2); }
+  .tf-btn.active { color: var(--surface); background: var(--accent-red); }
+
+  /* MAIN */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  /* PARAM ROWS */
+  .param-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .param-row:last-child { margin-bottom: 0; }
+  .param-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .param-buttons {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+  .param-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+    text-align: center;
+    min-width: 44px;
+  }
+  .param-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
+  .param-btn.active-atr {
+    background: rgba(239,83,80,0.2);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+  .param-btn.active-br {
+    background: rgba(247,197,72,0.18);
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+  }
+
+  /* MODE TOGGLE */
+  .mode-toggle {
+    display: flex;
+    gap: 3px;
+  }
+  .mode-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+    text-align: center;
+  }
+  .mode-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .mode-btn.active-and {
+    background: rgba(41,98,255,0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+  }
+  .mode-btn.active-or {
+    background: rgba(156,39,176,0.2);
+    border-color: var(--accent-purple);
+    color: var(--accent-purple);
+  }
+
+  /* COUNT DISPLAY */
+  .count-display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .count-main {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .count-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .count-split {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .count-bull { font-family: var(--font-mono); font-size: 12px; color: var(--accent-teal); }
+  .count-bear { font-family: var(--font-mono); font-size: 12px; color: var(--accent-red); }
+  .count-fvg  { font-family: var(--font-mono); font-size: 12px; color: var(--accent-yellow); }
+
+  /* SESSION BREAKDOWN */
+  .session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .session-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+  }
+  .session-name {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .session-bar-wrap {
+    flex: 1;
+    margin: 0 8px;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .session-bar-fill {
+    height: 100%;
+    background: var(--accent-blue);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .session-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* HEATMAP */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 36px repeat(4, 1fr);
+    gap: 2px;
+  }
+  .heatmap-cell {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-align: center;
+    padding: 5px 2px;
+    border-radius: 3px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    position: relative;
+    cursor: default;
+  }
+  .heatmap-cell.header-cell {
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 9px;
+  }
+  .heatmap-cell.active-cell {
+    outline: 1px solid var(--accent-yellow);
+    color: var(--text-primary) !important;
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: rgba(41, 98, 255, 0.08);
+    border: 1px solid rgba(41, 98, 255, 0.3);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.55;
+  }
+  .callout-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    margin-bottom: 5px;
+  }
+
+  /* CONTENT AREA */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* CHART INFO BAR */
+  .chart-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .chart-info-bar .info-tag {
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  /* Session legend items */
+  .ses-legend {
+    display: flex; gap: 8px; flex-wrap: wrap; padding: 3px 0;
+  }
+  .ses-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .ses-dot {
+    width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0;
+  }
+
+  /* DAY TABS */
+  .day-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0 16px;
+    gap: 2px;
+  }
+  .day-tab {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .day-tab:hover { color: var(--text-primary); }
+  .day-tab.active {
+    color: var(--accent-red);
+    border-bottom-color: var(--accent-red);
+  }
+
+  /* CHART */
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  #chart-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 100;
+  }
+  .loading-overlay.hidden { display: none; }
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 12px; color: var(--text-muted); }
+
+  /* CHART LEGEND */
+  .chart-legend {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(10, 14, 23, 0.88);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-dot.bull { background: var(--accent-teal); }
+  .legend-dot.bear { background: var(--accent-red); }
+  .legend-star {
+    width: 10px;
+    height: 10px;
+    background: var(--accent-yellow);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    flex-shrink: 0;
+  }
+
+  /* STATS PANEL */
+  .stats-panel {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    flex-shrink: 0;
+  }
+  .stats-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+  }
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* FOOTER */
+  .footer {
+    padding: 7px 16px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .footer a { color: var(--text-muted); text-decoration: none; }
+  .footer a:hover { color: var(--accent-red); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <span class="header-title">Calibration Bible</span>
+    <span class="header-primitive">Displacement</span>
+
+    <div class="tf-toggle" id="tf-toggle">
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn active" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+    </div>
+
+    <nav class="header-nav">
+      <a href="index.html" class="nav-link">← Index</a>
+      <a href="fvg.html" class="nav-link">FVG</a>
+      <a href="swings.html" class="nav-link">Swings</a>
+      <a href="htf.html" class="nav-link">HTF</a>
+      <a href="asia.html" class="nav-link">Asia</a>
+      <a href="displacement.html" class="nav-link active">Displacement</a>
+      <a href="ny-windows.html" class="nav-link">NY Windows</a>
+      <a href="ob-staleness.html" class="nav-link">OB Staleness</a>
+    </nav>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- PARAMETERS -->
+      <div class="sidebar-section">
+        <div class="section-label">Parameters</div>
+
+        <div class="param-row">
+          <div class="param-label">ATR Multiplier</div>
+          <div class="param-buttons" id="atr-buttons">
+            <!-- JS filled -->
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">Body / Range Ratio</div>
+          <div class="param-buttons" id="br-buttons">
+            <!-- JS filled -->
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">Filter Mode</div>
+          <div class="mode-toggle" id="mode-toggle">
+            <button class="mode-btn active-and" data-mode="and">AND</button>
+            <button class="mode-btn" data-mode="or">OR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW FILTERS -->
+      <div class="sidebar-section">
+        <div class="param-label">Quality Filters</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);cursor:pointer;">
+            <input type="checkbox" id="close-gate-toggle" checked style="accent-color:#f7c548;">
+            Close location gate
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);cursor:pointer;">
+            <input type="checkbox" id="single-only-toggle" checked style="accent-color:#f7c548;">
+            Single candles only (uncheck for +cluster₂)
+          </label>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;font-size:9px;font-family:var(--mono);">
+          <span style="color:#ff6b6b;">●</span><span style="color:var(--text-muted);">STRONG ≥2.0×</span>
+          <span style="color:#f7c548;">●</span><span style="color:var(--text-muted);">VALID ≥1.5×</span>
+          <span style="color:#5a5f6e;">●</span><span style="color:var(--text-muted);">WEAK ≥1.25×</span>
+        </div>
+      </div>
+
+      <!-- COUNT DISPLAY -->
+      <div class="sidebar-section">
+        <div class="section-label">Displacement Count</div>
+        <div class="count-display">
+          <div class="count-main" id="count-main">—</div>
+          <div class="count-label">candles matched</div>
+          <div class="count-split">
+            <span class="count-bull" id="count-bull">▲ —</span>
+            <span class="count-bear" id="count-bear">▼ —</span>
+            <span class="count-fvg" id="count-fvg">★ — FVG</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SESSION BREAKDOWN -->
+      <div class="sidebar-section">
+        <div class="section-label">Session Distribution</div>
+        <div class="session-list" id="session-list">
+          <!-- JS filled -->
+        </div>
+      </div>
+
+      <!-- HEATMAP -->
+      <div class="sidebar-section">
+        <div class="section-label">AND Count Heatmap</div>
+        <div class="heatmap-grid" id="heatmap-grid">
+          <!-- JS filled -->
+        </div>
+        <div style="font-size:9px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+          Rows: ATR mult. &nbsp;|&nbsp; Cols: Body ratio<br>
+          Highlighted = current selection
+        </div>
+      </div>
+
+      <!-- COMPOSITE OVERLAYS -->
+      <div class="sidebar-section">
+        <div class="section-label">Composite Overlays</div>
+        <div class="param-buttons">
+          <button class="mode-btn" id="ob-toggle" style="width:100%;text-align:center;padding:6px 0;font-size:11px;border-radius:4px;">Show Order Blocks</button>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;" id="ob-info"></div>
+      </div>
+
+      <!-- CALLOUT -->
+      <div class="sidebar-section">
+        <div class="section-label">Calibration Question</div>
+        <div class="callout">
+          <div class="callout-label">Your Task</div>
+          Which highlighted candles represent <strong>real institutional displacement</strong>?
+          <br><br>
+          Use AND mode for strict filtering. Candles with ★ also created an FVG — these are the key L2 signal.
+          <br><br>
+          Toggle <strong>Order Blocks</strong> to see the last opposing candle before each displacement (body zone).
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- DAY TABS -->
+      <div class="day-tabs" id="day-tabs">
+        <!-- JS filled -->
+      </div>
+
+      <!-- CHART INFO BAR -->
+      <div class="chart-info-bar" id="chart-info-bar">
+        <span class="info-tag" id="info-detect">Native 5m detection</span>
+        <div class="ses-legend" id="ses-legend"></div>
+      </div>
+
+      <!-- CHART -->
+      <div class="chart-wrapper">
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading price data...</div>
+        </div>
+        <div id="chart-container"></div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-dot bull"></div>
+            <span>Bullish displacement</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot bear"></div>
+            <span>Bearish displacement</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-star"></div>
+            <span>Created FVG (L2 signal)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-panel">
+        <div class="stats-title">Current Selection Stats</div>
+        <div class="stats-grid" id="stats-grid">
+          <!-- JS filled -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="footer">
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+  </footer>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// Session Boundary Primitive — draws vertical colored bands
+// ═════════════════════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        // Left border line
+        ctx.strokeStyle = b.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xL, 0); ctx.lineTo(xL, H);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class SessionBandsPrimitive {
+  constructor() {
+    this._rawBands = [];
+    this._paneView = new SessionBandsPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const b of this._rawBands) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(rawBands) {
+    this._rawBands = rawBands;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+  injectRefs(chart, series) {
+    if (!this._chart) this._chart = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const DAYS = [
+  { key: '2024-01-08', label: 'Mon Jan 8'  },
+  { key: '2024-01-09', label: 'Tue Jan 9'  },
+  { key: '2024-01-10', label: 'Wed Jan 10' },
+  { key: '2024-01-11', label: 'Thu Jan 11' },
+  { key: '2024-01-12', label: 'Fri Jan 12' },
+];
+
+const ATR_MULTS = [1.0, 1.25, 1.5, 2.0];
+const BODY_RATIOS = [0.55, 0.60, 0.65, 0.70];
+
+const SESSION_LABELS = {
+  asia: 'Asia 19:00\u201300:00',
+  lokz: 'LOKZ 02:00\u201305:00',
+  nyokz: 'NYOKZ 07:00\u201310:00',
+  other: 'Other',
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  tf: '5m',
+  day: '2024-01-09',
+  atr: 1.5,
+  br: 0.60,
+  mode: 'and',
+  closeGate: true,
+  singleOnly: true,
+  dispData: null,
+  dispDataCache: {},
+  candlesByDay: {},
+  showOB: false,
+  sessionBoundaries: null,
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function toTS(s) {
+  if (!s) return null;
+  // NY time string like "2024-01-09T08:15:00"
+  // Treat as-is (pretend UTC) so chart x-axis shows NY time
+  const clean = s.includes('T') ? s : s.replace(' ', 'T');
+  // Remove any trailing Z if present
+  const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
+  return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+function formatAtr(v) {
+  return v === Math.floor(v) ? v.toFixed(1) + '×' : v + '×';
+}
+
+function comboKey(atr, br) {
+  // e.g. "atr1.5_br0.6"
+  const atrStr = (atr === Math.floor(atr)) ? atr.toFixed(1) : String(atr);
+  const brStr = String(br);
+  return `atr${atrStr}_br${brStr}`;
+}
+
+// ─── FILTERED BARS ────────────────────────────────────────────────────────────
+function getFilteredBars() {
+  if (!state.dispData) return [];
+  const disps = state.dispData.displacements;
+  const key = comboKey(state.atr, state.br);
+  const mode = state.mode;
+
+  return disps.filter(b => {
+    if (b.forex_day !== state.day) return false;
+    const qual = b.qualifies[key];
+    if (!qual) return false;
+    const modeKey = (mode === 'and' && state.closeGate) ? 'and_close' : mode;
+    if (!qual[modeKey]) return false;
+    if (state.singleOnly && b.displacement_type && b.displacement_type !== 'SINGLE') return false;
+    return true;
+  });
+}
+
+// ─── CHART ────────────────────────────────────────────────────────────────────
+let chart = null;
+let candleSeries = null;
+let sessionBandsPrimitive = null;
+
+function createChart() {
+  const container = document.getElementById('chart-container');
+  container.innerHTML = '';
+
+  chart = LightweightCharts.createChart(container, {
+    layout: {
+      background: { color: '#131722' },
+      textColor: '#d1d4dc',
+      fontSize: 11,
+      fontFamily: "'IBM Plex Mono', monospace",
+    },
+    grid: {
+      vertLines: { color: '#1e222d' },
+      horzLines: { color: '#1e222d' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#4a4e5a', width: 1, style: 2 },
+      horzLine: { color: '#4a4e5a', width: 1, style: 2 },
+    },
+    rightPriceScale: {
+      borderColor: '#2a2e39',
+      scaleMargins: { top: 0.05, bottom: 0.05 },
+    },
+    timeScale: {
+      borderColor: '#2a2e39',
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time) => {
+        const d = new Date(time * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,'0');
+        const mm = String(d.getUTCMinutes()).padStart(2,'0');
+        return `${hh}:${mm}`;
+      },
+    },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
+    handleScale: { mouseWheel: true, pinch: true },
+    width: container.clientWidth,
+    height: container.clientHeight,
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor: '#26a69a',
+    downColor: '#ef5350',
+    borderUpColor: '#26a69a',
+    borderDownColor: '#ef5350',
+    wickUpColor: '#26a69a',
+    wickDownColor: '#ef5350',
+  });
+
+  // Attach session bands primitive
+  sessionBandsPrimitive = new SessionBandsPrimitive();
+  candleSeries.attachPrimitive(sessionBandsPrimitive);
+
+  const ro = new ResizeObserver(() => {
+    chart.applyOptions({
+      width: container.clientWidth,
+      height: container.clientHeight,
+    });
+  });
+  ro.observe(container);
+}
+
+// ─── RENDER SESSION BANDS ─────────────────────────────────────────────────────
+function renderSessionBands() {
+  if (!sessionBandsPrimitive || !state.sessionBoundaries) return;
+  const dayBounds = state.sessionBoundaries.filter(b => b.forex_day === state.day);
+  const bands = dayBounds.map(b => ({
+    startTS: toTS(b.start_time),
+    endTS: toTS(b.end_time),
+    color: b.color,
+    border: b.border,
+  }));
+  sessionBandsPrimitive.setBands(bands);
+}
+
+// ─── RENDER CHART ─────────────────────────────────────────────────────────────
+function renderChart() {
+  if (!chart || !candleSeries) return;
+
+  const candles = state.candlesByDay[state.day];
+  if (!candles) return;
+
+  const raw = candles[state.tf];
+  if (!raw || raw.length === 0) return;
+
+  // Set candle data — new format uses full field names
+  const data = raw.map(c => ({
+    time: toTS(c.time),
+    open:  c.open,
+    high:  c.high,
+    low:   c.low,
+    close: c.close,
+  })).sort((a, b) => a.time - b.time);
+
+  candleSeries.setData(data);
+
+  // Render session boundary bands
+  renderSessionBands();
+
+  // Build a map from timestamp to candle data for fast lookup
+  const tsSet = new Set(data.map(c => c.time));
+
+  // Get displaced bars
+  const filteredBars = getFilteredBars();
+
+  // Build markers: each displacement bar has a time field — convert to TS and match to candle
+  const markerMap = {}; // ts -> {dirs, fvg}
+
+  const GRADE_COLORS_BULL = { STRONG: '#00e5d4', VALID: '#26a69a', WEAK: '#5a5f6e' };
+  const GRADE_COLORS_BEAR = { STRONG: '#ff6b6b', VALID: '#ef5350', WEAK: '#5a5f6e' };
+
+  for (const b of filteredBars) {
+    const ts = toTS(b.time);
+    if (!ts || !tsSet.has(ts)) continue;
+
+    if (!markerMap[ts]) {
+      markerMap[ts] = { dirs: new Set(), fvg: false, grade: null, dtype: null };
+    }
+    markerMap[ts].dirs.add(b.direction);
+    if (b.created_fvg) markerMap[ts].fvg = true;
+    if (b.quality_grade) markerMap[ts].grade = b.quality_grade;
+    if (b.displacement_type) markerMap[ts].dtype = b.displacement_type;
+    if (b.qualification_path === 'DECISIVE_OVERRIDE') markerMap[ts].override = true;
+  }
+
+  const markers = [];
+
+  for (const [ts, info] of Object.entries(markerMap)) {
+    const t = parseInt(ts, 10);
+    const hasBull = info.dirs.has('bullish');
+    const hasBear = info.dirs.has('bearish');
+    const fvg = info.fvg;
+    const grade = info.grade || 'VALID';
+    const isCluster = info.dtype && info.dtype !== 'SINGLE';
+    const clusterTag = isCluster ? info.dtype.replace('CLUSTER_', '') + 'x' : '';
+    const ovrTag = info.override ? 'OVR' : '';
+
+    const label = ovrTag || clusterTag;
+    if (hasBull) {
+      markers.push({
+        time: t,
+        position: 'belowBar',
+        color: info.override ? '#f7c548' : (GRADE_COLORS_BULL[grade] || '#26a69a'),
+        shape: info.override ? 'circle' : 'arrowUp',
+        size: fvg ? 2 : grade === 'STRONG' ? 1.5 : 1,
+        text: label,
+      });
+    }
+    if (hasBear) {
+      markers.push({
+        time: t,
+        position: 'aboveBar',
+        color: info.override ? '#f7c548' : (GRADE_COLORS_BEAR[grade] || '#ef5350'),
+        shape: info.override ? 'circle' : 'arrowDown',
+        size: fvg ? 2 : grade === 'STRONG' ? 1.5 : 1,
+        text: label,
+      });
+    }
+    // FVG marker: star text marker placed farther out
+    if (fvg) {
+      const fvgPos = (hasBull && !hasBear) ? 'belowBar' : 'aboveBar';
+      markers.push({
+        time: t,
+        position: fvgPos,
+        color: '#f7c548',
+        shape: 'circle',
+        size: 0,
+        text: '★',
+      });
+    }
+  }
+
+  // OB overlay: last opposing candle before each displacement
+  if (state.showOB) {
+    const timeToIdx = new Map();
+    data.forEach((c, idx) => timeToIdx.set(c.time, idx));
+    let obCount = 0;
+    for (const b of filteredBars) {
+      const ts = toTS(b.time);
+      const idx = timeToIdx.get(ts);
+      if (idx == null || idx < 1) continue;
+      const prev = data[idx - 1];
+      const prevDir = prev.close > prev.open ? 'bullish' : 'bearish';
+      if (prevDir === b.direction) continue;
+      const barsAgo = data.length - 1 - idx;
+      const stale = barsAgo > 10;
+      const obColor = b.direction === 'bullish'
+        ? (stale ? 'rgba(38,166,154,0.3)' : '#26a69a')
+        : (stale ? 'rgba(239,83,80,0.3)' : '#ef5350');
+      markers.push({
+        time: prev.time,
+        position: b.direction === 'bullish' ? 'belowBar' : 'aboveBar',
+        shape: 'square',
+        color: obColor,
+        size: stale ? 0.8 : 1.5,
+        text: stale ? '' : 'OB',
+      });
+      obCount++;
+    }
+    document.getElementById('ob-info').textContent =
+      `${obCount} OBs detected (body zone, ${obCount > 0 ? 'stale >10 bars dimmed' : ''})`;
+  } else {
+    document.getElementById('ob-info').textContent = '';
+  }
+
+  // Sort markers by time
+  markers.sort((a, b) => a.time - b.time);
+  candleSeries.setMarkers(markers);
+
+  // Fit view to full day
+  if (data.length > 0) {
+    chart.timeScale().fitContent();
+  }
+}
+
+// ─── SIDEBAR STATS ────────────────────────────────────────────────────────────
+function renderSidebarStats() {
+  const filtered = getFilteredBars();
+
+  const singles = filtered.filter(b => !b.displacement_type || b.displacement_type === 'SINGLE').length;
+  const clusters = filtered.length - singles;
+  const strong = filtered.filter(b => b.quality_grade === 'STRONG').length;
+  const valid = filtered.filter(b => b.quality_grade === 'VALID').length;
+  const weak = filtered.filter(b => b.quality_grade === 'WEAK').length;
+  document.getElementById('count-main').textContent = `${filtered.length}${clusters ? ` (${singles}+${clusters}cl)` : ''}`;
+
+  const bull = filtered.filter(b => b.direction === 'bullish').length;
+  const bear = filtered.filter(b => b.direction === 'bearish').length;
+  const fvg  = filtered.filter(b => b.created_fvg).length;
+
+  const overrides = filtered.filter(b => b.qualification_path === 'DECISIVE_OVERRIDE').length;
+  const atrRel = filtered.length - overrides;
+  document.getElementById('count-bull').textContent = `▲ ${bull}  ${overrides ? `(${atrRel} ATR + ${overrides} OVR)` : ''}`;
+  document.getElementById('count-bear').textContent = `▼ ${bear}`;
+  document.getElementById('count-fvg').textContent = `★ ${fvg} FVG`;
+
+  // Session breakdown using NY-time session labels
+  const sessions = {};
+  sessions[SESSION_LABELS.asia] = 0;
+  sessions[SESSION_LABELS.lokz] = 0;
+  sessions[SESSION_LABELS.nyokz] = 0;
+  sessions[SESSION_LABELS.other] = 0;
+
+  for (const b of filtered) {
+    const label = SESSION_LABELS[b.session] || SESSION_LABELS.other;
+    sessions[label] = (sessions[label] || 0) + 1;
+  }
+
+  const total = filtered.length || 1;
+  const sessionEl = document.getElementById('session-list');
+  sessionEl.innerHTML = '';
+  for (const [name, count] of Object.entries(sessions)) {
+    const pct = Math.round((count / total) * 100);
+    sessionEl.innerHTML += `
+      <div class="session-row">
+        <span class="session-name">${name}</span>
+        <div class="session-bar-wrap">
+          <div class="session-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <span class="session-count">${count}</span>
+      </div>
+    `;
+  }
+}
+
+// ─── HEATMAP ─────────────────────────────────────────────────────────────────
+function renderHeatmap() {
+  if (!state.dispData) return;
+  const grid = document.getElementById('heatmap-grid');
+  grid.innerHTML = '';
+
+  const stats = state.dispData.stats[state.day];
+  if (!stats) return;
+
+  // Find max value for color scaling
+  let maxVal = 0;
+  for (const atr of ATR_MULTS) {
+    for (const br of BODY_RATIOS) {
+      const key = comboKey(atr, br);
+      const val = stats[key] ? stats[key]['and'] : 0;
+      if (val > maxVal) maxVal = val;
+    }
+  }
+
+  // Header row: empty + BR labels
+  grid.appendChild(cellEl('', 'header-cell'));
+  for (const br of BODY_RATIOS) {
+    grid.appendChild(cellEl(br.toFixed(2), 'header-cell'));
+  }
+
+  // Data rows
+  for (const atr of ATR_MULTS) {
+    // Row label
+    grid.appendChild(cellEl(atr + '×', 'header-cell'));
+
+    for (const br of BODY_RATIOS) {
+      const key = comboKey(atr, br);
+      const val = stats[key] ? stats[key]['and'] : 0;
+      const intensity = maxVal > 0 ? val / maxVal : 0;
+
+      const isActive = Math.abs(atr - state.atr) < 0.001 && Math.abs(br - state.br) < 0.001;
+
+      const r = Math.round(41 + intensity * (239 - 41));
+      const g = Math.round(98 + intensity * (83 - 98));
+      const b_chan = Math.round(255 + intensity * (80 - 255));
+      const alpha = 0.15 + intensity * 0.55;
+
+      const el = cellEl(val, isActive ? 'active-cell' : '');
+      el.style.background = `rgba(${r}, ${g}, ${b_chan}, ${alpha})`;
+      el.style.color = intensity > 0.5 ? '#d1d4dc' : '#787b86';
+
+      grid.appendChild(el);
+    }
+  }
+}
+
+function cellEl(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'heatmap-cell' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  return el;
+}
+
+// ─── STATS PANEL ─────────────────────────────────────────────────────────────
+function renderStatsPanel() {
+  const filtered = getFilteredBars();
+
+  const bull = filtered.filter(b => b.direction === 'bullish').length;
+  const bear = filtered.filter(b => b.direction === 'bearish').length;
+  const fvg  = filtered.filter(b => b.created_fvg).length;
+  const wa   = filtered.filter(b => b.ny_window_a).length;
+  const wb   = filtered.filter(b => b.ny_window_b).length;
+
+  const el = document.getElementById('stats-grid');
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val">${filtered.length}</div>
+      <div class="stat-lbl">Total matched</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-teal)">${bull}</div>
+      <div class="stat-lbl">Bullish</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-red)">${bear}</div>
+      <div class="stat-lbl">Bearish</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-yellow)">${fvg}</div>
+      <div class="stat-lbl">Created FVG</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--accent-blue)">${wa + wb}</div>
+      <div class="stat-lbl">In NY Window</div>
+    </div>
+  `;
+}
+
+// ─── PARAM CONTROLS ──────────────────────────────────────────────────────────
+function renderParamButtons() {
+  const atrEl = document.getElementById('atr-buttons');
+  atrEl.innerHTML = '';
+  for (const v of ATR_MULTS) {
+    const btn = document.createElement('button');
+    btn.className = 'param-btn' + (Math.abs(v - state.atr) < 0.001 ? ' active-atr' : '');
+    btn.textContent = formatAtr(v);
+    btn.addEventListener('click', () => {
+      state.atr = v;
+      refresh();
+    });
+    atrEl.appendChild(btn);
+  }
+
+  const brEl = document.getElementById('br-buttons');
+  brEl.innerHTML = '';
+  for (const v of BODY_RATIOS) {
+    const btn = document.createElement('button');
+    btn.className = 'param-btn' + (Math.abs(v - state.br) < 0.001 ? ' active-br' : '');
+    btn.textContent = v.toFixed(2);
+    btn.addEventListener('click', () => {
+      state.br = v;
+      refresh();
+    });
+    brEl.appendChild(btn);
+  }
+}
+
+// ─── DAY TABS ─────────────────────────────────────────────────────────────────
+function renderDayTabs() {
+  const el = document.getElementById('day-tabs');
+  el.innerHTML = '';
+  for (const d of DAYS) {
+    const btn = document.createElement('button');
+    btn.className = 'day-tab' + (d.key === state.day ? ' active' : '');
+    btn.textContent = d.label;
+    btn.addEventListener('click', () => {
+      state.day = d.key;
+      refresh();
+    });
+    el.appendChild(btn);
+  }
+}
+
+// ─── CHART INFO BAR ──────────────────────────────────────────────────────────
+function renderChartInfoBar() {
+  document.getElementById('info-detect').textContent = `Native ${state.tf} detection`;
+
+  // Session legend
+  const sesLegend = document.getElementById('ses-legend');
+  const colors = [
+    { label: 'Asia 19:00\u201300:00', color: 'rgba(156,39,176,0.5)' },
+    { label: 'LOKZ 02:00\u201305:00', color: 'rgba(41,98,255,0.5)' },
+    { label: 'NYOKZ 07:00\u201310:00', color: 'rgba(247,197,72,0.5)' },
+  ];
+  sesLegend.innerHTML = colors.map(c =>
+    `<span class="ses-tag"><span class="ses-dot" style="background:${c.color}"></span>${c.label}</span>`
+  ).join('');
+}
+
+// ─── NEW FILTER TOGGLES ──────────────────────────────────────────────────────
+document.getElementById('close-gate-toggle').addEventListener('change', e => {
+  state.closeGate = e.target.checked;
+  renderChart();
+  updateCounts();
+  updateHeatmap();
+});
+document.getElementById('single-only-toggle').addEventListener('change', e => {
+  state.singleOnly = e.target.checked;
+  renderChart();
+  updateCounts();
+  updateHeatmap();
+});
+
+// ─── MODE TOGGLE ─────────────────────────────────────────────────────────────
+document.getElementById('ob-toggle').addEventListener('click', () => {
+  state.showOB = !state.showOB;
+  const btn = document.getElementById('ob-toggle');
+  btn.textContent = state.showOB ? 'Hide Order Blocks' : 'Show Order Blocks';
+  btn.style.background = state.showOB ? 'rgba(41,98,255,0.2)' : '';
+  btn.style.color = state.showOB ? '#2962ff' : '';
+  renderChart();
+});
+
+document.getElementById('mode-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.mode-btn');
+  if (!btn) return;
+  const mode = btn.dataset.mode;
+  if (mode === state.mode) return;
+  state.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.remove('active-and', 'active-or');
+    if (b.dataset.mode === mode) {
+      b.classList.add(mode === 'and' ? 'active-and' : 'active-or');
+    }
+  });
+  refreshNoChart();
+  renderChart();
+});
+
+// ─── TIMEFRAME TOGGLE ────────────────────────────────────────────────────────
+document.getElementById('tf-toggle').addEventListener('click', async e => {
+  const btn = e.target.closest('.tf-btn');
+  if (!btn) return;
+  const tf = btn.dataset.tf;
+  if (tf === state.tf) return;
+  state.tf = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
+
+  // Load TF-specific displacement data if not cached
+  await loadDisplacementData(tf);
+  refresh();
+});
+
+// ─── FULL REFRESH ────────────────────────────────────────────────────────────
+function refreshNoChart() {
+  renderParamButtons();
+  renderDayTabs();
+  renderSidebarStats();
+  renderHeatmap();
+  renderStatsPanel();
+  renderChartInfoBar();
+}
+
+function refresh() {
+  refreshNoChart();
+  renderChart();
+}
+
+// ─── LOAD DISPLACEMENT DATA (per-TF) ────────────────────────────────────────
+async function loadDisplacementData(tf) {
+  if (state.dispDataCache[tf]) {
+    state.dispData = state.dispDataCache[tf];
+    return;
+  }
+  const resp = await fetch(`displacement_data_${tf}.json`);
+  const data = await resp.json();
+  state.dispDataCache[tf] = data;
+  state.dispData = data;
+}
+
+// ─── LOAD DATA ───────────────────────────────────────────────────────────────
+async function loadData() {
+  // Load displacement data for default TF, session boundaries
+  const [sessionResp] = await Promise.all([
+    fetch('session_boundaries.json'),
+  ]);
+  state.sessionBoundaries = await sessionResp.json();
+
+  // Load TF-specific displacement data for default TF
+  await loadDisplacementData(state.tf);
+
+  // Load candle data for all 5 days
+  await Promise.all(DAYS.map(async d => {
+    const resp = await fetch(`candles_${d.key}.json`);
+    state.candlesByDay[d.key] = await resp.json();
+  }));
+
+  createChart();
+  document.getElementById('loading-overlay').classList.add('hidden');
+  refresh();
+}
+
+loadData().catch(err => {
+  console.error('Failed to load data:', err);
+  document.getElementById('chart-container').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#787b86;font-size:13px;">Failed to load data. Please serve from a local server.</div>';
+});
+</script>
+</body>
+</html>

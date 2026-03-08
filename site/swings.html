@@ -1,0 +1,1884 @@
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Points Calibration — EURUSD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface2: #1e222d;
+    --surface3: #252932;
+    --border: #2a2e39;
+    --border2: #363b4a;
+    --text: #d1d4dc;
+    --text-muted: #787b86;
+    --text-dim: #4e5263;
+    --teal: #26a69a;
+    --teal-dim: rgba(38,166,154,0.18);
+    --teal-vivid: #00e5d4;
+    --red: #ef5350;
+    --red-dim: rgba(239,83,80,0.18);
+    --red-vivid: #ff6b6b;
+    --blue: #2962ff;
+    --yellow: #f7c548;
+    --purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --radius: 4px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .header-title span { color: var(--teal); }
+
+  .tf-group {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .tf-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-right: 4px;
+  }
+
+  .tf-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.14s;
+    line-height: 1;
+  }
+
+  .tf-btn:hover { color: var(--text); border-color: var(--border2); }
+  .tf-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* ── Main body ── */
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 236px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sb-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sb-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 9px;
+  }
+
+  /* View toggle */
+  .view-toggle {
+    display: flex;
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .view-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.14s;
+  }
+
+  .view-btn:hover { color: var(--text); }
+  .view-btn.active { background: var(--surface2); color: var(--text); }
+
+  /* Button groups */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.14s;
+  }
+
+  .filter-btn:hover { border-color: var(--border2); color: var(--text); }
+  .filter-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* Strength scale */
+  .str-scale {
+    display: flex;
+    height: 10px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .str-scale-seg { flex: 1; }
+
+  .str-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .str-note {
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    font-style: italic;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+  }
+
+  .stat-item {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .stat-val.teal { color: var(--teal); }
+  .stat-val.red { color: var(--red); }
+
+  /* Session rows */
+  .sess-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .sess-row:last-child { border-bottom: none; }
+
+  .sess-name { font-weight: 500; }
+  .sess-cnt { font-family: var(--mono); color: var(--text); }
+
+  /* Threshold count list */
+  .h-count-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+    font-size: 10px;
+  }
+
+  .h-count-pip { font-family: var(--mono); color: var(--text-muted); }
+  .h-count-n { font-family: var(--mono); }
+
+  /* Tolerance count grid */
+  .tol-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .tol-row:last-child { border-bottom: none; }
+  .tol-pip { font-family: var(--mono); color: var(--text-muted); }
+  .tol-cnt { font-family: var(--mono); display: flex; gap: 8px; }
+  .tol-h { color: var(--teal); }
+  .tol-l { color: var(--red); }
+
+  /* Callout */
+  .callout {
+    background: rgba(247,197,72,0.06);
+    border: 1px solid rgba(247,197,72,0.2);
+    border-left: 3px solid var(--yellow);
+    border-radius: var(--radius);
+    padding: 9px 11px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #baa54e;
+  }
+
+  .callout strong {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 5px;
+  }
+
+  /* ── Chart Area ── */
+  .chart-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Day tabs */
+  .day-tabs {
+    height: 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: stretch;
+    padding: 0 12px;
+    flex-shrink: 0;
+  }
+
+  .day-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: all 0.14s;
+    white-space: nowrap;
+  }
+
+  .day-tab:hover { color: var(--text); }
+
+  .day-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--blue);
+  }
+
+  /* Charts stack */
+  .charts-stack {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .main-chart-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  /* EQ chart sub-panel */
+  .eq-panel {
+    height: 260px;
+    flex-shrink: 0;
+    border-top: 2px solid var(--border2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .eq-panel-header {
+    height: 30px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .eq-panel-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .eq-pair-info {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .eq-panel-body {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  /* Loading overlay */
+  .loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,14,23,0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
+  /* Footer */
+  footer {
+    height: 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 0 16px;
+    font-size: 10px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.14s;
+  }
+
+  footer a:hover { color: var(--text-muted); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Box cards */
+  .box-card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-left: 3px solid;
+  }
+  .box-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .box-card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .box-card-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .box-card-badge.qualified { background: rgba(38,166,154,0.15); color: var(--teal); }
+  .box-card-badge.expansion { background: rgba(239,83,80,0.08); color: var(--text-dim); }
+  .box-card-stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    font-size: 10px;
+    list-style: none;
+  }
+  .box-card-stats dt { color: var(--text-dim); }
+  .box-card-stats dd { font-family: var(--mono); color: var(--text-muted); text-align: right; }
+
+  /* Session legend items */
+  .ses-legend { display: flex; gap: 8px; flex-wrap: wrap; padding: 3px 0; }
+  .ses-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+  .ses-dot { width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<nav style="background:#131722;border-bottom:1px solid #2a2e39;padding:6px 16px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;flex-shrink:0;z-index:100;"><a href="index.html" style="color:#787b86;text-decoration:none;font-weight:600;margin-right:8px;">← Index</a><span style="color:#2a2e39;">|</span><a href="fvg.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">FVG</a><a href="swings.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Swings</a><a href="htf.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">HTF</a><a href="asia.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Asia</a><a href="displacement.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Displacement</a><a href="ny-windows.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">NY Windows</a><a href="ob-staleness.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">OB Staleness</a></nav>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-title">Swing Points <span>Calibration</span> · EURUSD</div>
+    <div class="tf-group">
+      <span class="tf-label">Timeframe:</span>
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn active" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <!-- View -->
+      <div class="sb-section">
+        <div class="sb-label">View</div>
+        <div class="view-toggle" id="view-toggle">
+          <button class="view-btn active" data-view="swings">Swings</button>
+          <button class="view-btn" data-view="boxes">Session Boxes</button>
+        </div>
+      </div>
+
+      <!-- SWINGS CONTROLS -->
+      <div id="swings-panel">
+
+        <div class="sb-section">
+          <div class="sb-label">Min Height (pips)</div>
+          <div class="btn-group" id="height-btns"></div>
+          <div style="margin-top:9px;" id="height-counts"></div>
+        </div>
+
+        <div class="sb-section">
+          <div class="sb-label">Strength Color Scale</div>
+          <div class="str-scale" id="str-scale"></div>
+          <div class="str-labels">
+            <span>0</span><span>5</span><span>12</span><span>20</span>
+          </div>
+          <div class="str-note">Strength = extra bars beyond N=5 that respect the swing extreme (capped at 20).<br>
+          Dim grey: 0–5 · Teal/Red: 6–12 · Vivid: 13–20</div>
+        </div>
+
+        <div class="sb-section">
+          <div class="sb-label">Stats · <span id="stats-day"></span></div>
+          <div class="stats-grid" id="stats-grid"></div>
+        </div>
+
+        <div class="sb-section">
+          <div class="sb-label">Session Distribution</div>
+          <div id="session-rows"></div>
+        </div>
+
+        <div class="sb-section">
+          <div class="sb-label">Composite Overlays</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <button class="filter-btn" id="mss-toggle" style="width:100%;text-align:center;">Show MSS</button>
+            <button class="filter-btn" id="ote-toggle" style="width:100%;text-align:center;">Show OTE Zones</button>
+            <button class="filter-btn" id="sweep-toggle" style="width:100%;text-align:center;">Show Liquidity Sweeps</button>
+            <button class="filter-btn" id="cont-toggle" style="width:100%;text-align:center;">Show Continuations</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;" id="composite-info"></div>
+        </div>
+
+        <div class="sb-section" id="sweep-controls" style="display:none;">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;color:var(--text);">
+              <input type="checkbox" id="qualified-toggle" checked style="accent-color:var(--yellow)">
+              Qualified only
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;color:var(--text);">
+              <input type="checkbox" id="delayed-toggle" checked style="accent-color:var(--yellow)">
+              Show delayed sweeps
+            </label>
+          </div>
+          <div class="sb-label">Legend</div>
+          <div style="font-size:10px;color:var(--text-muted);line-height:1.8;margin-bottom:8px;">
+            <span style="color:#ef5350">&#x25BC;</span> / <span style="color:#26a69a">&#x25B2;</span> Base sweep (same-bar)<br>
+            <span style="color:#ef5350">&#x25BD;</span> / <span style="color:#26a69a">&#x25B3;</span> Delayed sweep (bar+1)
+          </div>
+          <div class="sb-label">Source Filter</div>
+          <div class="btn-group" style="flex-wrap:wrap;margin-bottom:8px;">
+            <button class="filter-btn active" data-src="ALL" style="text-align:center;">ALL</button>
+            <button class="filter-btn" data-src="LTF_BOX" style="text-align:center;">BOX</button>
+            <button class="filter-btn" data-src="PDH_PDL" style="text-align:center;">PDH</button>
+            <button class="filter-btn" data-src="ASIA_H_L" style="text-align:center;">ASIA</button>
+            <button class="filter-btn" data-src="LONDON_H_L" style="text-align:center;">LOKZ</button>
+            <button class="filter-btn" data-src="PROMOTED_SWING" style="text-align:center;">PS</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);line-height:1.5;" id="sweep-stats"></div>
+        </div>
+
+        <div class="sb-section">
+          <div class="callout">
+            <strong>Calibration Question</strong>
+            Which swings are the ones you'd actually mark as structural? Try each height threshold and note when the chart "clears up".
+            <br><br>
+            Toggle <strong>MSS</strong> to see where price broke a swing with displacement.
+            Toggle <strong>Sweeps</strong> to see wicks that swept a swing level then closed back inside.
+          </div>
+        </div>
+
+      </div><!-- /swings-panel -->
+
+      <!-- SESSION BOXES CONTROLS -->
+      <div id="boxes-panel" style="display:none;">
+
+        <div class="sb-section" id="boxes-list"></div>
+
+        <div class="sb-section">
+          <div class="sb-label">Legend</div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <div style="display:flex;align-items:center;gap:9px;">
+              <div style="width:20px;height:12px;background:rgba(156,39,176,0.2);border:1px solid rgba(156,39,176,0.5);border-radius:2px;"></div>
+              <span style="font-size:11px;color:var(--text-muted);">Asia Box (19:00–00:00)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;">
+              <div style="width:20px;height:12px;background:rgba(41,98,255,0.2);border:1px solid rgba(41,98,255,0.5);border-radius:2px;"></div>
+              <span style="font-size:11px;color:var(--text-muted);">Pre-London (00:00–02:00)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;">
+              <div style="width:20px;height:12px;background:rgba(247,197,72,0.2);border:1px solid rgba(247,197,72,0.5);border-radius:2px;"></div>
+              <span style="font-size:11px;color:var(--text-muted);">Pre-NY (05:00–07:00)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:4px;">
+              <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#787b86" stroke-width="1" stroke-dasharray="3 2"/></svg>
+              <span style="font-size:11px;color:var(--text-dim);">Dashed = expansion (no sweep)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sb-section">
+          <div class="callout">
+            <strong>Session Liquidity Model</strong>
+            The session box IS the liquidity object. Qualified boxes (low range + low efficiency) = consolidation — sweep targets for the next session.<br><br>
+            <b>Efficiency</b> = |net change| / range. Low ε = choppy consolidation. High ε = trending expansion.
+          </div>
+        </div>
+
+      </div><!-- /boxes-panel -->
+
+    </aside>
+
+    <!-- Chart Area -->
+    <div class="chart-area">
+
+      <!-- Day Tabs -->
+      <div class="day-tabs" id="day-tabs">
+        <button class="day-tab" data-day="2024-01-08">Mon Jan 8</button>
+        <button class="day-tab active" data-day="2024-01-09">Tue Jan 9</button>
+        <button class="day-tab" data-day="2024-01-10">Wed Jan 10</button>
+        <button class="day-tab" data-day="2024-01-11">Thu Jan 11</button>
+        <button class="day-tab" data-day="2024-01-12">Fri Jan 12</button>
+      </div>
+
+      <!-- Charts Stack -->
+      <div class="charts-stack" id="charts-stack">
+
+        <!-- Main chart -->
+        <div class="main-chart-wrap" id="main-chart-wrap">
+          <div id="main-chart-el"></div>
+          <div class="loading" id="main-loading">Loading candles…</div>
+        </div>
+
+        <!-- EQ sub-chart removed — replaced by session box overlays on main chart -->
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span>EURUSD · Swing Points Calibration Tool · Jan 8–12 2024</span>
+    <span style="margin-left:auto;">
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+    </span>
+  </footer>
+
+</div><!-- /app -->
+
+<script>
+'use strict';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Session Boundary Primitive — draws vertical colored bands
+// ═════════════════════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        ctx.strokeStyle = b.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xL, 0); ctx.lineTo(xL, H);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class SessionBandsPrimitive {
+  constructor() {
+    this._rawBands = [];
+    this._paneView = new SessionBandsPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const b of this._rawBands) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(rawBands) {
+    this._rawBands = rawBands;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+  injectRefs(chart, series) {
+    if (!this._chart) this._chart = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Liquidity Box Primitive — draws price-bounded session box rectangles
+// ═════════════════════════════════════════════════════════════════════════════
+class LiquidityBoxRenderer {
+  constructor() { this._boxes = []; }
+  setBoxes(boxes) { this._boxes = boxes; }
+  draw(target) {
+    if (!this._boxes.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      for (const b of this._boxes) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 1 || b.yHigh == null || b.yLow == null) continue;
+        ctx.save();
+        if (b.color !== 'transparent') {
+          ctx.fillStyle = b.color;
+          ctx.fillRect(xL, b.yHigh, xR - xL, b.yLow - b.yHigh);
+        }
+        ctx.strokeStyle = b.borderColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash(b.qualified ? [] : [4, 3]);
+        ctx.strokeRect(xL, b.yHigh, xR - xL, b.yLow - b.yHigh);
+        ctx.setLineDash([]);
+        ctx.fillStyle = b.borderColor;
+        ctx.font = 'bold 9px "IBM Plex Mono", monospace';
+        const labelY = b.yHigh - 4;
+        ctx.fillText(b.label, xL + 3, labelY > 8 ? labelY : b.yLow + 12);
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class LiquidityBoxPaneView {
+  constructor() { this._renderer = new LiquidityBoxRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'normal'; }
+}
+
+class LiquidityBoxPrimitive {
+  constructor() {
+    this._rawBoxes = [];
+    this._paneView = new LiquidityBoxPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart || !this._series) return;
+    const ts = this._chart.timeScale();
+    const s = this._series;
+    const computed = [];
+    for (const b of this._rawBoxes) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        const yH = s.priceToCoordinate(b.high);
+        const yL = s.priceToCoordinate(b.low);
+        if (x1 == null && x2 == null) continue;
+        if (yH == null || yL == null) continue;
+        computed.push({
+          x1, x2,
+          yHigh: Math.min(yH, yL),
+          yLow: Math.max(yH, yL),
+          color: b.color,
+          borderColor: b.borderColor,
+          qualified: b.qualified,
+          label: b.label,
+        });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBoxes(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBoxes(rawBoxes) {
+    this._rawBoxes = rawBoxes;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════
+const DAYS = [
+  { date: '2024-01-08', label: 'Mon Jan 8' },
+  { date: '2024-01-09', label: 'Tue Jan 9' },
+  { date: '2024-01-10', label: 'Wed Jan 10' },
+  { date: '2024-01-11', label: 'Thu Jan 11' },
+  { date: '2024-01-12', label: 'Fri Jan 12' },
+];
+
+const SESSIONS = [
+  { key: 'asia',  label: 'Asia 19:00\u201300:00',   color: '#9c27b0' },
+  { key: 'lokz',  label: 'LOKZ 02:00\u201305:00',   color: '#f7c548' },
+  { key: 'nyokz', label: 'NYOKZ 07:00\u201310:00',  color: '#2962ff' },
+  { key: 'other', label: 'Other',                    color: '#4e5263' },
+];
+
+// Lightweight Charts theme options (shared)
+const LC_THEME = {
+  layout: {
+    background: { type: 'solid', color: '#131722' },
+    textColor: '#787b86',
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 11,
+  },
+  grid: {
+    vertLines: { color: '#1e222d' },
+    horzLines: { color: '#1e222d' },
+  },
+  crosshair: {
+    mode: LightweightCharts.CrosshairMode.Normal,
+    vertLine: { color: '#363b4a', labelBackgroundColor: '#2a2e39' },
+    horzLine: { color: '#363b4a', labelBackgroundColor: '#2a2e39' },
+  },
+  rightPriceScale: {
+    borderColor: '#2a2e39',
+    scaleMargins: { top: 0.06, bottom: 0.06 },
+  },
+  timeScale: {
+    borderColor: '#2a2e39',
+    timeVisible: true,
+    secondsVisible: false,
+  },
+};
+
+const CANDLE_STYLE = {
+  upColor:         '#26a69a',
+  downColor:       '#ef5350',
+  borderUpColor:   '#26a69a',
+  borderDownColor: '#ef5350',
+  wickUpColor:     '#26a69a',
+  wickDownColor:   '#ef5350',
+};
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+let state = {
+  tf: '5m',
+  day: '2024-01-09',
+  heightThreshold: null,
+  view: 'swings',
+  showMSS: false,
+  showSweeps: false,
+  showContinuations: false,
+  showOTE: false,
+  sweepReturnWindow: 1,
+  sweepSourceFilter: 'ALL',
+  qualifiedOnly: true,
+  showDelayed: true,
+};
+
+// Data
+let swingData    = null;
+let allSwings    = [];
+let candleCache  = {};
+let sessionBands = null;
+let sweepData    = null;
+let sweepCache   = {};
+let dispData     = null;
+let dispCache    = {};
+let oteSeries    = [];
+let sessionBoxData = null;
+let mssData      = null;
+let mssCache     = {};
+
+// Charts
+let mainChart  = null;
+let mainSeries = null;
+let mainSessionPrimitive = null;
+let boxPrimitive = null;
+let boxLineSeries = [];
+
+// ══════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════
+
+// Convert any NY time string to Unix seconds
+// NY time string like "2024-01-09T08:15:00" — treat as UTC for chart display
+function toTs(t) {
+  if (!t) return 0;
+  const clean = t.includes('T') ? t : t.replace(' ', 'T');
+  const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
+  return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+// Derive forex day from a NY time string
+// In the swing data, eq pairs don't have forex_day — we derive from swing1_time
+function toForexDay(timeStr) {
+  // We can use the forex_day from swings data directly, but for eq pairs
+  // we need to derive it. The timestamps are NY time, forex day boundary is 17:00 NY.
+  // A bar at 17:00 or later belongs to the next calendar day's forex day.
+  const ts = toTs(timeStr);
+  const d = new Date(ts * 1000); // This is in "pretend UTC" = NY time
+  const h = d.getUTCHours();
+  if (h >= 17) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+// Snap a 1m unix timestamp to the nearest candle open time in a TF candle array
+// tfCandles must be sorted ascending by .time
+function snapToCandle(ts, tfCandles) {
+  if (!tfCandles || tfCandles.length === 0) return ts;
+  let lo = 0, hi = tfCandles.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (tfCandles[mid].time <= ts) lo = mid;
+    else hi = mid - 1;
+  }
+  return tfCandles[lo].time;
+}
+
+// Strength → color
+function strColor(str, ty) {
+  const isHigh = ty === 'high';
+  if (str <= 5)  return '#5a5f6e';                              // dim grey
+  if (str <= 12) return isHigh ? '#26a69a' : '#ef5350';        // normal
+  return isHigh ? '#00e5d4' : '#ff6060';                       // vivid
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STRENGTH SCALE (visual)
+// ══════════════════════════════════════════════════════════════════
+function buildStrScale() {
+  const el = document.getElementById('str-scale');
+  for (let i = 0; i <= 20; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'str-scale-seg';
+    if (i <= 5) {
+      const t = i / 5;
+      seg.style.background = `hsl(220,10%,${Math.round(30 + t * 18)}%)`;
+    } else if (i <= 12) {
+      const t = (i - 5) / 7;
+      seg.style.background = `rgba(38,166,154,${(0.3 + t * 0.7).toFixed(2)})`;
+    } else {
+      const t = (i - 12) / 8;
+      seg.style.background = `hsl(176,100%,${Math.round(48 + t * 32)}%)`;
+    }
+    el.appendChild(seg);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ══════════════════════════════════════════════════════════════════
+async function loadDispData() {
+  if (dispCache[state.tf]) { dispData = dispCache[state.tf]; return; }
+  try {
+    const res = await fetch(`displacement_data_${state.tf}.json`);
+    dispData = await res.json();
+  } catch (e) {
+    dispData = { displacements: [], atr_multipliers: [], body_ratios: [] };
+  }
+  dispCache[state.tf] = dispData;
+}
+
+async function loadSwingData() {
+  const url = `swing_data_${state.tf}.json`;
+  try {
+    const res = await fetch(url);
+    swingData = await res.json();
+  } catch (e) {
+    console.warn('Could not load swing data for', state.tf, e);
+    swingData = { swings: [], height_thresholds: [], stats: {} };
+  }
+  allSwings = swingData.swings || [];
+
+  const hThresholds = swingData.height_thresholds || [];
+  if (hThresholds.length > 0) {
+    if (state.heightThreshold === null || !hThresholds.includes(state.heightThreshold)) {
+      state.heightThreshold = hThresholds[Math.floor(hThresholds.length / 2)];
+    }
+  }
+}
+
+async function loadMSSData() {
+  if (mssCache[state.tf]) { mssData = mssCache[state.tf]; return; }
+  try {
+    const res = await fetch(`mss_data_${state.tf}.json`);
+    mssData = await res.json();
+  } catch (e) {
+    mssData = { mss_events: [] };
+  }
+  mssCache[state.tf] = mssData;
+}
+
+async function loadSweepData() {
+  if (sweepCache[state.tf]) { sweepData = sweepCache[state.tf]; return; }
+  try {
+    const res = await fetch(`sweep_data_${state.tf}.json`);
+    sweepData = await res.json();
+  } catch (e) {
+    sweepData = { return_windows: { '1': { sweeps: [], continuations: [] } } };
+  }
+  sweepCache[state.tf] = sweepData;
+}
+
+async function loadSessionBoxes() {
+  try {
+    const res = await fetch('session_boxes.json');
+    sessionBoxData = await res.json();
+  } catch (e) {
+    console.warn('Could not load session boxes:', e);
+    sessionBoxData = { boxes: [] };
+  }
+}
+
+async function loadSessionBands() {
+  if (sessionBands) return;
+  try {
+    const res = await fetch('session_boundaries.json');
+    sessionBands = await res.json();
+  } catch (e) {
+    console.warn('Could not load session boundaries:', e);
+    sessionBands = [];
+  }
+}
+
+async function loadCandles(date) {
+  if (candleCache[date]) return candleCache[date];
+  const res = await fetch(`candles_${date}.json`);
+  const raw = await res.json();
+  const result = {};
+  for (const tf of ['1m', '5m', '15m']) {
+    result[tf] = (raw[tf] || [])
+      .map(c => ({ time: toTs(c.time), o: c.open, h: c.high, l: c.low, c: c.close }))
+      .sort((a, b) => a.time - b.time);
+  }
+  candleCache[date] = result;
+  return result;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BUILD DYNAMIC BUTTONS
+// ══════════════════════════════════════════════════════════════════
+function buildHeightButtons() {
+  const container = document.getElementById('height-btns');
+  container.innerHTML = '';
+  const thresholds = swingData?.height_thresholds || [];
+  for (const h of thresholds) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (h === state.heightThreshold ? ' active' : '');
+    btn.dataset.h = h;
+    btn.textContent = h.toFixed(1);
+    container.appendChild(btn);
+  }
+}
+
+// buildTolButtons removed — EQL/EQH replaced by session boxes
+
+// ══════════════════════════════════════════════════════════════════
+// CHART CREATION
+// ══════════════════════════════════════════════════════════════════
+function getSize(elId) {
+  const el = document.getElementById(elId);
+  return { w: el.clientWidth || 800, h: el.clientHeight || 400 };
+}
+
+function createMainChart() {
+  const el = document.getElementById('main-chart-el');
+  if (mainChart) { mainChart.remove(); mainChart = null; mainSeries = null; mainSessionPrimitive = null; }
+  const { w, h } = getSize('main-chart-wrap');
+  mainChart = LightweightCharts.createChart(el, {
+    ...LC_THEME,
+    width: w,
+    height: h,
+  });
+  mainSeries = mainChart.addCandlestickSeries(CANDLE_STYLE);
+
+  // Session bands primitive
+  mainSessionPrimitive = new SessionBandsPrimitive();
+  mainSeries.attachPrimitive(mainSessionPrimitive);
+
+  // Liquidity box primitive
+  boxPrimitive = new LiquidityBoxPrimitive();
+  mainSeries.attachPrimitive(boxPrimitive);
+
+  mainChart.timeScale().subscribeVisibleTimeRangeChange(() => {
+    if (mainSessionPrimitive && mainSessionPrimitive._requestUpdate) {
+      mainSessionPrimitive._requestUpdate();
+    }
+    if (boxPrimitive && boxPrimitive._requestUpdate) {
+      boxPrimitive._requestUpdate();
+    }
+  });
+
+  const ro = new ResizeObserver(entries => {
+    for (const e of entries) {
+      const { width, height } = e.contentRect;
+      if (mainChart) mainChart.applyOptions({ width, height });
+    }
+  });
+  ro.observe(document.getElementById('main-chart-wrap'));
+}
+
+// createEqChart + hookTimeScaleSync removed — EQ sub-chart replaced by session box overlays
+
+// ══════════════════════════════════════════════════════════════════
+// SESSION BANDS RENDERING
+// ══════════════════════════════════════════════════════════════════
+function renderSessionBandsOn(primitive) {
+  if (!primitive || !sessionBands) return;
+  const dayBands = sessionBands.filter(b => b.forex_day === state.day);
+  const rawBands = dayBands.map(b => ({
+    startTS: toTs(b.start_time),
+    endTS:   toTs(b.end_time),
+    color:   b.color,
+    border:  b.border,
+  }));
+  primitive.setBands(rawBands);
+  requestAnimationFrame(() => {
+    if (primitive._requestUpdate) primitive._requestUpdate();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FIT DAY RANGE
+// ══════════════════════════════════════════════════════════════════
+function fitToDay(chart, tfCandles) {
+  if (!chart || !tfCandles || tfCandles.length === 0) return;
+  chart.timeScale().setVisibleRange({
+    from: tfCandles[0].time,
+    to:   tfCandles[tfCandles.length - 1].time,
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER: SWINGS VIEW
+// ══════════════════════════════════════════════════════════════════
+async function renderSwings() {
+  document.getElementById('main-loading').style.display = 'flex';
+
+  const candles = await loadCandles(state.day);
+  const tfCandles = candles[state.tf];
+
+  // Set candlestick data
+  mainSeries.setData(tfCandles.map(c => ({
+    time: c.time, open: c.o, high: c.h, low: c.l, close: c.c
+  })));
+
+  // Filter swings by day + height threshold
+  const daySwings = allSwings.filter(s =>
+    s.forex_day === state.day && s.height_pips >= state.heightThreshold
+  );
+
+  // Build marker list (one per swing, mapped to TF candle time)
+  const rawMarkers = daySwings.map(sw => ({
+    time:     snapToCandle(toTs(sw.time), tfCandles),
+    position: sw.type === 'high' ? 'aboveBar' : 'belowBar',
+    shape:    sw.type === 'high' ? 'arrowDown' : 'arrowUp',
+    color:    strColor(sw.strength, sw.type),
+    size:     sw.strength >= 13 ? 2 : sw.strength >= 6 ? 1.5 : 1,
+    text:     sw.strength >= 10 ? String(sw.strength) : '',
+    _str:     sw.strength,
+  }));
+
+  // Deduplicate: same time + position → keep strongest
+  const dedup = new Map();
+  for (const m of rawMarkers) {
+    const key = `${m.time}|${m.position}`;
+    if (!dedup.has(key) || m._str > dedup.get(key)._str) dedup.set(key, m);
+  }
+
+  const markers = [...dedup.values()]
+    .sort((a, b) => a.time - b.time || (a.position < b.position ? -1 : 1));
+
+  // MSS overlay: pipeline-computed composite events
+  let mssCount = 0;
+  let sweepCount = 0;
+  if (state.showMSS && mssData) {
+    const dayMSS = (mssData.mss_events || []).filter(m => m.forex_day === state.day);
+    for (const m of dayMSS) {
+      const ts = snapToCandle(toTs(m.time), tfCandles);
+      const fvgStar = m.fvg_created ? '\u2605' : '';
+      if (m.direction === 'BULLISH') {
+        markers.push({
+          time: ts, position: 'belowBar', shape: 'arrowUp',
+          color: '#00e5d4', size: 2.5, text: `MSS${fvgStar}`,
+        });
+      } else {
+        markers.push({
+          time: ts, position: 'aboveBar', shape: 'arrowDown',
+          color: '#ff6b6b', size: 2.5, text: `MSS${fvgStar}`,
+        });
+      }
+      mssCount++;
+    }
+  }
+
+  // Sweep overlay: two layers — base (solid) + delayed (hollow)
+  const SRC_ABBR = {
+    'PROMOTED_SWING': 'PS', 'PDH_PDL': 'PDH', 'ASIA_H_L': 'AH', 'LONDON_H_L': 'LH',
+    'HTF_EQH': 'HE', 'HTF_EQL': 'HE', 'PWH': 'PWH', 'PWL': 'PWL',
+    'LTF_BOX': 'LB', 'SESSION': 'SS',
+  };
+  const SRC_PRIORITY = ['PS','PDH','PWH','PWL','HE','LH','AH','LB','SS'];
+  let contCount = 0;
+  let delayedCount = 0;
+  const sweepsBySource = {};
+
+  function _buildGroups(arr) {
+    const groups = {};
+    for (const sw of arr) {
+      const ts = snapToCandle(toTs(sw.time), tfCandles);
+      const key = `${ts}|${sw.direction}`;
+      if (!groups[key]) groups[key] = { ts, dir: sw.direction, sources: [], qualified: false };
+      groups[key].sources.push(sw.source);
+      if (sw.qualified_sweep) groups[key].qualified = true;
+    }
+    return groups;
+  }
+
+  function _groupLabel(g, suffix) {
+    const abbrs = [...new Set(g.sources.map(s => SRC_ABBR[s] || s))];
+    abbrs.sort((a, b) => SRC_PRIORITY.indexOf(a) - SRC_PRIORITY.indexOf(b));
+    let label;
+    if (abbrs.length === 1) label = g.sources.length > 1 ? `${abbrs[0]}×${g.sources.length}` : abbrs[0];
+    else if (abbrs.length === 2) label = abbrs.join('+');
+    else label = `${abbrs[0]}+${abbrs.length - 1}`;
+    return suffix ? label + suffix : label;
+  }
+
+  if ((state.showSweeps || state.showContinuations) && sweepData) {
+    const rwData = (sweepData.return_windows || {})['1'] || { sweeps: [], continuations: [] };
+
+    // LAYER 1: Base sweeps (same-bar, return_window=1)
+    if (state.showSweeps) {
+      let daySweeps = rwData.sweeps.filter(s => s.forex_day === state.day);
+      if (state.sweepSourceFilter !== 'ALL') {
+        daySweeps = daySweeps.filter(s => s.source === state.sweepSourceFilter);
+      }
+      const show = state.qualifiedOnly ? daySweeps.filter(s => s.qualified_sweep) : daySweeps;
+      const groups = _buildGroups(show);
+      for (const g of Object.values(groups)) {
+        const label = _groupLabel(g, '');
+        const vivid = g.qualified;
+        const bearColor = vivid ? '#ef5350' : 'rgba(120,123,134,0.45)';
+        const bullColor = vivid ? '#26a69a' : 'rgba(120,123,134,0.45)';
+        markers.push({
+          time: g.ts,
+          position: g.dir === 'BEARISH' ? 'aboveBar' : 'belowBar',
+          shape: g.dir === 'BEARISH' ? 'arrowDown' : 'arrowUp',
+          color: g.dir === 'BEARISH' ? bearColor : bullColor,
+          size: vivid ? 1 : 0, text: label,
+        });
+      }
+      for (const sw of show) {
+        sweepsBySource[sw.source] = (sweepsBySource[sw.source] || 0) + 1;
+        sweepCount++;
+      }
+    }
+
+    // LAYER 2: Delayed sweeps (bar+1 return)
+    if (state.showSweeps && state.showDelayed) {
+      let dayDelayed = (sweepData.delayed_sweeps || []).filter(s => s.forex_day === state.day);
+      if (state.sweepSourceFilter !== 'ALL') {
+        dayDelayed = dayDelayed.filter(s => s.source === state.sweepSourceFilter);
+      }
+      if (state.qualifiedOnly) {
+        dayDelayed = dayDelayed.filter(s => s.qualified_sweep);
+      }
+      const dGroups = _buildGroups(dayDelayed);
+      for (const g of Object.values(dGroups)) {
+        const label = _groupLabel(g, '-D');
+        const vivid = g.qualified;
+        const bearColor = vivid ? 'rgba(239,83,80,0.6)' : 'rgba(120,123,134,0.35)';
+        const bullColor = vivid ? 'rgba(38,166,154,0.6)' : 'rgba(120,123,134,0.35)';
+        markers.push({
+          time: g.ts,
+          position: g.dir === 'BEARISH' ? 'aboveBar' : 'belowBar',
+          shape: 'circle',
+          color: g.dir === 'BEARISH' ? bearColor : bullColor,
+          size: 0, text: label,
+        });
+      }
+      for (const sw of dayDelayed) {
+        delayedCount++;
+      }
+    }
+
+    // Continuations
+    if (state.showContinuations) {
+      let dayConts = (rwData.continuations || []).filter(c => c.forex_day === state.day);
+      if (state.sweepSourceFilter !== 'ALL') {
+        dayConts = dayConts.filter(c => c.source === state.sweepSourceFilter);
+      }
+      const contGroups = {};
+      for (const ct of dayConts) {
+        const ts = snapToCandle(toTs(ct.time), tfCandles);
+        const key = `${ts}|${ct.direction}`;
+        if (!contGroups[key]) contGroups[key] = { ts, dir: ct.direction };
+        contCount++;
+      }
+      for (const g of Object.values(contGroups)) {
+        markers.push({ time: g.ts, position: g.dir === 'BEARISH' ? 'aboveBar' : 'belowBar',
+                       shape: 'square', color: '#787b86', size: 0 });
+      }
+    }
+  }
+
+  // Update sweep stats panel
+  if (state.showSweeps) {
+    const srcLines = Object.entries(sweepsBySource)
+      .sort((a,b) => b[1] - a[1])
+      .map(([src, cnt]) => `${SRC_ABBR[src] || src}: ${cnt}`)
+      .join(' · ');
+    let statsHtml = `<strong>${sweepCount}</strong> base`;
+    if (delayedCount) statsHtml += ` · <strong>${delayedCount}</strong> delayed`;
+    if (contCount) statsHtml += ` · <span style="color:var(--text-dim)">${contCount} cont</span>`;
+    if (srcLines) statsHtml += `<br>${srcLines}`;
+    document.getElementById('sweep-stats').innerHTML = statsHtml;
+  } else {
+    document.getElementById('sweep-stats').textContent = '';
+  }
+
+  // OTE zone overlay: draw fib retracement zone after each MSS event
+  oteSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
+  oteSeries = [];
+  let oteCount = 0;
+  if (state.showOTE && state.showMSS && mssCount > 0) {
+    const mssEvents = [];
+    const structSwings = allSwings.filter(s =>
+      s.forex_day === state.day && s.height_pips >= state.heightThreshold && s.strength >= 10
+    );
+    const dispKey = 'atr1.5_br0.6';
+    const dayDisps = new Set();
+    for (const d of (dispData.displacements || [])) {
+      if (d.forex_day !== state.day) continue;
+      const q = d.qualifies && d.qualifies[dispKey];
+      if (q && q.and) dayDisps.add(toTs(d.time));
+    }
+    for (let i = 0; i < tfCandles.length; i++) {
+      const bar = tfCandles[i];
+      if (!dayDisps.has(bar.time)) continue;
+      const h = new Date(bar.time * 1000).getUTCHours();
+      const inKZ = (h >= 2 && h < 5) || (h >= 7 && h < 10);
+      if (!inKZ) continue;
+      for (const sw of structSwings) {
+        const swTs = snapToCandle(toTs(sw.time), tfCandles);
+        if (swTs >= bar.time) continue;
+        if (sw.type === 'high' && bar.c > sw.price) {
+          let expHigh = bar.h;
+          for (let j = i + 1; j < Math.min(i + 20, tfCandles.length); j++) {
+            if (tfCandles[j].h > expHigh) expHigh = tfCandles[j].h;
+          }
+          const rng = expHigh - sw.price;
+          if (rng > 0) mssEvents.push({ dir: 'bull', low: sw.price, high: expHigh, startTs: bar.time });
+          break;
+        }
+        if (sw.type === 'low' && bar.c < sw.price) {
+          let expLow = bar.l;
+          for (let j = i + 1; j < Math.min(i + 20, tfCandles.length); j++) {
+            if (tfCandles[j].l < expLow) expLow = tfCandles[j].l;
+          }
+          const rng = sw.price - expLow;
+          if (rng > 0) mssEvents.push({ dir: 'bear', low: expLow, high: sw.price, startTs: bar.time });
+          break;
+        }
+      }
+    }
+    for (const mss of mssEvents) {
+      const rng = mss.high - mss.low;
+      const fib618 = mss.high - rng * 0.618;
+      const fib705 = mss.high - rng * 0.705;
+      const fib79  = mss.high - rng * 0.79;
+      const endTs = tfCandles[tfCandles.length - 1].time;
+      const zoneColor = 'rgba(247,197,72,0.35)';
+      const sweetColor = 'rgba(247,197,72,0.8)';
+      try {
+        const top = mainChart.addLineSeries({ color: zoneColor, lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        top.setData([{ time: mss.startTs, value: fib618 }, { time: endTs, value: fib618 }]);
+        oteSeries.push(top);
+        const sweet = mainChart.addLineSeries({ color: sweetColor, lineWidth: 1, lineStyle: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        sweet.setData([{ time: mss.startTs, value: fib705 }, { time: endTs, value: fib705 }]);
+        oteSeries.push(sweet);
+        const bot = mainChart.addLineSeries({ color: zoneColor, lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        bot.setData([{ time: mss.startTs, value: fib79 }, { time: endTs, value: fib79 }]);
+        oteSeries.push(bot);
+        oteCount++;
+      } catch(e) {}
+    }
+  }
+
+  // Composite info
+  const parts = [];
+  if (state.showMSS) parts.push(`${mssCount} MSS`);
+  if (state.showOTE) parts.push(`${oteCount} OTE zones`);
+  if (state.showSweeps) {
+    const qLabel = state.qualifiedOnly ? 'qual' : 'all';
+    let sweepPart = `${sweepCount} base (${qLabel})`;
+    if (state.showDelayed && delayedCount) sweepPart += ` + ${delayedCount} delayed`;
+    parts.push(sweepPart);
+  }
+  if (state.showContinuations && contCount) parts.push(`${contCount} cont`);
+  document.getElementById('composite-info').textContent = parts.join(' · ');
+
+  markers.sort((a, b) => a.time - b.time || (a.position < b.position ? -1 : 1));
+  mainSeries.setMarkers(markers);
+  fitToDay(mainChart, tfCandles);
+
+  // Session bands
+  renderSessionBandsOn(mainSessionPrimitive);
+
+  document.getElementById('main-loading').style.display = 'none';
+
+  updateSwingStats(daySwings);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER: SESSION BOXES VIEW
+// ══════════════════════════════════════════════════════════════════
+
+const BOX_COLORS = {
+  'ASIA_BOX':       { fill: 'rgba(156,39,176,0.12)', border: 'rgba(156,39,176,0.5)',  line: '#9c27b0', muted: 'rgba(156,39,176,0.25)' },
+  'PRE_LONDON_BOX': { fill: 'rgba(41,98,255,0.12)',  border: 'rgba(41,98,255,0.5)',   line: '#2962ff', muted: 'rgba(41,98,255,0.25)' },
+  'PRE_NY_BOX':     { fill: 'rgba(247,197,72,0.12)', border: 'rgba(247,197,72,0.5)',  line: '#f7c548', muted: 'rgba(247,197,72,0.25)' },
+};
+
+async function renderSessionBoxes() {
+  document.getElementById('main-loading').style.display = 'flex';
+
+  const candles = await loadCandles(state.day);
+  const tfCandles = candles[state.tf];
+
+  mainSeries.setData(tfCandles.map(c => ({
+    time: c.time, open: c.o, high: c.h, low: c.l, close: c.c
+  })));
+
+  // Clear old box line series
+  boxLineSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
+  boxLineSeries = [];
+  // Clear OTE series from swings view
+  oteSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
+  oteSeries = [];
+
+  const dayBoxes = (sessionBoxData?.boxes || []).filter(b => b.forex_day === state.day);
+
+  const isConsol = b => b.classification === 'CONSOLIDATION_BOX';
+
+  // Set box primitive data for shading
+  const rawBoxes = dayBoxes.map(b => {
+    const c = BOX_COLORS[b.type] || BOX_COLORS['ASIA_BOX'];
+    const consol = isConsol(b);
+    return {
+      startTS: toTs(b.start_time),
+      endTS:   toTs(b.end_time),
+      high: b.high,
+      low:  b.low,
+      mid:  b.mid,
+      color:       consol ? c.fill : 'transparent',
+      borderColor: consol ? c.border : c.muted,
+      qualified:   consol,
+      label: `${b.range_pips}p \u03b5=${b.efficiency} mid\u00d7${b.mid_cross_count} bal=${b.balance_score}`,
+    };
+  });
+  boxPrimitive.setBoxes(rawBoxes);
+
+  // Draw H/L extension lines — always to day end, no sweep termination
+  const markers = [];
+  for (const box of dayBoxes) {
+    const c = BOX_COLORS[box.type] || BOX_COLORS['ASIA_BOX'];
+    const consol = isConsol(box);
+    const endTs = toTs(box.end_time);
+    const lineEndTs = toTs(box.line_end);
+    const lineColor = consol ? c.line : c.muted;
+    const lineStyle = consol
+      ? LightweightCharts.LineStyle.Solid
+      : LightweightCharts.LineStyle.Dashed;
+    const lineWidth = consol ? 1.5 : 1;
+
+    if (lineEndTs > endTs) {
+      const hs = mainChart.addLineSeries({
+        color: lineColor, lineWidth, lineStyle,
+        lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
+      });
+      hs.setData([{ time: endTs, value: box.high }, { time: lineEndTs, value: box.high }]);
+      boxLineSeries.push(hs);
+
+      const ls = mainChart.addLineSeries({
+        color: lineColor, lineWidth, lineStyle,
+        lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
+      });
+      ls.setData([{ time: endTs, value: box.low }, { time: lineEndTs, value: box.low }]);
+      boxLineSeries.push(ls);
+
+      // Mid line — consolidation only, dotted
+      if (consol) {
+        const ms = mainChart.addLineSeries({
+          color: c.muted, lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dotted,
+          lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
+        });
+        ms.setData([{ time: endTs, value: box.mid }, { time: lineEndTs, value: box.mid }]);
+        boxLineSeries.push(ms);
+      }
+    }
+
+    // Interaction dots — raw facts, no sweep label
+    const ix = box.interactions || {};
+    if (ix.high?.traded_above?.occurred && ix.high.traded_above.first_time) {
+      markers.push({
+        time: snapToCandle(toTs(ix.high.traded_above.first_time), tfCandles),
+        position: 'aboveBar', shape: 'circle',
+        color: consol ? 'rgba(239,83,80,0.7)' : 'rgba(239,83,80,0.3)',
+        size: 0.8, text: '',
+      });
+    }
+    if (ix.low?.traded_below?.occurred && ix.low.traded_below.first_time) {
+      markers.push({
+        time: snapToCandle(toTs(ix.low.traded_below.first_time), tfCandles),
+        position: 'belowBar', shape: 'circle',
+        color: consol ? 'rgba(38,166,154,0.7)' : 'rgba(38,166,154,0.3)',
+        size: 0.8, text: '',
+      });
+    }
+  }
+
+  markers.sort((a, b) => a.time - b.time);
+  mainSeries.setMarkers(markers);
+  fitToDay(mainChart, tfCandles);
+  renderSessionBandsOn(mainSessionPrimitive);
+
+  document.getElementById('main-loading').style.display = 'none';
+  updateBoxCards(dayBoxes);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STATS UPDATES
+// ══════════════════════════════════════════════════════════════════
+function updateSwingStats(daySwings) {
+  const highs   = daySwings.filter(s => s.type === 'high');
+  const lows    = daySwings.filter(s => s.type === 'low');
+  const n       = daySwings.length;
+  const avgStr  = n ? (daySwings.reduce((a, s) => a + s.strength, 0) / n).toFixed(1) : '—';
+  const maxStr  = n ? Math.max(...daySwings.map(s => s.strength)) : '—';
+
+  document.getElementById('stats-day').textContent =
+    (DAYS.find(d => d.date === state.day) || {}).label || state.day;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-item"><div class="stat-lbl">Total</div><div class="stat-val">${n}</div></div>
+    <div class="stat-item"><div class="stat-lbl">Highs</div><div class="stat-val teal">${highs.length}</div></div>
+    <div class="stat-item"><div class="stat-lbl">Lows</div><div class="stat-val red">${lows.length}</div></div>
+    <div class="stat-item"><div class="stat-lbl">Avg Str</div><div class="stat-val">${avgStr}</div></div>
+    <div class="stat-item"><div class="stat-lbl">Max Str</div><div class="stat-val">${maxStr}</div></div>
+    <div class="stat-item"><div class="stat-lbl">Min H</div><div class="stat-val">${state.heightThreshold}</div></div>
+  `;
+
+  // Session distribution
+  const sessEl = document.getElementById('session-rows');
+  sessEl.innerHTML = SESSIONS.map(sess => {
+    const cnt = daySwings.filter(s => s.session === sess.key).length;
+    return `<div class="sess-row">
+      <span class="sess-name" style="color:${sess.color}">${sess.label}</span>
+      <span class="sess-cnt">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  // Height threshold counts
+  const heightThresholds = swingData?.height_thresholds || [];
+  const countEl = document.getElementById('height-counts');
+  countEl.innerHTML = heightThresholds.map(h => {
+    const cnt = allSwings.filter(s => s.forex_day === state.day && s.height_pips >= h).length;
+    const active = h === state.heightThreshold;
+    return `<div class="h-count-row">
+      <span class="h-count-pip">≥ ${h.toFixed(1)} pip</span>
+      <span class="h-count-n" style="color:${active ? 'var(--text)' : 'var(--text-dim)'}">${cnt}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateBoxCards(dayBoxes) {
+  const container = document.getElementById('boxes-list');
+  if (!container) return;
+  const BOX_LABELS = {
+    'ASIA_BOX':       { name: 'Asia', color: '#9c27b0' },
+    'PRE_LONDON_BOX': { name: 'Pre-London', color: '#2962ff' },
+    'PRE_NY_BOX':     { name: 'Pre-NY', color: '#f7c548' },
+  };
+  if (!dayBoxes || !dayBoxes.length) {
+    container.innerHTML = '<div class="sb-label">No session boxes for this day</div>';
+    return;
+  }
+  const dayLabel = (DAYS.find(d => d.date === state.day) || {}).label || state.day;
+  container.innerHTML = `<div class="sb-label">Session Boxes \u00b7 ${dayLabel}</div>` +
+    dayBoxes.map(box => {
+      const info = BOX_LABELS[box.type] || { name: box.type, color: '#787b86' };
+      const consol = box.classification === 'CONSOLIDATION_BOX';
+      const badgeClass = consol ? 'qualified' : 'expansion';
+      const badgeText = consol ? 'CONSOL' : `TREND ${box.trend_direction === 'UP' ? '\u2191' : '\u2193'}`;
+      const effOk  = box.efficiency <= 0.60;
+      const midOk  = box.mid_cross_count >= 2;
+      const balOk  = box.balance_score >= 0.30;
+      const gateColor = v => v ? 'var(--text-muted)' : 'var(--red)';
+      return `<div class="box-card" style="border-left-color:${info.color};">
+        <div class="box-card-header">
+          <span class="box-card-title" style="color:${info.color};">${info.name}</span>
+          <span class="box-card-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <dl class="box-card-stats">
+          <dt>Range</dt><dd>${box.range_pips} pip</dd>
+          <dt style="color:${gateColor(effOk)}">Efficiency</dt><dd style="color:${gateColor(effOk)}">\u03b5 = ${box.efficiency}</dd>
+          <dt style="color:${gateColor(midOk)}">Mid Cross</dt><dd style="color:${gateColor(midOk)}">${box.mid_cross_count}\u00d7</dd>
+          <dt style="color:${gateColor(balOk)}">Balance</dt><dd style="color:${gateColor(balOk)}">${box.balance_score}</dd>
+          <dt>High</dt><dd>${box.high.toFixed(5)}</dd>
+          <dt>Low</dt><dd>${box.low.toFixed(5)}</dd>
+        </dl>
+      </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VIEW SWITCHING
+// ══════════════════════════════════════════════════════════════════
+function switchView(view) {
+  state.view = view;
+  document.querySelectorAll('.view-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === view)
+  );
+
+  const swPanel = document.getElementById('swings-panel');
+  const boxPanel = document.getElementById('boxes-panel');
+
+  if (view === 'swings') {
+    swPanel.style.display = '';
+    boxPanel.style.display = 'none';
+    boxPrimitive.setBoxes([]);
+    boxLineSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
+    boxLineSeries = [];
+    renderSwings();
+  } else {
+    swPanel.style.display = 'none';
+    boxPanel.style.display = '';
+    oteSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
+    oteSeries = [];
+    renderSessionBoxes();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MAIN RENDER DISPATCH
+// ══════════════════════════════════════════════════════════════════
+async function render() {
+  if (state.view === 'swings') {
+    await renderSwings();
+  } else {
+    await renderSessionBoxes();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EVENT WIRING
+// ══════════════════════════════════════════════════════════════════
+document.querySelector('.header').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-tf]');
+  if (!btn) return;
+  if (btn.dataset.tf === state.tf) return;
+  state.tf = btn.dataset.tf;
+  state.heightThreshold = null;
+  document.querySelectorAll('[data-tf]').forEach(b =>
+    b.classList.toggle('active', b.dataset.tf === state.tf)
+  );
+  candleCache = {};
+  mssCache = {};
+  await loadSwingData();
+  await loadDispData();
+  await loadMSSData();
+  await loadSweepData();
+  buildHeightButtons();
+  render();
+});
+
+document.getElementById('day-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('[data-day]');
+  if (!btn) return;
+  state.day = btn.dataset.day;
+  document.querySelectorAll('[data-day]').forEach(b =>
+    b.classList.toggle('active', b.dataset.day === state.day)
+  );
+  render();
+});
+
+document.getElementById('height-btns').addEventListener('click', e => {
+  const btn = e.target.closest('[data-h]');
+  if (!btn) return;
+  state.heightThreshold = parseFloat(btn.dataset.h);
+  document.querySelectorAll('[data-h]').forEach(b =>
+    b.classList.toggle('active', parseFloat(b.dataset.h) === state.heightThreshold)
+  );
+  renderSwings();
+});
+
+document.getElementById('mss-toggle').addEventListener('click', () => {
+  state.showMSS = !state.showMSS;
+  const btn = document.getElementById('mss-toggle');
+  btn.textContent = state.showMSS ? 'Hide MSS' : 'Show MSS';
+  btn.classList.toggle('active', state.showMSS);
+  renderSwings();
+});
+
+document.getElementById('ote-toggle').addEventListener('click', () => {
+  state.showOTE = !state.showOTE;
+  if (state.showOTE && !state.showMSS) {
+    state.showMSS = true;
+    const mBtn = document.getElementById('mss-toggle');
+    mBtn.textContent = 'Hide MSS';
+    mBtn.classList.add('active');
+  }
+  const btn = document.getElementById('ote-toggle');
+  btn.textContent = state.showOTE ? 'Hide OTE Zones' : 'Show OTE Zones';
+  btn.classList.toggle('active', state.showOTE);
+  renderSwings();
+});
+
+document.getElementById('sweep-toggle').addEventListener('click', async () => {
+  state.showSweeps = !state.showSweeps;
+  const btn = document.getElementById('sweep-toggle');
+  btn.textContent = state.showSweeps ? 'Hide Liquidity Sweeps' : 'Show Liquidity Sweeps';
+  btn.classList.toggle('active', state.showSweeps);
+  document.getElementById('sweep-controls').style.display =
+    (state.showSweeps || state.showContinuations) ? 'block' : 'none';
+  if (state.showSweeps && !sweepData) await loadSweepData();
+  renderSwings();
+});
+
+document.getElementById('cont-toggle').addEventListener('click', async () => {
+  state.showContinuations = !state.showContinuations;
+  const btn = document.getElementById('cont-toggle');
+  btn.textContent = state.showContinuations ? 'Hide Continuations' : 'Show Continuations';
+  btn.classList.toggle('active', state.showContinuations);
+  document.getElementById('sweep-controls').style.display =
+    (state.showSweeps || state.showContinuations) ? 'block' : 'none';
+  if (state.showContinuations && !sweepData) await loadSweepData();
+  renderSwings();
+});
+
+document.querySelectorAll('[data-rw]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-rw]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.sweepReturnWindow = parseInt(btn.dataset.rw);
+    renderSwings();
+  });
+});
+
+document.querySelectorAll('[data-src]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-src]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.sweepSourceFilter = btn.dataset.src;
+    renderSwings();
+  });
+});
+
+document.getElementById('qualified-toggle').addEventListener('change', (e) => {
+  state.qualifiedOnly = e.target.checked;
+  renderSwings();
+});
+
+document.getElementById('delayed-toggle').addEventListener('change', (e) => {
+  state.showDelayed = e.target.checked;
+  renderSwings();
+});
+
+document.getElementById('view-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('[data-view]');
+  if (!btn) return;
+  switchView(btn.dataset.view);
+});
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+async function init() {
+  buildStrScale();
+  await Promise.all([
+    loadSessionBands(),
+    loadSwingData(),
+    loadDispData(),
+    loadMSSData(),
+    loadSweepData(),
+    loadSessionBoxes(),
+  ]);
+
+  buildHeightButtons();
+  createMainChart();
+  await renderSwings();
+}
+
+// Boot when DOM is ready (script is at bottom of body)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

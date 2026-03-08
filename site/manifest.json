@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "drive_id": "ecc7c6f5-27b9-49f1-9735-cba3520c92f0",
+  "name": "calibration-bible",
+  "description": "ICT FVG Calibration Chart — interactive EURUSD Jan 2024 analysis tool",
+  "tags": [
+    "fvg",
+    "tradingview",
+    "calibration",
+    "eurusd",
+    "ict",
+    "candlestick",
+    "lightweight-charts"
+  ],
+  "created_at": "2026-03-04T03:38:59.614140+00:00",
+  "updated_at": "2026-03-04T03:38:59.614140+00:00",
+  "parent_project": null,
+  "sessions": [
+    {
+      "session_id": "55cea59a-ffae-4055-9ee4-14c7604994c0/subagents/build_fvg_calibration_chart_20260304_031530",
+      "timestamp": "2026-03-04T03:38:59.614140+00:00",
+      "summary": "Fixed FVG zone rendering in fvg.html. Root cause was a timing issue where requestUpdate() fired before the chart's coordinate space stabilized after fitContent(). Fixed by: (1) using requestAnimationFrame + setTimeout(50ms) after fitContent before calling renderZones(), (2) increased zone fill opacity for bc state to be clearly visible, (3) changed bc state color from grey to colored (teal/red) for better visibility, (4) added double rAF flush to ensure coordinate computation runs after layout. All 16 FVGs at 2.0pip now render as colored horizontal bands on the chart canvas. Also created index.html as site entry point."
+    }
+  ]
+}

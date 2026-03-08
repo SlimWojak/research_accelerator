@@ -1,0 +1,2029 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYNTHETIC OLYA METHOD v0.5
+# Algorithmic Method Specification — L1 / L1.5 / L2 Separated
+# ═══════════════════════════════════════════════════════════════════════════════
+# Design: Machine-parseable detection logic. Pseudocode over prose.
+# Owner: Opus/COO maintains. CTO architects. Olya validates.
+# Location: phoenix-swarm/ (shared coordination repo)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# LAYER DEFINITIONS:
+#   L1  = Detection algorithm. Geometric/mathematical. Deterministic.
+#         "What IS this primitive?" — locked by research + calibration.
+#   L1.5 = Parameters. Configurable per pair/regime/timeframe.
+#         "How sensitive is detection?" — locked by empirical calibration.
+#   L2  = Strategy interpretation. How primitives combine into setups.
+#         "How does Olya USE this?" — lives in Olya's head, noted here.
+#
+# RULE: L2 never rewrites L1. L1.5 is the tuning surface.
+# RULE: Every L1 algorithm must be testable by automated assertion.
+# RULE: If you can't pseudocode it, it's not defined.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OLYA REVIEW REQUIRED — Calibration Session Agenda
+# Date proposed: 2026-03-05
+# Method: Open calibration tool (http://localhost:8787/), review each item
+#         visually. One at a time. Confirm or adjust each proposal.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# [x] 1. SWING POINTS — LOCKED
+#        1m: N=5, 0.5pip  |  5m: N=3, 3.0pip  |  15m: N=2, 3.0pip
+#        Strength: tag only, NOT a gate for MSS/Sweep
+#        Olya confirmed 2026-03-05 (3 rounds of visual calibration)
+#
+# [ ] 2. SESSION LIQUIDITY BOXES — FOUR-GATE MODEL
+#        Three box objects: Asia Box, Pre-London Box, Pre-NY Box
+#        CONSOLIDATION_BOX requires ALL FOUR: range + ε≤0.60 + mid×≥2 + bal≥0.30
+#        TREND_OR_EXPANSION if any gate fails (with UP/DOWN direction)
+#        Interaction tracking (traded/closed above/below) — raw facts, no sweep label
+#        Tool: swings.html "Session Boxes" tab — all four metrics visible per box
+#
+# [ ] 3. DISPLACEMENT — ATR multiplier + body ratio
+#        ATR: 1.5x  |  Body: 0.60  |  Mode: AND
+#        Tool: displacement.html → 4x4 heatmap, click each cell
+#
+# [ ] 4. ASIA RANGE — tight/mid/wide thresholds
+#        TIGHT: < 10 pip  |  MID: 10-20 pip  |  WIDE: > 20 pip
+#        Tool: asia.html → threshold slider
+#
+# [ ] 5. MSS — require FVG or just tag it?
+#        Proposed: tag only (fvg_created), not a gate
+#        No visual — this is a logic question for Olya
+#
+# [ ] 6. ORDER BLOCK — staleness + zone type
+#        Staleness: 10 bars native TF  |  Zone: body (conservative)
+#        Tool: ob-staleness.html → staleness slider
+#
+# [ ] 7. LIQUIDITY SWEEP — return window + max size
+#        Return: 3 bars  |  Max: 1.5x ATR  |  Min: 0.5 pip floor
+#        No dedicated visual yet — review in context of sweep events on chart
+#
+# [ ] 8. NY WINDOWS — Window A vs Window B preference
+#        A: 08:00-09:00 (reversal)  |  B: 10:00-11:00 (continuation)
+#        Tool: ny-windows.html → window toggle
+#        This is a PREFERENCE question, not a threshold
+#
+# [ ] 9. OTE — anchor swing rule + 70.5% sweet spot
+#        Anchor: most recent MSS defines the range
+#        Levels: 61.8% / 70.5% / 79%
+#        No visual — logic confirmation from Olya
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+metadata:
+  version: "0.5"
+  date: "2026-03-05"
+  status: DRAFT — all L15 proposals complete, pending Olya review
+  supersedes: "v0.4"
+  instrument: EURUSD  # primary — expand after full calibration
+  calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
+  changelog:
+    v0.5: |
+      Complete architectural rewrite. L1/L1.5/L2 separation enforced.
+      Pseudocode replaces prose. Native multi-TF detection.
+      VI removed entirely (IBKR data feed workaround, not ICT primitive).
+      IFVG + BPR added as derived primitives.
+      Calibration-driven: parameters carry empirical provenance.
+    v0.4: "Last prose-based version. 806 lines. Deprecated."
+  contributors:
+    olya: "CSO — validates detection correctness, locks L2 usage"
+    cto: "Architects L1/L1.5 structure, synthesises advisor input"
+    perplexity: "Research pack + calibration visual bible"
+    opus: "Builds + maintains this file in phoenix-swarm/"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSTANTS — shared across all primitives
+# ═══════════════════════════════════════════════════════════════════════════════
+
+constants:
+
+  pip:
+    EURUSD: 0.0001
+
+  forex_day:
+    boundary: "17:00 NY"
+    midnight_open: "00:00 NY"
+    dst_rule: "Always NY local (auto-adjusts EST/EDT)"
+
+  sessions:
+    asia:     {start: "19:00 NY", end: "00:00 NY", note: "prior calendar day start"}
+    lokz:     {start: "02:00 NY", end: "05:00 NY", name: "London Open Kill Zone"}
+    nyokz:    {start: "07:00 NY", end: "10:00 NY", name: "NY Open Kill Zone"}
+    # Gap periods (00:00-02:00, 05:00-07:00, 10:00+) tagged as "other"
+
+  timeframes:
+    execution: [5m, 15m]        # where Olya marks and trades
+    direction: [1H, 4H, 1D, W]  # HTF bias — future phase
+    reference: [1m]              # raw data, not primary detection TF
+    primary: 5m                  # Olya's execution TF
+
+  detection_rule: |
+    All primitives detect NATIVELY on each timeframe's own bar arrays.
+    5m FVG = gap across 3 consecutive 5m candles (genuine HTF gap).
+    NOT: 1m detection projected onto 5m display.
+    Rationale: Olya calibration session 2026-03-04 — 1m projection
+    showed noise she would never mark on 5m charts.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: FVG (Fair Value Gap)
+# Status: CALIBRATED — 2026-03-04 Olya session
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FVG:
+
+  L1_detection:
+    # Three consecutive bars: A (oldest), B (middle), C (newest)
+    # Gap = price range B delivered through that A and C wicks don't cover
+
+    bullish:
+      condition: "bars[i].low > bars[i-2].high"
+      zone_top: "bars[i].low"       # candle C low
+      zone_bottom: "bars[i-2].high"  # candle A high
+      ce: "(zone_top + zone_bottom) / 2"
+      anchor_time: "bars[i-2].time"  # candle A, not C
+
+    bearish:
+      condition: "bars[i].high < bars[i-2].low"
+      zone_top: "bars[i-2].low"     # candle A low
+      zone_bottom: "bars[i].high"    # candle C high
+      ce: "(zone_top + zone_bottom) / 2"
+      anchor_time: "bars[i-2].time"
+
+    gap_size: "abs(zone_top - zone_bottom) / pip_value"
+
+    timeframe_rule: |
+      Detect on NATIVE bar arrays per TF.
+      detect_fvg(bars_5m)  → FVG_5M
+      detect_fvg(bars_15m) → FVG_15M
+      detect_fvg(bars_1m)  → FVG_1M (reference only)
+      Different TFs produce genuinely different populations.
+      5m sample: 345 FVGs vs 2017 on 1m (same week).
+
+    bugs_fixed_from_v04:
+      - "boundary used bars[i-1].high — corrected to bars[i-2].high"
+      - "anchor time at candle C — corrected to candle A"
+
+  L1_state_machine:
+    # Every FVG tracks lifecycle state. State transitions are L1.
+    # WHICH state matters for trading is L2.
+
+    states:
+      ACTIVE:         "Gap exists, price has not returned to zone"
+      CE_TOUCHED:     "Price reached CE (midpoint) but zone not fully closed"
+      BOUNDARY_CLOSED: "Price closed through full zone (opposite boundary)"
+      IFVG:           "Polarity flip — see derived primitive below"
+
+    transitions:
+      ACTIVE → CE_TOUCHED:
+        trigger: "any bar.close crosses CE level"
+      ACTIVE → BOUNDARY_CLOSED:
+        trigger: "any bar.close crosses opposite boundary"
+      CE_TOUCHED → BOUNDARY_CLOSED:
+        trigger: "any bar.close crosses opposite boundary"
+      BOUNDARY_CLOSED → IFVG:
+        trigger: "see IFVG rules below"
+
+    tracking: |
+      All state transitions logged with timestamp.
+      Bead carries: [state, state_change_time, state_history[]]
+
+  L1_tags:
+    # Context metadata computed at detection time. L2 filters on these.
+    session:              "asia | lokz | nyokz | other"
+    displacement_present: "bool — candle B meets displacement criteria"
+    bpr_zone:             "bool — overlaps with opposite-direction FVG"
+    swing_proximity:      "nearest swing point within N bars"
+
+  L15_parameters:
+    floor_threshold:
+      default: 0.5 pip
+      range: [0.0, 2.0]
+      purpose: "Exclude pure spread noise only"
+      provenance: |
+        Olya calibration 2026-03-04. Forensic finding: Jan 9 09:30
+        bullish FVG was sub-1-pip on 5m, meaningful in context.
+        Previous 1.0 pip floor missed it. Lowered to 0.5 pip.
+        Context tags replace threshold as quality gate.
+
+    # NOTE: No upper threshold. All FVGs >= floor captured.
+    # Quality gating moved to L2 via context tags.
+
+  L2_usage:
+    philosophy: |
+      CONFLUENCE_FIRST, not SIZE_FIRST.
+      Pip size is NOT the quality gate. All FVGs >= floor captured.
+      Context determines tradeability — session, displacement,
+      swing proximity, HTF alignment.
+    entry_method: |
+      Retrace into FVG zone. Entry at boundary or CE.
+      Fresh (untouched) preferred over retested.
+    zone_respect: |
+      "Respected" = candle BODIES stay inside zone.
+      Wicks may breach. Bodies must remain within.
+    invalidation: |
+      CE_TOUCHED = partial fill (still valid for some setups).
+      BOUNDARY_CLOSED = invalid (or becomes IFVG candidate).
+      Decision on which state invalidates = L2 context.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DERIVED PRIMITIVE: IFVG (Inverse Fair Value Gap)
+# Status: IDENTIFIED — 2026-03-04 Olya session. Build pending.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+IFVG:
+
+  L1_detection:
+    # Not a new scan — state transition on existing FVG
+    definition: |
+      A fully closed FVG flips polarity.
+      Bullish FVG that gets BOUNDARY_CLOSED → becomes bearish resistance.
+      Bearish FVG that gets BOUNDARY_CLOSED → becomes bullish support.
+      CRITICAL: trigger is CLOSE beyond boundary, NOT wick.
+      A wick touch does not create IFVG — close required.
+
+    transition_rule:
+      bullish_fvg_closed: "IFVG_BEARISH — zone now acts as resistance"
+      bearish_fvg_closed: "IFVG_BULLISH — zone now acts as support"
+
+    close_requirement: |
+      IFVG inherits the BOUNDARY_CLOSED state from FVG state machine.
+      BOUNDARY_CLOSED trigger = "any bar.close crosses opposite boundary"
+      (FVG L1_state_machine, line 178 of this file).
+      Therefore: bullish FVG invalidated when bar.close < fvg.zone_bottom.
+                 bearish FVG invalidated when bar.close > fvg.zone_top.
+      Wick-only breaches leave FVG in ACTIVE or CE_TOUCHED state.
+      Source: ICT canonical + MQL5 ICTFVG reference implementation
+      (gist.github.com/silvinob/3335e76266449a26f3c7b5890a6ecd44).
+
+    pseudocode: |
+      # BOUNDARY_CLOSED already confirmed by close (not wick)
+      if fvg.state == BOUNDARY_CLOSED:
+          if fvg.direction == BULLISH:
+              # bar.close < fvg.zone_bottom triggered BOUNDARY_CLOSED
+              fvg.state = IFVG_BEARISH
+          elif fvg.direction == BEARISH:
+              # bar.close > fvg.zone_top triggered BOUNDARY_CLOSED
+              fvg.state = IFVG_BULLISH
+          fvg.ifvg_flip_time = current_bar.time
+
+  L15_parameters:
+    # Inherits FVG floor. No additional parameters.
+    inherited_from: FVG
+
+  L2_usage:
+    role: "Confluence factor — not standalone signal"
+    olya_confirmed: true
+    usage_frequency: regular
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DERIVED PRIMITIVE: BPR (Balanced Price Range)
+# Status: IDENTIFIED — 2026-03-04 Olya session. Build pending.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+BPR:
+
+  L1_detection:
+    definition: |
+      Zone where a bullish FVG and bearish FVG overlap in price.
+      The intersection = high-confluence area.
+
+    pseudocode: |
+      for each bullish_fvg in all_fvgs:
+          for each bearish_fvg in all_fvgs:
+              overlap_top = min(bullish_fvg.zone_top, bearish_fvg.zone_top)
+              overlap_bot = max(bullish_fvg.zone_bottom, bearish_fvg.zone_bottom)
+              if overlap_top > overlap_bot:
+                  bpr = BPR(
+                      zone=[overlap_bot, overlap_top],
+                      bull_source=bullish_fvg,
+                      bear_source=bearish_fvg
+                  )
+
+    scope: |
+      BPR is a geometric overlap — computed across ALL FVGs regardless
+      of lifecycle state. A closed bullish FVG overlapping a closed
+      bearish FVG is still a balanced price range.
+      Both source FVGs must be from same TF.
+      Cross-TF BPR deferred to strategy layer.
+
+  L15_parameters:
+    min_overlap: "TBD — may not need minimum if both source FVGs passed floor"
+
+  L2_usage:
+    as_target: "Price drawn to fill balanced zone"
+    as_reversal: "Fade from balanced zone"
+    decision: "L2 context determines which — not detectable algorithmically"
+    olya_confirmed: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: SWING POINTS
+# Status: PENDING CALIBRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+SWING_POINTS:
+
+  L1_detection:
+    algorithm: "N-bar pivot"
+    lookback: "N bars left, N bars right"
+
+    swing_high:
+      condition: |
+        bars[i].high >= all bars[i-N : i-1].high   # >= left (equality ok)
+        bars[i].high >  all bars[i+1 : i+N].high   # >  right (strict)
+
+    swing_low:
+      condition: |
+        bars[i].low <= all bars[i-N : i-1].low    # <= left (equality ok)
+        bars[i].low <  all bars[i+1 : i+N].low    # <  right (strict)
+
+    equality_fix: |
+      v0.4 used strict > both sides — silently dropped equal highs.
+      Corrected: >= left, > right. Allows equal-level detection
+      on the leading bar while preventing duplicate triggers on
+      trailing bars at same level.
+
+    height: "max(bar.high - min(surrounding lows)) for swing_high (vice versa)"
+
+    strength:
+      definition: |
+        Extra bars beyond N that continue to respect the swing extreme.
+        Capped at 20. Measures how long the swing HELD.
+      pseudocode: |
+        strength = 0
+        for j in range(i + N + 1, min(i + N + 21, len(bars))):
+            if swing == HIGH and bars[j].high < bars[i].high:
+                strength += 1
+            elif swing == LOW and bars[j].low > bars[i].low:
+                strength += 1
+            else:
+                break
+      known_limitation: |
+        ARCHITECTURAL ISSUE (flagged for CTO post-session):
+        Strength measures bars-held-after (temporal persistence), NOT move
+        magnitude. Fast decisive swings in kill zones (e.g. 5m 09:25 Jan 9)
+        score dim/grey despite being material moves — because the next
+        candle immediately breaches the extreme (fast continuation).
+        Proposed enhancement: add ATR-relative move size as secondary
+        strength input. A swing with 15-pip height but strength=2 is
+        structurally more significant than a 3-pip swing with strength=15.
+        Current workaround: height_filter catches magnitude, strength
+        catches persistence. Both are needed but weighted differently
+        depending on session context. L2 decision.
+        Status: LOGGED — not blocking calibration, review post-session.
+
+    timeframe_rule: "Native detection per TF (same principle as FVG)"
+
+    bugs_fixed_from_v04:
+      - "strict > on both sides — corrected to >= left, > right"
+      - "no height filter — sub-pip noise included"
+      - "no session noise filter"
+
+  L15_parameters:
+    N:
+      per_tf:
+        1m: 5   # no change — working correctly at 1m resolution
+        5m: 3   # Olya confirmed — catches all major swings, no overcorrection
+        15m: 2  # reduced from 3 — N=3 still missed 03:15 low and 03:45 high on Jan 9
+      rationale: |
+        Round 1 (N=5 universal): too rigid for higher TFs. LOKZ structure missed entirely.
+        Round 2 (N=3 on 5m/15m): 5m approved. 15m still missing fast session swings.
+        Round 3 (N=2 on 15m): captures 03:15/03:45 structures. N=2 on 15m = 30min
+        window, responsive enough for kill zone moves. Height filter is the quality gate.
+      note: "N=10 reserved as test oracle only (not used in production)."
+      provenance: "Olya visual confirmation rounds 1-3, 2026-03-05."
+      status: "5m: CONFIRMED by Olya | 15m: PROPOSED N=2 — pending visual check"
+
+    height_filter:
+      per_tf:
+        1m:
+          default: 0.5  # pips — lowered from 2.5, Olya missing swings at higher floor
+          candidates: [1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
+          rationale: |
+            Original 2.5 pip floor too aggressive — missing swings Olya marks.
+            0.5 pip floor captures all, consistent with FVG floor philosophy.
+            Strength grading is the quality gate, not height.
+        5m:
+          default: 3.0  # pips — Olya confirmed, down from 3.5
+          candidates: [2.0, 3.0, 5.0, 7.0, 10.0, 15.0]
+          rationale: |
+            Olya round 2: 3.0 pip captures all material swings on 5m.
+            Small noise increase accepted — signal quality worth it.
+        15m:
+          default: 3.0  # pips — down from 10.0, captures structural shifts in fast sessions
+          candidates: [3.0, 5.0, 7.0, 10.0, 15.0, 20.0]
+          rationale: |
+            10.0 pip floor was too aggressive for 15m — structural swings in
+            fast LOKZ/NYOKZ sessions were being height-filtered out entirely.
+            3.0 pip captures the major structural shifts Olya needs.
+      status: "LOCKED — Olya confirmed all three TFs 2026-03-05"
+      provenance: "Olya visual calibration rounds 1-3, 2026-03-05"
+
+    strength_threshold:
+      default: null  # NO GATE — strength is a tag only, not a filter
+      rationale: |
+        Olya decision 2026-03-05: strength grading retained as L1 tag
+        (dim/mid/vivid visual on chart, useful for CTO/research) but
+        NOT used as a gate for MSS or Liquidity Sweep detection.
+        Both composites use ALL detected swings regardless of strength.
+        Reasoning: fast decisive moves in kill zones score low strength
+        (bars-held metric penalises continuation) but are structurally
+        significant. Height filter is the quality gate, not strength.
+      status: "LOCKED — tag only, not a gate. Olya confirmed 2026-03-05"
+      provenance: "Olya calibration session decision 2026-03-05"
+
+  L1_tags:
+    session: "asia | lokz | nyokz | other"
+    is_equal_high: "bool — within tolerance of another swing high"
+    is_equal_low: "bool — within tolerance of another swing low"
+    strength_grade: "dim (0-5) | mid (6-12) | vivid (13-20)"
+
+  L2_usage:
+    # PENDING OLYA SESSION
+    placeholder: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTERNAL LIQUIDITY MAP — Session Box Architecture
+# Olya session 2026-03-05, advisor review + CTO refactor 2026-03-05.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# SCOPE:
+#   IN SCOPE:  detect ranges, classify BOX vs TREND, emit levels,
+#              track price interactions (raw facts per level)
+#   OUT OF SCOPE: sweep detection, displacement logic, FVG logic,
+#                 trade entry rules
+#
+# PRINCIPLE: The liquidity layer detects and classifies.
+#   Sweep detection is a cross-primitive event (liquidity level +
+#   displacement/wick interaction + return). That belongs in the
+#   Liquidity Sweep primitive (strategy layer), not here.
+#
+# CLASSIFICATION: Four-gate model.
+#   CONSOLIDATION_BOX requires ALL FOUR gates:
+#     1. range_pips <= max_range (per session type)
+#     2. efficiency <= 0.60
+#     3. mid_cross_count >= 2 (rotation proof)
+#     4. balance_score >= 0.30 (time distribution proof)
+#   TREND_OR_EXPANSION if ANY ONE gate fails.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+SESSION_LIQUIDITY:
+
+  definition: |
+    Session extremes form the primary internal liquidity map.
+    Three session windows produce BOX OBJECTS with four-gate classification.
+    Remaining sessions (London, NY) produce deterministic H/L reference levels.
+
+  classification:
+
+    gates:
+      range_cap: "per session type — Asia ≤30, Pre-London ≤15, Pre-NY ≤20"
+      efficiency:
+        threshold: 0.60
+        formula: "abs(close_last - open_first) / (high - low)"
+        note: |
+          Unified across all sessions. Loosened from 0.45/0.50 to 0.60
+          because wick taps can inflate net_move in otherwise choppy sessions.
+          The tighter mid_cross and balance gates compensate.
+      mid_cross_count:
+        threshold: 2
+        formula: |
+          count bars where:
+            (close[i-1] < mid AND close[i] > mid) OR
+            (close[i-1] > mid AND close[i] < mid)
+        note: |
+          Rotation proof. Price oscillated around midpoint at least twice.
+          A trending session that respects mid and grinds away won't cross
+          it twice. Catches one-sided grinds the efficiency gate misses.
+      balance_score:
+        threshold: 0.30
+        formula: "min(count(close > mid) / total, count(close < mid) / total)"
+        note: |
+          Time distribution proof. Price spent meaningful time both above
+          and below mid. Catches sessions that briefly touch one extreme
+          then spend 80% of time at the other — not balanced liquidity.
+
+    CONSOLIDATION_BOX:
+      condition: "ALL FOUR gates pass"
+      display: "Shaded box + solid H/L/Mid lines extending to day end"
+    TREND_OR_EXPANSION:
+      condition: "ANY ONE gate fails"
+      display: "Dashed H/L lines only, muted color, no box shading"
+      trend_direction: "UP if close_last > open_first, DOWN otherwise"
+
+  interaction_layer:
+    definition: |
+      Raw price events tracked per level after session window closes.
+      Four events per level — objective facts, no sweep interpretation.
+      These become inputs for the Liquidity Sweep primitive (L2).
+    events_per_level:
+      traded_above: "any bar.high > level — wick reached above"
+      traded_below: "any bar.low < level — wick reached below"
+      closed_above: "any bar.close > level — closed above"
+      closed_below: "any bar.close < level — closed below"
+    tracking: |
+      For each of: Asia_High, Asia_Low, PreSession_High, PreSession_Low
+      Record: occurred (bool) + first_time (bar reference)
+      Scan: from session window close to forex day end, 1m bars.
+    cto_note: |
+      The interaction events (traded_above, closed_above etc.) become
+      the inputs the Liquidity Sweep primitive will consume. This is
+      the clean handoff point between detection layer and strategy layer.
+      Sweep = traded_above + closed_below (for High) combined with
+      displacement confirmation — that's L2, not here.
+
+  box_objects:
+
+    ASIA_BOX:
+      window: "19:00-00:00 NY"
+      pseudocode: |
+        asia_bars = bars where time in [19:00 NY, 00:00 NY)
+        h = max(bar.high), l = min(bar.low), mid = (h + l) / 2
+        range = (h - l) / pip
+        eff = abs(bars[-1].close - bars[0].open) / (h - l)
+        mid_crosses = count close-crosses-mid transitions
+        balance = min(count(close > mid), count(close < mid)) / total
+        is_consol = range <= 30 AND eff <= 0.60 AND mid_crosses >= 2 AND balance >= 0.30
+      range_cap: 30
+      status: "PROPOSED — four-gate model, pending Olya visual recheck"
+
+    PRE_LONDON_BOX:
+      window: "00:00-02:00 NY"
+      range_cap: 15
+      note: "Same four-gate classification, tighter range for short window."
+      status: "PROPOSED"
+
+    PRE_NY_BOX:
+      window: "05:00-07:00 NY"
+      range_cap: 20
+      note: "Pre-NY captures London drift. 20 pip balances tight vs reasonable."
+      status: "PROPOSED"
+
+  output_object: |
+    All metrics emitted regardless of classification (Olya sees reasoning):
+      {type, forex_day, start_time, end_time, high, low, mid,
+       range_pips, efficiency, mid_cross_count, balance_score,
+       classification, trend_direction, interactions, line_end}
+
+  reference_levels:
+
+    LONDON_SESSION:
+      window: "02:00-05:00 NY (= LOKZ)"
+      role: "London H/L become NYOKZ sweep targets."
+      status: "DETERMINISTIC — no calibration needed"
+
+    NY_SESSION:
+      window: "07:00-10:00 NY (= NYOKZ)"
+      role: "NY H/L become afternoon reference levels."
+      status: "DETERMINISTIC — no calibration needed"
+
+    PREV_ASIA:
+      window: "Previous day 19:00-00:00 NY"
+      status: "DETERMINISTIC"
+
+    PREV_LONDON:
+      window: "Previous day 02:00-05:00 NY"
+      status: "DETERMINISTIC"
+
+    OVERNIGHT:
+      window: "NY close (16:30 NY) to London open (02:00 NY next day)"
+      status: "DETERMINISTIC"
+
+  calibration_data: |
+    Four-gate classification (range, ε, mid×, bal → result):
+    Jan 8:  Asia 22.4p ε=0.321 mid×=4  bal=0.485 CONSOL   | PreLon 14.7p ε=0.799 mid×=3  bal=0.432 TREND↑  | PreNY 16.4p ε=0.061 mid×=11 bal=0.292 TREND↑
+    Jan 9:  Asia 17.0p ε=0.378 mid×=6  bal=0.453 CONSOL   | PreLon  8.2p ε=0.718 mid×=5  bal=0.350 TREND↓  | PreNY 19.4p ε=0.654 mid×=5  bal=0.350 TREND↓
+    Jan 10: Asia 10.3p ε=0.049 mid×=18 bal=0.340 CONSOL   | PreLon 10.4p ε=0.721 mid×=9  bal=0.258 TREND↓  | PreNY 13.7p ε=0.084 mid×=11 bal=0.383 CONSOL
+    Jan 11: Asia 11.7p ε=0.298 mid×=30 bal=0.391 CONSOL   | PreLon 14.0p ε=0.584 mid×=1  bal=0.325 TREND↑  | PreNY 23.8p ε=0.618 mid×=1  bal=0.483 TREND↑
+    Jan 12: Asia 12.7p ε=0.531 mid×=9  bal=0.492 CONSOL   | PreLon  7.2p ε=0.069 mid×=10 bal=0.417 CONSOL  | PreNY 17.5p ε=0.742 mid×=1  bal=0.300 TREND↓
+
+  status: "PROPOSED — four-gate classification + interaction tracking, pending Olya visual recheck"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TIER 2: EQL/EQH — DEFERRED
+# Status: DEFERRED — superseded by Session Box model (2026-03-05)
+# Retained for reference. Not active in pipeline or tool display.
+# Revisit post-calibration if CTO wants LTF EQL/EQH outside session windows.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+EQUAL_HL:
+
+  architecture_note: |
+    Tier 2 refinement. NOT a standalone primitive.
+    Only operates within session context windows:
+      - Asia box (19:00-00:00 NY)
+      - Pre-London window (00:00-02:00 NY)
+      - Pre-NY window (05:00-07:00 NY)
+    Outside these windows: no EQL/EQH detection.
+    Session Liquidity Objects (Tier 1) are the primary map.
+
+  L1_detection:
+    definition: |
+      Two or more fractal pivots at approximately the same price
+      within a session window = internal stop pool. Independent
+      fractal detector (left=2, right=2), gated to session context.
+
+    pivot_detection:
+      method: "fractal pivot"
+      left: 2
+      right: 2
+      note: "Independent of main swing N. Dedicated EQL/EQH pivots."
+
+    session_gate: |
+      EQL/EQH detection only runs within these windows:
+        Asia box:       19:00-00:00 NY
+        Pre-London:     00:00-02:00 NY
+        Pre-NY:         05:00-07:00 NY
+      Pivots outside these windows are ignored.
+      Pairs must have BOTH touches within the same window.
+
+    pseudocode: |
+      for each session_window in [asia_box, pre_london, pre_ny]:
+          window_bars = bars where time in session_window
+          window_pivots = detect_fractal_pivots(window_bars, left=2, right=2)
+          atr_14 = ATR(window_bars, period=14)
+          tol = max(2.0 * PIP, 0.1 * atr_14)
+
+          for each pair (pivot_a, pivot_b) where type matches:
+              if abs(pivot_a.price - pivot_b.price) > tol:
+                  continue
+              if time_between(pivot_a, pivot_b) > max_time_proximity:
+                  continue
+
+              pullback = max_retrace_between(pivot_a, pivot_b, window_bars)
+              if pullback < max(pullback_floor * PIP, 0.2 * atr_14):
+                  continue
+
+              touches = count_touches_at_level(pivot_a.price, window_pivots, tol)
+
+              pool = LiquidityPool(
+                  type=EQH or EQL,
+                  timeframe=tf,
+                  role=INTERNAL_STOP_POOL,
+                  window=session_window.name,
+                  touches=touches,
+                  price_width=pip_diff,
+                  avg_price=avg,
+              )
+
+  L15_parameters:
+    tolerance:
+      default: "adaptive"
+      fixed_floor: 2.0  # pips — tighter than Tier 1 standalone (was 5.0)
+      atr_factor: 0.1
+      formula: "max(2.0 pip, 0.1 * ATR_14)"
+      status: "PROPOSED"
+
+    time_proximity:
+      per_tf:
+        1m: 60    # minutes
+        5m: 240   # minutes
+        15m: 720  # minutes
+      note: "Maximum time between touches within a session window."
+      status: "PROPOSED"
+
+    pullback:
+      pip_floor: 5  # pips — lower than standalone (was 10)
+      atr_factor: 0.2
+      formula: "max(5 pip, 0.2 * ATR_14)"
+      note: "Within-session pullback is naturally smaller."
+      status: "PROPOSED"
+
+    touch_count:
+      min_touches: 2
+      flag_preferred: 3
+      status: "PROPOSED"
+
+  L1_tags:
+    type: "EQH | EQL"
+    role: "INTERNAL_STOP_POOL"
+    window: "asia | pre_london | pre_ny"
+    touches: "int"
+    price_width: "float (pips)"
+    quality: "HIGH | MID | LOW — derived by advisor"
+
+  L2_usage:
+    role: |
+      EQL/EQH pools are stop-raid fuel for entries.
+      Tier 1 session levels are the primary targets.
+      Tier 2 pools refine WHERE within a session the stops cluster.
+    status: "NOTED — Olya to elaborate post-calibration"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TF_SCOPE — Two-Engine Architecture
+# Documented explicitly per CTO + advisor review 2026-03-05.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+TF_SCOPE:
+
+  architecture: |
+    Two separate engines, shared candle data:
+
+    SESSION ENGINE (LTF: M1 / M5 / M15):
+      Scope: Session liquidity boxes, four-gate classification
+      Objects: Asia Box, Pre-London Box, Pre-NY Box
+      Lifecycle: day-scoped, expires at forex day boundary
+      Sweep model: interaction tracking only (raw facts per level)
+      Sweep interpretation: deferred to Liquidity Sweep primitive (L2)
+
+    HTF ENGINE (H1 / H4 / D1 / W1 / MN):
+      Scope: Structural liquidity pools (EQH / EQL)
+      Objects: LiquidityPool (fractal-clustered)
+      Lifecycle: persist until traded_above/below (no expiry)
+      Sweep model: status UNTOUCHED → SWEPT directly
+
+  asymmetry_note: |
+    HTF uses SWEPT status directly — at structural level, traded_above/below
+    IS the definitive event. A weekly high from 3 months ago that gets traded
+    through is categorically swept.
+
+    Session engine uses interaction tracking only — session sweeps are more
+    nuanced and require displacement confirmation. The strategy layer (Liquidity
+    Sweep primitive) interprets session interactions as sweeps.
+
+    This asymmetry is intentional. Document in dependency chain:
+      HTF pool → traded_above/below → status: SWEPT (detection layer)
+      Session level → interaction events → Liquidity Sweep primitive (strategy layer)
+
+  htf_structural_types: |
+    EQH, EQL, Swing_High, Swing_Low, Previous_High, Previous_Low
+
+  status: "DOCUMENTED — architectural decision, not a parameter"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HTF LIQUIDITY MODEL — LOCKED (Olya confirmed 2026-03-05)
+# SwingPoint-sourced, invalidation-aware, tighter tolerance, Asia-filtered.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+HTF_LIQUIDITY_MODEL:
+
+  definition: |
+    Structural EQH/EQL pools derived EXCLUSIVELY from confirmed SwingPoint output.
+    NOT from raw candle extremes — a raw wick is not a swing.
+    Dependency chain: bars → SwingPoints (fractal left=2 right=2) → HTF EQH/EQL.
+
+    KEY PRINCIPLE: A pool becomes a valid liquidity object only when the second
+    touch confirms it. The first touch establishes the level; the second touch
+    proves the market respects it. In live operation, the pool enters Olya's
+    trading logic at second-touch confirmation time.
+
+    Display shows the level from first touch (origin) but the pool is not
+    actionable until the second touch.
+
+  detection_source: |
+    EQH pools built from confirmed SwingHigh points ONLY.
+    EQL pools built from confirmed SwingLow points ONLY.
+    A raw bar.high/bar.low is NOT a valid touch. Must be a confirmed
+    fractal pivot (left=2, right=2) first.
+
+  L1_detection:
+
+    swing_detection:
+      method: "fractal pivot, left=2, right=2"
+      rule: "Apply per TF natively (H1 bars for H1, D1 bars for D1)"
+
+    price_tolerance:
+      method: "fixed pip per TF — no ATR scaling on tolerance"
+      per_tf:
+        H1: 2 pip
+        H4: 3 pip
+        D1: 5 pip
+        W1: 10 pip
+        MN: 15 pip
+      rationale: |
+        Tighter fixed tolerance prevents a swing from being consumed
+        by a distant pool that then gets invalidated, losing the correct
+        pairing. The Wed 09:00 + Thu 10:00 EQL (1.9pip apart) was missed
+        by 4pip tolerance because the Wed swing got pulled into an earlier
+        pool 3.4pip away. 2pip fixed isolates it correctly.
+        Olya confirmed 2026-03-05: these values produce clean ICT-style levels.
+
+    separation_rules:
+      min_bars_between_touches:
+        H1: 6
+        H4: 3
+        D1: 2
+        W1: 2
+        MN: 2
+      rotation_required:
+        H1: "max(5 pip, 0.25 × ATR_H1)"
+        H4: "max(8 pip, 0.25 × ATR_H4)"
+        D1: "max(12 pip, 0.25 × ATR_D1)"
+        W1: "max(20 pip, 0.25 × ATR_W1)"
+        MN: "max(30 pip, 0.25 × ATR_MN)"
+      note: "ATR scaling retained on rotation only — regime-appropriate pullback."
+
+    max_lookback:
+      H1: 500
+      H4: 300
+      D1: 180
+      W1: 104
+      MN: 60
+
+    asia_range_filter: |
+      Swings inside the same Asia box (same forex_day, session=asia) must NOT
+      be compared with each other for EQH/EQL. Intra-Asia-box pivots are
+      session noise, not structural liquidity.
+      Asia swing vs external swing: ALLOWED.
+      External swing vs external swing: ALLOWED.
+
+    invalidation_during_formation: |
+      If price trades THROUGH the pool level between consecutive touches
+      (excluding touch bars), the pool is invalidated and never emits.
+        EQH invalidated: any bar.high > pool_price + tolerance
+        EQL invalidated: any bar.low  < pool_price - tolerance
+      Tolerance buffer prevents micro-noise within the equality zone from
+      triggering false invalidation. Price within tolerance of the level
+      is "at the level", not "through it".
+
+    clustering_sequence: |
+      For each new confirmed SwingPoint:
+        1. Find ALL candidate pools: same TF, same side, within tolerance
+        2. Sort candidates by distance (nearest first)
+        3. Try each candidate in order:
+           a. Check Asia filter (both in same Asia box → skip)
+           b. Check min_bars_between gate
+           c. Check rotation gate (pullback between touches)
+           d. Check invalidation (price through level between touches)
+              If invalidated → mark pool dead, try NEXT candidate
+           e. All gates pass → add touch, update price to median
+        4. If no candidate survives → start new pool
+      Critical: when a candidate is invalidated, the algorithm tries the
+      next candidate rather than immediately starting a new pool. This
+      prevents a dead pool from blocking a valid pairing.
+
+    merge_overlapping: |
+      Pools same TF/side within 1.5 × tolerance: merge.
+      merged_price = weighted median. merged_touches = sum.
+
+  emission:
+    min_touches: 2
+    preferred: "3+ (stronger signal)"
+
+  output_object: |
+    EqualPool:
+      type: EQH | EQL
+      tf: H1 | H4 | D1 | W1 | MN
+      price: float (median of touch prices)
+      touches: int
+      first_touch_time: datetime (level origin — display starts here)
+      last_touch_time: datetime (pool confirmed — actionable from here)
+      status: UNTOUCHED | TAKEN
+      taken_time: datetime | null
+      touch_prices: float[]
+      tags: [HTF_STRUCTURAL]
+
+  lifecycle: |
+    FORMATION: first touch establishes level, subsequent touches confirm pool.
+               Pool is actionable from second touch onward.
+               Invalidation during formation kills the pool — it never emits.
+    UNTOUCHED: pool formed correctly, price has not traded through after last touch.
+    TAKEN: price traded through the pool after full formation:
+           EQH: bar.high > pool_price after last touch
+           EQL: bar.low < pool_price after last touch
+    Pools do NOT expire. Valid until TAKEN.
+
+  calibration_data: |
+    Final results — Olya confirmed 2026-03-05 (Jan 7-12 2024 EURUSD):
+    H1: 120 bars, 34 swings → 3 pools (2 untouched, 1 taken)
+    H4:  31 bars,  9 swings → 1 pool  (1 untouched, 0 taken)
+
+    H1 EQL 2x @ 1.09322 UNTOUCHED (Wed 09:00 → Thu 10:00) — OLYA CONFIRMED
+    H1 EQH 2x @ 1.09870 UNTOUCHED (Thu 21:00 → Fri 10:00)
+    H1 EQL 2x @ 1.09494 TAKEN (Mon 13:00 → Mon 19:00, taken Tue 00:00)
+    H4 EQH 2x @ 1.09870 UNTOUCHED (Thu 20:00 → Fri 08:00)
+
+    Olya's visual check: "The ONLY EQL/EQH I see as a clear signal in this
+    dataset is the low on Wed 10 09:00 + Thu 11 10:00." System now finds
+    exactly this pool. Previous iterations produced 13 (v1) and 5 (v2) pools
+    including false positives. Final v3 produces 4 pools, 0 false positives.
+
+  display: |
+    htf.html — horizontal lines per pool, colour by TF:
+      H1: cyan | H4: orange | D1: yellow | W1: white | MN: purple
+    UNTOUCHED: vivid solid line | TAKEN: muted dashed line
+    Line renders from first_touch_time forward (level origin visible).
+    Pool is actionable from last_touch_time (second touch confirms).
+    Sidebar: pool cards with price, type, touches, status, touch times.
+    TF toggle checkboxes to show/hide each layer.
+
+  status: "LOCKED — Olya visually confirmed 2026-03-05. Produces exactly the pools she identifies."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: ASIA RANGE
+# Status: PENDING CALIBRATION (expected fast lock)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ASIA_RANGE:
+
+  L1_detection:
+    definition: |
+      High and low of the Asia session. Classification as
+      TIGHT or WIDE relative to threshold.
+
+    pseudocode: |
+      asia_bars = bars where time in [19:00 NY, 00:00 NY)
+      asia_high = max(bar.high for bar in asia_bars)
+      asia_low  = min(bar.low  for bar in asia_bars)
+      asia_range = (asia_high - asia_low) / pip_value
+      if asia_range < 10:
+          classification = TIGHT
+      elif asia_range <= 20:
+          classification = MID
+      else:
+          classification = WIDE
+
+    timeframe_note: |
+      1m bars correct here — capturing true session extremes.
+      Unlike FVG/Swing, Asia Range is a session-level measurement,
+      not a pattern across consecutive bars.
+
+  L15_parameters:
+    classification:
+      tight: "< 10 pip — low volatility, LOKZ setup quality HIGH"
+      mid: "10-20 pip — tradeable with caution"
+      wide: "> 20 pip — high volatility, skip LOKZ per v0.4 rule"
+      rationale: |
+        Three-tier replaces binary TIGHT/WIDE from v0.4.
+        Calibration data: Wed 10.3, Thu 12.0 = clearly TIGHT.
+        Mon 20.7, Fri 22.2 = clearly WIDE. Tue 17.7 = MID zone.
+        10 pip and 20 pip are the natural break points.
+      status: "PROPOSED — pending Olya confirmation"
+      provenance: "calibration_data_export asia_range classification_matrix 2026-03-05"
+    max_cap:
+      value: 30  # pips
+      note: "Olya confirmed in v0.3 — LOCKED. Beyond 30 pip = anomaly."
+    efficiency_filter:
+      value: 0.60
+      formula: "abs(close_end - open_start) / (asia_high - asia_low)"
+      note: |
+        Unified to 0.60 across all sessions (2026-03-05 advisor review).
+        Loosened from 0.45 because wick taps inflate net_move in choppy
+        sessions. Compensated by mid_cross_count and balance_score gates
+        added in SESSION_LIQUIDITY four-gate classifier.
+        Works orthogonally with TIGHT/MID/WIDE classification.
+      status: "PROPOSED — part of four-gate model, pending Olya recheck"
+    v04_value: 30  # was too restrictive — all 5 sample days classified TIGHT
+    calibration_data: |
+      Mon: 20.7 pip → WIDE
+      Tue: 17.7 pip → MID
+      Wed: 10.3 pip → TIGHT
+      Thu: 12.0 pip → MID (borderline tight)
+      Fri: 22.2 pip → WIDE
+
+  L1_tags:
+    classification: "TIGHT | MID | WIDE"
+    range_pips: "float"
+
+  L2_usage:
+    tight_session: |
+      Consolidation — clean LOKZ setup expected.
+      Liquidity pools (Asia H/L) become LOKZ sweep targets.
+    mid_session: |
+      Moderate range — LOKZ tradeable with caution.
+      Direction may be partially expressed. Watch for sweep confirmation.
+    wide_session: |
+      Direction already expressed — LOKZ may not produce clean sweep.
+      v0.4 rule: skip LOKZ if wide. Olya to confirm if still applies.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: DISPLACEMENT
+# Status: PENDING CALIBRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+DISPLACEMENT:
+
+  L1_detection:
+    definition: |
+      A 1-3 candle impulse sequence showing unusual directional conviction.
+      Single candle is the canonical form; 2-3 bar clusters capture
+      institutional moves that unfold across multiple bars.
+
+    single_bar_pseudocode: |
+      atr_14 = ATR(bars, period=14)
+      body = abs(bar.close - bar.open)
+      range = bar.high - bar.low
+      body_pct = body / range
+      atr_ratio = range / atr_14
+      direction = BULLISH if bar.close > bar.open else BEARISH
+
+    cluster_pseudocode: |
+      For span in [1, 2, 3]:
+        sequence = bars[i : i+span]
+        all bars must have same direction (all bullish or all bearish)
+        combined_range = max(highs) - min(lows)
+        combined_body  = abs(close[last] - open[first])
+        body_pct       = combined_body / combined_range
+        atr_ratio      = combined_range / atr_14
+      Pick best (largest) qualifying span.
+      Bars consumed by a cluster cannot start new displacements.
+      Tag: displacement_type = SINGLE | CLUSTER_2 | CLUSTER_3
+
+    close_location_gate: |
+      OPTIONAL third condition (toggleable in tool):
+      Final bar of sequence must close in the extreme 25% of its range.
+        Bullish: (high - close) / (high - low) <= 0.25 (close in top 25%)
+        Bearish: (close - low) / (high - low) <= 0.25 (close in bottom 25%)
+      Filters out bars with clean bodies but weak closing conviction.
+      For clusters: applied to the FINAL candle of the sequence.
+
+    quality_scoring: |
+      Every displacement event tagged with quality grade:
+        STRONG: atr_ratio >= 2.0
+        VALID:  atr_ratio >= 1.5 (and < 2.0)
+        WEAK:   atr_ratio >= 1.25 (and < 1.5)
+      Downstream consumers (MSS, OB) can filter by grade.
+      Chart display: colour-coded by grade.
+
+    fvg_cross_reference: |
+      ICT teaches: true displacement SHOULD create FVG.
+      Tag each displacement: created_fvg = bool
+      At proposed defaults + close gate: ~25% create FVG on 5m.
+
+  L15_parameters:
+
+    two_tier_thresholds: |
+      Clean two-tier model replaces per-TF table.
+
+      LTF (M1 / M5 / M15):           LOCKED — Olya confirmed 2026-03-05
+        atr_multiplier:  1.50
+        body_ratio:      0.60
+        close_gate:      0.25
+
+      HTF (H1 / H4 / D1 / W1 / MN):  PROPOSED — pending HTF visual session
+        atr_multiplier:  1.50
+        body_ratio:      0.65  (stricter — HTF bars carry more noise)
+        close_gate:      0.25
+        structure_close_required: true
+
+      structure_close_required (HTF only):
+        Displacement bar close must be BEYOND the most recent opposing
+        swing point in the direction of the move.
+          Bullish: bar.close > prior_swing_high.price
+          Bearish: bar.close < prior_swing_low.price
+        Uses SwingPoint output (LOCKED) as reference — not raw price.
+        Dependency: SwingPoints → HTF Displacement structure_close check.
+        If no qualifying swing within lookback: tag UNANCHORED,
+        do not suppress — let strategy layer decide.
+
+      LTF: structure_close_required: false
+        Close gate alone sufficient at LTF resolution.
+
+      Rejected alternative: close_gate 0.20 + ATR 1.6 considered, rejected —
+      close 0.20 too demanding for HTF aggregation, ATR 1.6 marginal gain
+      insufficient to justify added complexity. Clean > optimal.
+
+    heatmap_candidates:
+      atr_multipliers: [1.0, 1.25, 1.5, 2.0]
+      body_ratios: [0.55, 0.60, 0.65, 0.70]
+      note: "4x4 heatmap available for exploration around locked defaults."
+
+    combination_mode: AND
+    close_location_gate: "ON (canonical baseline, toggleable in tool)"
+
+  decisive_override_path: |
+    Secondary qualification for single candles that fail ATR gate but show
+    decisive price action. Stricter body/close requirements, no ATR needed.
+    Designed as narrow exception — 1-3% fire rate in production.
+
+    Requirements (ALL must pass):
+      displacement_type == SINGLE (clusters cannot use override)
+      body_ratio >= 0.75 (stricter than primary path)
+      close_location <= 0.10 (extreme close — top/bottom 10%)
+      range_pips >= pip_floor:
+        M1: 3.0  |  M5: 5.0  |  M15: 6.0
+        H1: 8.0  |  H4: 15.0  |  D1: 20.0
+
+    Design rationale:
+      Solves the expanded-ATR regime problem. A 6.7pip bar with 0.79 body
+      closing at the extreme IS displacement — but if ATR expanded to 6.35pip,
+      the ATR gate says "normal". The override path catches these with tighter
+      conviction requirements. The pip floor prevents noise in low-vol regimes.
+
+    Scope: LTF override LOCKED. HTF override pip floors (H1:8, H4:15, D1:20)
+    PROPOSED pending HTF visual session.
+
+    Logging: every event tagged qualification_path = ATR_RELATIVE | DECISIVE_OVERRIDE
+    Production monitoring: if override fires >10% something is wrong.
+
+  evaluation_order: |
+    1. check_cluster_2 (cluster_3 disabled)
+       Only takes precedence if cluster passes close gate.
+       If cluster fails close gate → bar falls through to single.
+    2. check_single_atr_relative (primary path)
+    3. check_single_decisive_override (secondary path)
+
+  cluster_restrictions: |
+    CLUSTER_3: DISABLED entirely.
+    CLUSTER_2: ALLOWED with ALL FOUR filters:
+      1. Net displacement efficiency >= 0.65
+      2. Internal overlap <= 0.35
+      3. Directional progression + same direction bodies
+      4. Close strength on final bar (per TF threshold)
+    Cluster only takes precedence if it passes close gate.
+    Otherwise bar i evaluated as single (may qualify via override).
+
+  calibration_workflow: |
+    Step 1: Validate single-candle at TF defaults + close gate ON (baseline)
+    Step 2: Check override events — should be 1-3% of total, not noise
+    Step 3: Toggle cluster_2 ON — assess if additional events add value
+    Step 4: Cluster_3 stays disabled until steps 1-3 locked
+
+  L1_tags:
+    session: "asia | lokz | nyokz | other"
+    created_fvg: "bool"
+    ny_window: "WinA (08-09) | WinB (10-11) | none"
+    atr_ratio: "float"
+    body_pct: "float"
+    displacement_type: "SINGLE | CLUSTER_2"
+    close_location_pass: "bool"
+    quality_grade: "STRONG (>=2.0x) | VALID (>=1.5x) | WEAK (>=1.25x)"
+    qualification_path: "ATR_RELATIVE | DECISIVE_OVERRIDE"
+    cluster_net_eff: "float (cluster_2 only)"
+    cluster_overlap: "float (cluster_2 only)"
+
+  calibration_data: |
+    At TF-scaled defaults, single candles + close gate + override (Jan 7-12 EURUSD):
+    M1:  2264 ATR + 13 OVR = 2277 total (1% override)
+    M5:   454 ATR +  6 OVR =  460 total (1% override)
+    M15:  143 ATR +  5 OVR =  148 total (3% override)
+    Override fire rate 1-3% — well within narrow exception target.
+    Key override capture: Jan 9 15m 05:30 bear (ATR=1.05x, body=0.79, close=0.02, 6.7pip).
+
+  deferred: |
+    CLUSTER_3: disabled, re-enable after single + cluster_2 validated.
+    OVERLAP REDUCTION: park for post-session. Conceptually valid, adds complexity.
+
+  calibration_principle: |
+    HIGHEST SIGNAL OVER EXHAUSTIVE DETECTION.
+    Some visually identifiable moves will be missed at locked thresholds.
+    This is accepted in exchange for a clean, low-noise signal stream.
+    Confluence-first model: quality of detected events > quantity.
+    A move that exists on 5m but not 15m is a 5m signal — the 15m
+    aggregation telling the truth about intra-bar rotation.
+
+  L2_usage:
+    placeholder: true
+    note: "Displacement is the quality gate for MSS and OB."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: MSS (Market Structure Shift)
+# Status: PENDING CALIBRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+MSS:
+
+  architecture_principle: |
+    MSS is a COMPOSITE primitive — it consumes locked outputs from
+    SwingPoints, Displacement, and FVG. It does not re-derive from raw candles.
+    BOS is NOT a separate detector — it's MSS with break_type = CONTINUATION.
+
+  L1_detection:
+    definition: |
+      Close beyond a prior swing point WITH displacement on the break bar.
+      Two conditions must be met simultaneously:
+        1. Swing break: bar.close beyond most recent opposing SwingPoint (close only, not wick)
+        2. Displacement: break bar qualifies via locked displacement detector
+
+    swing_break:
+      bullish: "bar.close > most_recent_swing_high.price"
+      bearish: "bar.close < most_recent_swing_low.price"
+      source: "SwingPoint output (LOCKED). All detected swings qualify — no strength gate."
+      close_only: "Wick touches do NOT trigger MSS. Close is required."
+
+    displacement_requirement:
+      inherits: "Displacement detector (LOCKED)"
+      paths: "ATR_RELATIVE or DECISIVE_OVERRIDE — both valid for MSS"
+      note: "MSS quality = displacement quality. No independent MSS threshold."
+
+    break_classification:
+      REVERSAL: "Break against prior trend. Internal tag only."
+      CONTINUATION: "Break with prior trend. Internal tag only."
+      bos_handling:
+        separate_primitive: false
+        separate_detector: false
+        user_visible_label: false
+      note: |
+        All structure breaks display as "MSS" to the user.
+        break_type (REVERSAL | CONTINUATION) retained as internal tag
+        in JSON output for data/research. Not shown on chart.
+        One detector, one visible label, two internal tags.
+
+    fvg_handling:
+      gate: false
+      tag: "fvg_created: true | false"
+      rationale: |
+        FVG creation tagged but NOT required. Some genuine structure shifts
+        occur on displacement bars that don't create an FVG (sub-floor gap,
+        prior wick coverage). FVG tag lets L2 filter if desired.
+        v0.4 "FVG created OR respected" was too loose. TAG ONLY is cleaner.
+
+  confirmation_window: |
+    MSS detection uses a break-first, confirm-with-displacement model.
+    1. Detect FIRST bar that CLOSES beyond the relevant swing (the break bar).
+    2. Open a 3-bar confirmation window from the break bar.
+    3. Search for displacement (same direction) on break bar or within window.
+       Also checks 1 bar back for clusters that straddle the break.
+    4. If displacement found: MSS CONFIRMED. Anchor = break bar.
+    5. If no displacement within window: break consumed, no MSS for this swing.
+    6. output.window_used = displacement bar - break bar (0=same bar, 1-3=confirmed later).
+
+    Design rationale:
+      Slow drift through a swing without displacement is NOT a structure shift.
+      A break that produces displacement within 3 bars IS a structure shift.
+      Prevents late-drift MSS (e.g. 6 bars of grinding then displacement).
+
+    confirmation_window_size: 3
+
+  anchor_rule: |
+    MSS anchors to the BREAK BAR (first close beyond swing), not the
+    displacement bar. The structure shifted when the close occurred;
+    displacement confirms the conviction.
+    For clusters straddling the break: anchor = break bar, displacement
+    may start 1 bar earlier (window_used = -1).
+
+  impulse_suppression: |
+    After MSS fires, detector enters SUPPRESSION state.
+    Bars within the confirming displacement cluster are excluded from
+    suppression pullback checks (prevents micro-resets within the cluster).
+
+    Reset conditions (any one exits suppression):
+      1. PULLBACK RESET: price retraces >= max(5pip, 0.25*ATR) from extreme
+      2. OPPOSITE DISPLACEMENT: displacement in opposite direction
+      3. NEW DAY: forex day boundary
+
+    Swing consumption: once a swing is broken (with or without displacement
+    confirmation), it is consumed and cannot trigger another MSS. Each swing
+    breaks once.
+
+  dependency_chain:
+    SwingPoints: "LOCKED → MSS swing reference (breakable levels)"
+    Displacement: "LOCKED → MSS displacement gate (break bar conviction)"
+    FVG: "LOCKED → MSS fvg_created tag (confluence signal)"
+    downstream: "MSS → feeds OTE anchor, OB detection"
+
+  output_object: |
+    MSS_Event:
+      direction:      BULLISH | BEARISH
+      break_type:     REVERSAL | CONTINUATION
+      broken_swing:   {type, price, time}
+      displacement:   {atr_multiple, body_ratio, quality_grade, path, displacement_type}
+      fvg_created:    true | false
+      timeframe:      M1 | M5 | M15 | H1 | H4 | D1
+      session:        asia | lokz | nyokz | other
+      forex_day:      string
+
+  display: |
+    swings.html "Show MSS" toggle (pipeline data):
+      All events: vivid marker (cyan bull / red bear), label "MSS"
+      FVG-tagged: star appended "MSS★"
+      visible_event_name: MSS (all breaks, no BOS label shown)
+
+  calibration_data: |
+    Jan 7-12 2024 EURUSD (after anchor fix + impulse suppression):
+    5m:  40 total (17 REV, 23 CONT, 22 FVG = 55%) — was 88 before fixes
+    15m: 17 total ( 8 REV,  9 CONT, 13 FVG = 76%) — was 26 before fixes
+    1m: 160 total (82 REV, 78 CONT, 87 FVG = 54%) — was 447 before fixes
+    Final (confirmation window + cluster break fix + suppression):
+    5m:  44 total (20 REV, 24 CONT, 35 FVG = 80%)  — per day: 4-13
+    15m: 20 total (10 REV, 10 CONT, 17 FVG = 85%)  — per day: 2-8
+    1m: 179 total (88 REV, 91 CONT, 129 FVG = 72%)
+    Window usage (5m): 50% same-bar, 32% cluster-straddle, 18% window 1-3 bars.
+    Drift MSS eliminated. Duplicate MSS in impulse legs eliminated.
+
+  two_tier_mss:
+
+    LTF (M1 / M5 / M15):                           LOCKED — Olya confirmed 2026-03-05
+      displacement_required: true
+      displacement_body_ratio: 0.60
+      confirmation_window_bars: 3
+      close_beyond_swing: "bar.close required (not wick)"
+      impulse_suppression: "pullback reset, opposite displacement, or new day"
+      cluster_support: "cluster_2 can straddle break bar (window_used = -1)"
+
+    HTF (H1 / H4 / D1 / W1 / MN):                  PROPOSED — pending HTF visual session
+      displacement_required: true
+      displacement_body_ratio: 0.65
+      confirmation_window_bars: 1
+      close_beyond_swing: "bar.close required (not wick)"
+      impulse_suppression: "stricter — same rules, tighter window"
+      structure_close_required: true
+      note: |
+        HTF MSS uses HTF displacement tier (body 0.65, structure_close).
+        Tighter 1-bar window reflects HTF bar significance — each bar is
+        hours/days of price action, drift across bars is more meaningful.
+
+  status: "LOCKED (LTF) — Olya confirmed 2026-03-05. HTF PROPOSED pending visual session."
+
+  L2_usage:
+    placeholder: true
+    note: "MSS feeds OTE anchor selection and is the primary structure shift signal."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: ORDER BLOCK (OB)
+# Status: LOCKED — architecture (CTO) + parameters (Olya) confirmed 2026-03-07
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ORDER_BLOCK:
+
+  L1_detection:
+    definition: |
+      The last opposing candle before a displacement move that causes MSS.
+      Zone defined by candle BODY only (execution zone).
+      Full candle OHLC retained for invalidation logic only.
+      Displacement alone is NOT sufficient — MSS required.
+
+    trigger:
+      rule: "displacement + MSS required — displacement alone insufficient"
+      pseudocode: |
+        if is_displacement(bars[i]) AND displacement_causes_mss(bars[i]):
+            ob_candle = find_ob_anchor(bars, i)
+            if ob_candle is not None:
+                emit ORDER_BLOCK(
+                    direction=displacement.direction,
+                    execution_zone=[ob_candle.open, ob_candle.close],
+                    full_candle_ohlc=[ob_candle.open, ob_candle.high,
+                                     ob_candle.low, ob_candle.close],
+                    displacement_grade=get_displacement_grade(bars[i]),
+                    mss_ref=mss_event
+                )
+      rationale: |
+        OB without MSS is an orphan zone with no structural context.
+        ICT teaches OB as the origin of a move that shifts structure.
+        Displacement alone produces ~100/day on 5m — too noisy.
+        Requiring MSS ties OB to structure shift = meaningful zone.
+
+    displacement_anchor:
+      primary: |
+        Last opposing candle before displacement_cluster_start.
+        For single-candle displacement: bars[i-1].
+        For cluster_2: first bar of cluster, then bars[cluster_start - 1].
+      fallback:
+        mode: ENABLED_CONDITIONAL
+        trigger: "Only activate if bars[i-1] is same-direction, neutral, or thin"
+        lookback_bars: 3
+        reject_if_none_found: true
+        rationale: |
+          Conditional prevents noise inflation — most OBs anchor to bars[i-1].
+          Fallback fires when preceding candle doesn't oppose OR fails thin filter.
+        status: "LOCKED — Olya confirmed 2026-03-07"
+
+    thin_candle_filter:
+      min_body_pct: 0.10
+      formula: "abs(candle.close - candle.open) / (candle.high - candle.low)"
+      on_reject: "continue backward scan — does NOT kill OB search"
+      zero_range: "if high == low → body_pct = 0 → always rejected"
+      rationale: |
+        A 0.2pip doji in consolidation (body/range ≈ 0.02) is not a meaningful
+        opposing candle. 10% body minimum ensures the candle had directional
+        conviction. Rejected candles fall through to backward scan — a valid
+        opposing candle within 3 bars can still anchor the OB.
+      provenance: "Olya forensic review 2026-03-07 (Mon 06:50 false positive)"
+      status: "LOCKED — Olya confirmed 2026-03-07"
+
+      pseudocode: |
+        def is_valid_ob_candle(candle, disp_direction):
+            is_opposing = (
+                (disp_direction == BEARISH and candle.close > candle.open) or
+                (disp_direction == BULLISH and candle.close < candle.open)
+            )
+            if not is_opposing:
+                return False
+            candle_range = candle.high - candle.low
+            if candle_range <= 0:
+                return False
+            body_pct = abs(candle.close - candle.open) / candle_range
+            return body_pct >= 0.10
+
+        def find_ob_anchor(bars, disp_start_idx):
+            preceding = bars[disp_start_idx - 1]
+            if is_valid_ob_candle(preceding, disp_direction):
+                return preceding  # primary — no scan needed
+            # Conditional fallback: scan back 3 bars
+            for j in range(disp_start_idx - 1, max(disp_start_idx - 4, -1), -1):
+                if is_valid_ob_candle(bars[j], disp_direction):
+                    return bars[j]
+            return None  # reject — no OB
+
+    zone_definition:
+      execution_zone:
+        type: BODY_ONLY
+        value: "[ob_candle.open, ob_candle.close]"
+        options: [body]
+        note: "Wick zone removed from execution. Body keeps primitive tight/clean."
+        status: "LOCKED — Olya confirmed 2026-03-07"
+      storage:
+        full_candle_ohlc: "[ob_candle.open, ob_candle.high, ob_candle.low, ob_candle.close]"
+        purpose: "Retained for invalidation logic only (close beyond full candle boundary)"
+        note: "NOT used for entry, mitigation, or display — invalidation reference only"
+
+    dependency: "[DISPLACEMENT, SWINGS, MSS]"
+
+  L1_state_machine:
+    states:
+      ACTIVE:       "OB zone exists, price has not entered execution zone"
+      MITIGATED:    "Price entered execution zone (body)"
+      INVALIDATED:  "OB structurally dead — close beyond candle or opposite MSS"
+      EXPIRED:      "Max age reached without mitigation or invalidation"
+
+    transitions:
+      ACTIVE → MITIGATED:
+        bullish_ob: "bar.low <= ob.execution_zone_high"
+        bearish_ob: "bar.high >= ob.execution_zone_low"
+        track: "deepest_penetration_pct"
+      ACTIVE → INVALIDATED:
+        price_invalidation:
+          bullish_ob: "bar.close < ob_candle.low (close beyond full candle)"
+          bearish_ob: "bar.close > ob_candle.high"
+          note: "Wick breach alone does NOT invalidate. Close required."
+        structural_invalidation: "Opposite MSS fires after OB creation"
+      ACTIVE → EXPIRED:
+        trigger: "max_age_bars reached without mitigation or invalidation"
+        role: "Secondary cleanup only — not the primary death mechanism"
+      MITIGATED → INVALIDATED:
+        same_rules: "price invalidation or structural invalidation"
+
+    priority_of_death: |
+      1. Price invalidation (close beyond full candle boundary)
+      2. Structural invalidation (opposite MSS fires)
+      3. Time expiry (max_age_bars — secondary cleanup only)
+
+    tracking: |
+      All state transitions logged with timestamp.
+      Bead carries: [state, state_change_time, state_history[],
+                     deepest_penetration_pct (if mitigated)]
+
+  L15_parameters:
+    expiration:
+      method: max_age_bars_by_timeframe
+      values:
+        1m:  10
+        5m:  10
+        15m: 10
+        1h:  15
+        4h:  20
+        1d:  20
+      role: "Secondary cleanup (EXPIRED state) — not primary death mechanism"
+      real_world_meaning:
+        5m_10bars:  "50 minutes"
+        15m_10bars: "2.5 hours"
+        1h_15bars:  "15 hours"
+        4h_20bars:  "~3.3 days"
+      rationale: |
+        TF-relative expiry respects HTF OB persistence.
+        LTF (1m/5m/15m): 10 bars — tight cleanup, matches ICT's
+        "five candles" guidance with conservative buffer.
+        HTF (1h+): longer expiry — structural OBs persist longer.
+      status: "LOCKED — Olya confirmed 2026-03-07"
+      provenance: "Olya + Advisor visual review session 2026-03-07"
+    zone_type:
+      value: "body"
+      options: [body]
+      rationale: |
+        Body only keeps primitive tight and clean.
+        Wick zone removed from execution entirely.
+        Full candle OHLC retained at L1 for invalidation logic only.
+      status: "LOCKED — Olya confirmed 2026-03-07"
+    fallback_scan:
+      mode: ENABLED_CONDITIONAL
+      trigger: "Only when bars[i-1] is same-direction, neutral, or fails thin filter"
+      lookback_bars: 3
+      reject_if_none_found: true
+      rationale: |
+        Conditional prevents noise inflation — most OBs anchor to bars[i-1].
+        Scan fires when preceding candle doesn't oppose OR fails thin filter.
+      status: "LOCKED — Olya confirmed 2026-03-07"
+    thin_candle_filter:
+      min_body_pct: 0.10
+      on_reject: "continue backward scan"
+      status: "LOCKED — Olya confirmed 2026-03-07"
+    min_displacement_grade:
+      inherits: "DISPLACEMENT L15 (ATR 1.5x, body 0.60, AND mode)"
+      note: "OB without quality displacement is not meaningful"
+      status: "LOCKED — inherits from displacement params"
+
+  L2_usage:
+    placeholder: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: LIQUIDITY SWEEP
+# Status: CLEAN REBUILD — Curated Pool Architecture
+# ═══════════════════════════════════════════════════════════════════════════════
+
+LIQUIDITY_SWEEP:
+
+  concept:
+    definition: |
+      Price breaches a known liquidity level and closes back inside
+      within a return window. Sweep = breach + rejection + close back.
+      Continuation = breach beyond 1.5x ATR (no return — separate classification).
+      These are distinct events. Do not conflate.
+    outcome_neutral: true
+    outcome_neutral_note: |
+      Reversal vs continuation classified at L2 via kill_zone + session_name
+      + qualified_sweep tags. Primitive detects the raid event only.
+
+  sweep_detection_scope:
+    design_principle: |
+      Sweep detection evaluates only pre-qualified main liquidity pools.
+      The system does NOT evaluate sweeps against every historical swing
+      or micro pivot. Only curated liquidity destinations are eligible.
+      With ~15-20 active levels per day, candle logic stays simple:
+      breach + close inside + reclaim distance. Everything else is
+      downstream interpretation at L2.
+
+  L1_detection:
+    bearish_sweep:
+      trigger: "bar.high > level.price (buy-side liquidity taken)"
+      confirm: "bar.close < level.price (same-bar reclaim)"
+      rejection_wick: "bar.high - max(bar.open, bar.close)"
+      rejection_wick_pct: "rejection_wick / (bar.high - bar.low) >= 0.40"
+      note: "Rejection wick filter applied to same-bar sweeps only"
+
+    bullish_sweep:
+      trigger: "bar.low < level.price (sell-side liquidity taken)"
+      confirm: "bar.close > level.price (same-bar reclaim)"
+      rejection_wick: "min(bar.open, bar.close) - bar.low"
+      rejection_wick_pct: "rejection_wick / (bar.high - bar.low) >= 0.40"
+
+    continuation:
+      trigger: "breach_size > 1.5 x ATR(14)"
+      classification: "Separate from sweep — no return expected"
+      dedup: "One continuation per level per direction (first breach only)"
+
+    pseudocode: |
+      for each bar in bars:
+          for each level in curated_pool:
+              if bar.time < level.valid_from_time: skip  # temporal gate
+              if level.state == SWEPT: skip              # consumed
+              # BEARISH SWEEP
+              if bar.high > level.price:
+                  breach = bar.high - level.price
+                  if breach < min_breach(tf): continue
+                  if breach > 1.5 * ATR14: emit CONTINUATION; continue
+                  if bar.close < level.price:
+                      reclaim = level.price - bar.close
+                      if reclaim < min_reclaim(tf): continue
+                      rej_pct = (bar.high - max(bar.open, bar.close)) / range
+                      if rej_pct < 0.40: continue
+                      emit SWEEP(direction=BEARISH)
+                      mark level SWEPT
+              # Mirror for BULLISH SWEEP
+
+    level_sources:
+      curated_pool:
+        PDH_PDL: "Locked reference levels (17:00 NY boundary)"
+        ASIA_H_L: "Asia session box boundaries (valid after 00:00 NY)"
+        LONDON_H_L: "LOKZ session box boundaries (valid after 05:00 NY)"
+        LTF_BOX: "Session/pre-session box H/L (valid after box.end_time)"
+        HTF_EQH: "From HTF_LIQUIDITY_MODEL (LOCKED) — structural H1/H4 equal highs"
+        HTF_EQL: "From HTF_LIQUIDITY_MODEL (LOCKED) — structural H1/H4 equal lows"
+        PWH: "Previous week high (valid from Monday 17:00 NY)"
+        PWL: "Previous week low (valid from Monday 17:00 NY)"
+        PROMOTED_SWING: |
+          Swing points promoted into main pool via concrete gate:
+            strength >= 10 AND height_pips >= 10.0 AND current forex day only.
+          Strength 10 = vivid grade in taxonomy — swings Olya can SEE.
+          Current-day-only prevents stale swings generating false sweep events.
+      excluded:
+        raw_previous_swings: "Low-strength fractals create excessive noise"
+        low_strength_fractals: "Micro-pivots not liquidity destinations"
+        EQUAL_HL: "DEFERRED — raw LTF equal HL not finalized"
+        LOKZ: "Timing context only — NOT a price level"
+        NYOKZ: "Timing context only — NOT a price level"
+        PRE_SESSION: "Not included — minor levels, noise sources"
+      future_phase:
+        PMH: "Previous month high — deferred until monthly data available"
+        PML: "Previous month low — deferred"
+
+    level_management:
+      temporal_gating: "bar.time >= level.valid_from_time required before testing"
+      level_consumption: "First sweep marks level SWEPT — liquidity is spent"
+      level_merging: "Nearby levels within 1.0 pip tolerance merged into single pool"
+      deduplication: "Levels grouped by (source, side, price±0.1pip)"
+
+    provenance_fields: |
+      Every sweep carries: source_level_type, source_level_id,
+      timeframe_class (LTF|HTF), session_name, kill_zone,
+      sources_merged (list), touch_count
+    dependency: "[SESSION_LIQUIDITY, REFERENCE_LEVELS, HTF_LIQUIDITY_MODEL, SESSION_BOXES, SWING_POINTS]"
+    source_architecture_status: "LOCKED — 2026-03-07 (clean rebuild)"
+
+  L15_parameters:
+    return_window:
+      default: 1
+      status: "LOCKED"
+      note: |
+        Same-bar consensus across all reviewed production implementations.
+        Multi-bar return available as calibration toggle for analysis only.
+        Multi-bar classified as DELAYED_SWEEP at bar+1 (see delayed_sweep below).
+    directional_close:
+      status: "REMOVED"
+      rationale: |
+        Phase 2 forensic (Jan 9 15m) proved directional close rejects genuine sweeps.
+        Events 1 and 3 had strong rejection wicks but micro-opposite closes.
+        Reclaim distance is the meaningful filter — directional close is redundant.
+        Removed from pipeline code after forensic evidence.
+    min_reclaim_distance:
+      by_timeframe:
+        "5m": 0.5
+        "15m": 1.0
+      note: "Pips — close must reclaim beyond level to confirm rejection"
+      status: "LOCKED"
+    min_breach:
+      by_timeframe:
+        "5m": 0.5
+        "15m": 1.0
+      note: "Pips — TF-specific floor. Below this = spread noise."
+      status: "LOCKED"
+    rejection_wick_pct:
+      default: 0.40
+      note: "Applied to same-bar sweeps only. 40% = strong rejection."
+      status: "LOCKED"
+    max_sweep_size:
+      default: "1.5 x ATR(14)"
+      note: "Beyond 1.5x ATR = continuation classification, not sweep."
+      status: "LOCKED"
+    promoted_swing_gate:
+      strength_min: 10
+      height_pips_min: 10.0
+      scope: "current forex day only"
+      staleness: "20 bars on native TF"
+      note: |
+        strength >= 10 = vivid grade. These are swings Olya can see on the chart.
+        Height >= 10 pip ensures structural significance.
+        Current-day-only prevents stale swings generating false sweep events.
+      status: "LOCKED"
+
+  qualified_sweep:
+    definition: "Base sweep with displacement context confirmed"
+    requires:
+      - "base_sweep confirmed"
+      - "displacement_before OR displacement_after within window"
+    displacement_before:
+      lookback_bars: 10
+      direction: "into swept level (bearish disp before bullish sweep)"
+      model: "reversal"
+    displacement_after:
+      forward_bars: 5
+      direction: "away from swept level (bullish disp after bullish sweep)"
+      model: "continuation"
+    output_field: "qualified_sweep (bool on every sweep event)"
+    note: |
+      Base sweep events retained regardless. qualified_sweep=true is
+      the strategy layer consumption signal. Tag, not filter.
+    consumes: "DISPLACEMENT (locked LTF)"
+    status: "LOCKED"
+
+  delayed_sweep:
+    definition: |
+      Breach bar does not close back inside same bar. Next bar (bar+1)
+      closes back inside with reclaim >= min_reclaim.
+      Rejection wick on breach OR return bar >= 0.30.
+    reclaim_timing_rules:
+      allowed: ["same_bar_reclaim", "bar_plus_1_reclaim"]
+      excluded: ["bar_plus_2_or_later"]
+    min_delayed_wick: 0.30
+    level_consumption: "Delayed sweep marks level SWEPT (same rule as base)"
+    display: "Hollow markers, -D suffix label. Toggle available."
+    note: |
+      Separate detection pass. Fires only where same-bar sweep did NOT fire.
+      Available for L2 strategy analysis. Olya decides at L2 whether
+      delayed sweeps are tradeable. bar+2 or later = MSS/displacement territory.
+    status: "LOCKED"
+
+  event_consolidation:
+    rule: |
+      If multiple liquidity pools swept on same candle/direction,
+      record single sweep event with multi-source labels.
+    collapse_same_event_sweeps: true
+    combine_liquidity_labels: true
+
+  calibration_data: |
+    Curated pool rebuild (2026-03-07):
+      5m  1-bar: 14 base (11 qualified), 15 delayed, 10 cont
+        Sources: ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1
+      15m 1-bar: 11 base (10 qualified), 15 delayed, 14 cont
+        Sources: ASIA_H_L:2, LTF_BOX:6, PDH_PDL:1, PROMOTED_SWING:2
+    Pre-rebuild reference (threshold-gated):
+      5m 1-bar: 102 base (60 qualified, 14 delayed)
+      15m 1-bar: 24 base (13 qualified, 3 delayed)
+    Reduction: 5m 102→14 (86%), 15m 24→11 (54%)
+    Forensic events (Jan 9 15m): Event 1 fires, Event 3 fires, Event 2 still
+    3-bar return (beyond bar+1 cap — confirmed architectural boundary).
+
+  L2_usage:
+    placeholder: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIMITIVE: OTE (Optimal Trade Entry)
+# Status: PENDING CALIBRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+OTE:
+
+  L1_detection:
+    definition: |
+      Fibonacci retracement zone of a dealing range or expansion.
+      Not a pattern — a zone calculation.
+      The hard problem is anchor swing selection: which swing defines
+      the range? Solved by tying to MSS — MSS resets the dealing range.
+
+    anchor_selection:
+      rule: "Most recent MSS defines the anchor swing"
+      bullish: |
+        Draw from most recent MSS swing low (the broken level)
+        to the subsequent high (post-MSS expansion high).
+        OTE zone = 61.8%-79% retracement of that range.
+      bearish: |
+        Draw from most recent MSS swing high (the broken level)
+        to the subsequent low (post-MSS expansion low).
+        OTE zone = 61.8%-79% retracement of that range.
+      rationale: |
+        ICT canonical — MSS resets the dealing range, OTE measured
+        from that reset. Without an anchor rule, multiple simultaneous
+        OTE zones exist and the detector is useless.
+        Source: innercircletrader.net/tutorials/ict-optimal-trade-entry-ote-pattern/
+      dependency: "[MSS]"
+      status: "PROPOSED — pending Olya confirmation"
+      provenance: "Research Pack §3.9, ICT primary source 2026-03-05"
+
+    pseudocode: |
+      # After MSS confirmed, identify the dealing range
+      if mss.direction == BULLISH:
+          range_low  = mss.broken_swing.price    # the swing low that was broken
+          range_high = post_mss_expansion_high    # highest high after MSS
+      elif mss.direction == BEARISH:
+          range_high = mss.broken_swing.price     # the swing high that was broken
+          range_low  = post_mss_expansion_low     # lowest low after MSS
+
+      range_size = abs(range_high - range_low)
+
+      # Bullish OTE: measure retracement DOWN from expansion high
+      ote_top = range_high - range_size * (1 - fib_upper)   # 0.79 level
+      ote_sweet = range_high - range_size * (1 - fib_sweet)  # 0.705 level
+      ote_bot = range_high - range_size * (1 - fib_lower)   # 0.618 level
+
+      price_in_ote = ote_bot <= current_price <= ote_top
+
+    kill_zone_gate: |
+      OTE entry only valid during active kill zones:
+        LOKZ:  02:00-05:00 NY
+        NYOKZ: 07:00-10:00 NY
+      Outside these windows the OTE zone still EXISTS (computed),
+      but no entry signal is generated. The zone is displayed on
+      chart for awareness but is not actionable.
+      Rationale: OTE at 14:00 NY is not how Olya trades — timing
+      is part of the setup, not optional. ICT teaches OTE within
+      kill zone context, not as an all-hours signal.
+      status: "PROPOSED — Olya to confirm window boundaries"
+      provenance: "Research Pack §3.9 L389 + CTO analysis 2026-03-05"
+
+  L15_parameters:
+    fib_levels:
+      lower: 0.618
+      sweet_spot: 0.705
+      upper: 0.79
+      note: |
+        ICT canonical levels. 70.5% ("the sweet spot") is unique to ICT —
+        not found in standard Fibonacci theory. Research Pack §3.9 L370, L381.
+        GrandAlgo + TradingFinder implementations use this level.
+    note: "Standard ICT values. LOCKED — unlikely to change in calibration."
+    status: "LOCKED (fib levels) + PROPOSED (anchor selection + kill zone gate)"
+
+  L2_usage:
+    # PENDING OLYA SESSION
+    placeholder: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REFERENCE LEVELS — not primitives, but L1 computations
+# ═══════════════════════════════════════════════════════════════════════════════
+
+REFERENCE_LEVELS:
+
+  PDH_PDL:
+    pseudocode: |
+      prev_day_bars = bars where forex_day == previous_day
+      pdh = max(bar.high for bar in prev_day_bars)
+      pdl = min(bar.low  for bar in prev_day_bars)
+    boundary: "17:00 NY forex day"
+    measurement: "Wicks (not closes) — liquidity sits at extremes"
+    utc_handling: |
+      17:00 NY boundary shifts with DST:
+        US Winter (Nov-Mar): 17:00 EST = 22:00 UTC
+        US Summer (Mar-Nov): 17:00 EDT = 21:00 UTC
+      Calibration dataset (Jan 7-12 2024): US winter time throughout.
+      All forex day boundaries at 22:00 UTC. No DST transition in sample.
+      Source data (Dukascopy) stored in UTC — pipeline converts via
+      America/New_York timezone, not fixed offset.
+      WARNING: During US/EU DST mismatch weeks (2-3 weeks in Mar/Oct),
+      London session shifts by 1 hour in NY terms. LOKZ timing affected.
+      This does NOT affect PDH/PDL (17:00 NY is always 17:00 NY),
+      but does affect session boundary tagging.
+    status: "CONFIRMED correct — Phase 1 research + UTC note added 2026-03-05"
+
+  MIDNIGHT_OPEN:
+    pseudocode: "mo = bar.open where time == 00:00 NY"
+    status: "CONFIRMED correct — Phase 1 research"
+
+  EQUILIBRIUM:
+    pseudocode: "eq = (range_high + range_low) / 2"
+    status: "CONFIRMED correct"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NY REVERSAL WINDOWS — session-level observation, not primitive
+# Status: PENDING CALIBRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+NY_WINDOWS:
+
+  observation: |
+    Two distinct time windows show different behaviour:
+    Window A (08:00-09:00 NY): Reversal energy — more FVGs, displacement, swing formation
+    Window B (10:00-11:00 NY): Continuation energy — lower event count, directional
+    These are NOT interchangeable — different phenomena.
+
+  window_a:
+    time: "08:00-09:00 NY"
+    character: "Reversal energy — higher event density"
+    note: |
+      Aligns with LOKZ → NY transition. Most MSS events occur here.
+      Calibration data: FVG and displacement counts peak in Window A.
+      This is where Olya's reversal setups (sweep → MSS → OTE) fire.
+
+  window_b:
+    time: "10:00-11:00 NY"
+    character: "Continuation energy — directional, lower event count"
+    note: |
+      ICT Silver Bullet window. Direction already established by Window A.
+      Entries here ride existing momentum rather than catching reversals.
+
+  proposed_default: |
+    Window A primary — reversal aligns with LOKZ → NY transition.
+    Window B secondary for continuation entries after A establishes direction.
+    Both windows tagged on displacement and FVG events via ny_window tag.
+
+  olya_question: |
+    Do you trade Window A (reversal), Window B (continuation),
+    or both for different setup types?
+    This is a PREFERENCE, not a parameter sweep.
+    The calibration tool tags events by window — Olya reviews the
+    chart and states which window(s) she enters in.
+
+  status: "PENDING OLYA PREFERENCE — not a parameter sweep"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STRATEGY LAYER (L2) — SKELETON
+# Deliberately thin. Lives in Olya's head. Noted here for system awareness.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+STRATEGY_SKELETON:
+
+  top_down_flow:
+    direction_bias: "Weekly → Daily → 4H → 1H"
+    target_selection: "1H, 4H FVGs and liquidity levels"
+    execution: "5m, 15m primitives for entry"
+    status: "DEFERRED until L1 primitives calibrated"
+
+  five_factor_checklist:
+    note: "v0.4 defined 5 factors. Retained as L2 framework."
+    factors:
+      1: "Liquidity swept"
+      2: "PDA engaged (OB, FVG in correct zone)"
+      3: "MSS confirmed (displacement + FVG)"
+      4: "OTE zone reached"
+      5: "LTF PDA available for precise entry"
+    rule: "All 5 or skip. Binary."
+    status: "RETAINED from v0.4 — Olya to re-validate after L1 calibration"
+
+  entry_types:
+    fvg_retrace: "Retrace into FVG zone"
+    ob_entry: "Retrace to OB body/MT"
+    sweep_into_pda: "Sweep drives price into PDA"
+    status: "RETAINED from v0.4 — pseudocode deferred to L2 build phase"
+
+  risk_management:
+    position_size: "1% per trade (system handles calculation)"
+    stop_loss: "By swings, not pips"
+    session_rule: "No new entries after NYOKZ. Overnight holds OK if structure intact."
+    status: "RETAINED from v0.4 — unchanged"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REMOVED / DEPRECATED FROM v0.4
+# ═══════════════════════════════════════════════════════════════════════════════
+
+REMOVED:
+  VI:
+    reason: "IBKR data feed workaround, not a real ICT primitive. Wrong definition (v0.4 = 3-candle body-to-body, ICT = 2-candle). 765/day flooding. No production usage found. Removed entirely — not retained as FVG attribute."
+    decision: "Olya confirmed removal 2026-03-04. No vi_confluent tag."
+  CBDR:
+    reason: "Removed in v0.3. Not used by Olya."
+  SMT:
+    reason: "Removed in v0.3. Not used by Olya currently."
+  MMXM_as_primitive:
+    reason: "Phase 1 research: retrospective meta-pattern. Real-time phase classification not possible. Retained as L2 narrative frame only."
+  time_stop:
+    reason: "Removed in v0.3. Not used."
+  structure_break_exit:
+    reason: "Removed in v0.3. Not used."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CALIBRATION TRACKER
+# Updated after each Olya session. Shows what's locked vs pending.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+calibration_status:
+  FVG:
+    L1: LOCKED     # detection algorithm confirmed
+    L15: LOCKED    # floor = 0.5 pip, confluence-first model
+    L2: PARTIAL    # entry/invalidation noted, HTF flow deferred
+    session_date: "2026-03-04"
+  IFVG:
+    L1: LOCKED     # state transition defined
+    L15: INHERITED # from FVG
+    L2: NOTED      # confluence factor confirmed
+    session_date: "2026-03-04"
+  BPR:
+    L1: LOCKED     # intersection algorithm defined
+    L15: TBD
+    L2: NOTED      # target + reversal confirmed
+    session_date: "2026-03-04"
+  SWING_POINTS:
+    L1: LOCKED     # algorithm + per-TF N confirmed (1m:5, 5m:3, 15m:2)
+    L15: LOCKED    # height (1m:0.5, 5m:3.0, 15m:3.0), strength=tag only
+    L2: PENDING
+    session_date: "2026-03-05 — Olya confirmed all parameters"
+  SESSION_LIQUIDITY:
+    L1: PROPOSED   # four-gate classification + interaction tracking
+    L15: PROPOSED  # ε≤0.60, mid×≥2, bal≥0.30, range per-session. Sweep detection OUT OF SCOPE.
+    L2: PENDING
+    session_date: "2026-03-05 (four-gate model + interaction layer, advisor review)"
+  EQUAL_HL:
+    L1: DEFERRED   # raw candle/swing LTF equal HL — not finalized
+    L15: DEFERRED  # not active in pipeline — superseded by LTF_LIQUIDITY_BOX_MODEL
+    L2: DEFERRED
+    consume_in_sweep_pipeline: false
+    session_date: "2026-03-07 (DEFERRED — confirmed, not superseded by sweep session)"
+  ASIA_RANGE:
+    L1: LOCKED     # session H/L computation confirmed, three-tier pseudocode
+    L15: PROPOSED  # TIGHT <10, MID 10-20, WIDE >20 — pending Olya
+    L2: PENDING
+    session_date: "2026-03-05 (proposed from calibration data)"
+  DISPLACEMENT:
+    L1: LOCKED     # 1-2 bar impulse + close gate + override path + quality grades
+    L15: LOCKED    # two-tier: LTF 1.5x/0.60 LOCKED, HTF 1.5x/0.65 PROPOSED
+    L2: PENDING
+    session_date: "2026-03-05 — FULLY LOCKED (LTF). HTF PROPOSED pending visual session."
+  MSS:
+    L1: LOCKED     # confirmation window + cluster break + impulse suppression + swing consumption
+    L15: LOCKED    # LTF: window=3, body=0.60 | HTF: window=1, body=0.65 (PROPOSED)
+    L2: PENDING
+    session_date: "2026-03-05 — LOCKED (LTF). Olya confirmed after forensic sweep."
+  ORDER_BLOCK:
+    L1: LOCKED     # trigger=displacement+MSS, conditional fallback, body-only zone, state machine
+    L15: LOCKED    # expiry=TF-relative (LTF:10, HTF:15-20), zone=body, fallback=conditional
+    L2: PENDING
+    session_date: "2026-03-07 — LOCKED. Olya + Advisor confirmed all params."
+  LIQUIDITY_SWEEP:
+    L1: LOCKED       # curated pool arch, breach+reclaim+wick, no directional close
+    L15: LOCKED      # promoted swing gate, TF-specific floors, qualified_sweep, delayed_sweep
+    L2: PENDING
+    source_architecture: LOCKED
+    session_date: "2026-03-07 (CLEAN REBUILD — curated pool architecture)"
+  PREVIOUS_WEEK_HIGH_LOW:
+    status: ACTIVE
+    consume_in_sweep_pipeline: true
+    note: "PWH/PWL as HTF sweepable level. 5-day calibration dataset = 1 week only."
+    session_date: "2026-03-07"
+  PREVIOUS_MONTH_HIGH_LOW:
+    status: FUTURE_PHASE
+    consume_in_sweep_pipeline: false
+    note: "Deferred. Add when sufficient monthly history available."
+    session_date: "2026-03-07"
+  OTE:
+    L1: PROPOSED   # anchor swing selection rule added (MSS-based)
+    L15: LOCKED    # 0.618 / 0.705 / 0.79 (70.5% sweet spot added)
+    L2: PENDING
+    session_date: "2026-03-05 (anchor rule + 70.5% from Research Pack)"
+  NY_WINDOWS:
+    L1: N/A        # observation, not detection algorithm
+    L15: N/A       # preference, not parameter sweep
+    L2: PENDING    # Olya preference: Window A, B, or both
+    session_date: "2026-03-05 (documented, pending Olya preference)"
+  HTF_LIQUIDITY_MODEL:
+    L1: LOCKED     # SwingPoint-sourced, invalidation-aware, candidate fallback
+    L15: LOCKED    # H1:2pip H4:3pip fixed tolerance, Asia filter, buffered invalidation
+    L2: BUILT      # htf.html display with TF toggles, pool cards, first-touch rendering
+    session_date: "2026-03-05 — LOCKED. Olya confirmed: produces exactly the pools she identifies."
+  TF_SCOPE:
+    status: DOCUMENTED  # two-engine architecture, asymmetry note
+    session_date: "2026-03-05"
+  REFERENCE_LEVELS:
+    L1: LOCKED     # PDH/PDL, MO, EQ all confirmed
+    L15: N/A
+    L2: N/A
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END v0.5
+# ═══════════════════════════════════════════════════════════════════════════════

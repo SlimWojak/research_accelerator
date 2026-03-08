@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTF Liquidity Pools — EURUSD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e17; --surface: #131722; --surface2: #1e222d; --surface3: #252932;
+    --border: #2a2e39; --border2: #363b4a;
+    --text: #d1d4dc; --text-muted: #787b86; --text-dim: #4e5263;
+    --teal: #26a69a; --red: #ef5350; --blue: #2962ff; --yellow: #f7c548; --purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'IBM Plex Mono', monospace;
+    --radius: 4px;
+  }
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased; overflow:hidden; }
+  .app { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 16px; height:44px; display:flex; align-items:center; gap:16px; flex-shrink:0; z-index:10; }
+  .header-title { font-size:15px; font-weight:600; white-space:nowrap; }
+  .header-title span { color:var(--teal); }
+  .tf-group { display:flex; gap:2px; align-items:center; margin-left:auto; }
+  .tf-label { font-size:11px; color:var(--text-dim); margin-right:4px; }
+  .tf-btn { background:none; border:1px solid transparent; color:var(--text-muted); font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:var(--radius); cursor:pointer; transition:all 0.14s; line-height:1; }
+  .tf-btn:hover { color:var(--text); border-color:var(--border2); }
+  .tf-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+
+  .main { display:flex; flex:1; min-height:0; overflow:hidden; }
+
+  .sidebar { width:250px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; display:flex; flex-direction:column; }
+  .sb-section { padding:12px 14px; border-bottom:1px solid var(--border); }
+  .sb-label { font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:9px; }
+
+  .pool-card { background:var(--bg); border-radius:var(--radius); padding:7px 10px; margin-bottom:5px; border-left:3px solid; }
+  .pool-card-row { display:flex; justify-content:space-between; align-items:center; }
+  .pool-card-type { font-family:var(--mono); font-size:12px; font-weight:600; }
+  .pool-card-badge { font-family:var(--mono); font-size:9px; padding:1px 6px; border-radius:3px; font-weight:600; }
+  .pool-card-badge.untouched { background:rgba(38,166,154,0.15); color:var(--teal); }
+  .pool-card-badge.taken { background:rgba(239,83,80,0.08); color:var(--text-dim); }
+  .pool-card-detail { font-size:10px; color:var(--text-dim); font-family:var(--mono); margin-top:3px; line-height:1.6; }
+
+  .toggle-row { display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; font-size:11px; }
+  .toggle-row input { accent-color:var(--teal); }
+  .toggle-swatch { width:14px; height:3px; border-radius:1px; }
+
+  .chart-area { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+  .day-tabs { height:40px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:stretch; padding:0 12px; flex-shrink:0; }
+  .day-tab { background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted); font-family:var(--font); font-size:12px; font-weight:500; padding:0 12px; cursor:pointer; transition:all 0.14s; white-space:nowrap; }
+  .day-tab:hover { color:var(--text); }
+  .day-tab.active { color:var(--text); border-bottom-color:var(--blue); }
+  .chart-wrap { flex:1; min-height:0; position:relative; }
+  .loading { position:absolute; inset:0; background:rgba(10,14,23,0.82); display:flex; align-items:center; justify-content:center; z-index:50; font-size:12px; color:var(--text-muted); pointer-events:none; }
+
+  footer { height:28px; background:var(--surface); border-top:1px solid var(--border); padding:0 16px; font-size:10px; color:var(--text-dim); display:flex; align-items:center; gap:16px; flex-shrink:0; }
+
+  .callout { background:rgba(247,197,72,0.06); border:1px solid rgba(247,197,72,0.2); border-left:3px solid var(--yellow); border-radius:var(--radius); padding:9px 11px; font-size:11px; line-height:1.6; color:#baa54e; }
+  .callout strong { display:block; font-size:9px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--yellow); margin-bottom:5px; }
+
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+<nav style="background:#131722;border-bottom:1px solid #2a2e39;padding:6px 16px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;flex-shrink:0;z-index:100;">
+  <a href="index.html" style="color:#787b86;text-decoration:none;font-weight:600;margin-right:8px;">← Index</a><span style="color:#2a2e39;">|</span>
+  <a href="fvg.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">FVG</a>
+  <a href="swings.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Swings</a>
+  <a href="htf.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">HTF</a>
+  <a href="asia.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Asia</a>
+  <a href="displacement.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Displacement</a>
+  <a href="ny-windows.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">NY Windows</a>
+  <a href="ob-staleness.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">OB Staleness</a>
+</nav>
+<div class="app">
+  <header class="header">
+    <div class="header-title">HTF Liquidity <span>Pools</span> · EURUSD</div>
+    <div class="tf-group">
+      <span class="tf-label">Candles:</span>
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn active" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+    </div>
+  </header>
+  <div class="main">
+    <aside class="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">HTF Layers</div>
+        <div id="tf-toggles"></div>
+      </div>
+      <div class="sb-section" id="pool-cards-section">
+        <div class="sb-label" id="pool-cards-label">Pools</div>
+        <div id="pool-cards"></div>
+      </div>
+      <div class="sb-section">
+        <div class="callout">
+          <strong>HTF Structural Liquidity</strong>
+          Fractal-clustered equal highs/lows on H1–MN. Lines persist until price trades through them. Vivid = untouched. Dashed muted = swept.
+        </div>
+      </div>
+    </aside>
+    <div class="chart-area">
+      <div class="day-tabs" id="day-tabs">
+        <button class="day-tab" data-day="2024-01-08">Mon Jan 8</button>
+        <button class="day-tab active" data-day="2024-01-09">Tue Jan 9</button>
+        <button class="day-tab" data-day="2024-01-10">Wed Jan 10</button>
+        <button class="day-tab" data-day="2024-01-11">Thu Jan 11</button>
+        <button class="day-tab" data-day="2024-01-12">Fri Jan 12</button>
+      </div>
+      <div class="chart-wrap" id="chart-wrap">
+        <div id="chart-el"></div>
+        <div class="loading" id="loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+  <footer><span>EURUSD · HTF Liquidity Pools · Jan 8–12 2024</span></footer>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════════
+// Session Boundary Primitive (copied from swings.html)
+// ══════════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context, H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 ?? 0, xR = b.x2 ?? scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        ctx.strokeStyle = b.border; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(xL, 0); ctx.lineTo(xL, H); ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground() {}
+}
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+class SessionBandsPrimitive {
+  constructor() { this._rawBands = []; this._paneView = new SessionBandsPaneView(); this._chart = null; this._series = null; this._requestUpdate = null; }
+  attached({ chart, series, requestUpdate }) { this._chart = chart; this._series = series; this._requestUpdate = requestUpdate; }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale(), computed = [];
+    for (const b of this._rawBands) {
+      try { const x1 = ts.timeToCoordinate(b.startTS), x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(raw) { this._rawBands = raw; if (this._requestUpdate) this._requestUpdate(); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════
+const DAYS = [
+  { date: '2024-01-08', label: 'Mon Jan 8' },
+  { date: '2024-01-09', label: 'Tue Jan 9' },
+  { date: '2024-01-10', label: 'Wed Jan 10' },
+  { date: '2024-01-11', label: 'Thu Jan 11' },
+  { date: '2024-01-12', label: 'Fri Jan 12' },
+];
+
+const TF_STYLES = {
+  H1: { color: '#00e5d4', muted: 'rgba(0,229,212,0.25)',  label: 'H1', order: 0 },
+  H4: { color: '#ff9800', muted: 'rgba(255,152,0,0.25)',  label: 'H4', order: 1 },
+  D1: { color: '#f7c548', muted: 'rgba(247,197,72,0.25)', label: 'D1', order: 2 },
+  W1: { color: '#e0e0e0', muted: 'rgba(224,224,224,0.25)',label: 'W1', order: 3 },
+  MN: { color: '#ce93d8', muted: 'rgba(206,147,216,0.25)',label: 'MN', order: 4 },
+};
+
+const LC_THEME = {
+  layout: { background: { type: 'solid', color: '#131722' }, textColor: '#787b86', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 },
+  grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+  crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#363b4a', labelBackgroundColor: '#2a2e39' }, horzLine: { color: '#363b4a', labelBackgroundColor: '#2a2e39' } },
+  rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.06, bottom: 0.06 } },
+  timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false },
+};
+const CANDLE_STYLE = { upColor: '#26a69a', downColor: '#ef5350', borderUpColor: '#26a69a', borderDownColor: '#ef5350', wickUpColor: '#26a69a', wickDownColor: '#ef5350' };
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+let state = { tf: '5m', day: '2024-01-09', visibleTFs: { H1: true, H4: true, D1: true, W1: true, MN: true } };
+let htfData = null;
+let sessionBands = null;
+let candleCache = {};
+let chart = null;
+let candleSeries = null;
+let sessionPrimitive = null;
+let poolLineSeries = [];
+
+// ══════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════
+function toTs(t) {
+  if (!t) return 0;
+  const c = t.includes('T') ? t : t.replace(' ', 'T');
+  const n = c.endsWith('Z') ? c.slice(0, -1) : c;
+  return Math.floor(new Date(n + 'Z').getTime() / 1000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ══════════════════════════════════════════════════════════════════
+async function loadHTFData() {
+  try { const r = await fetch('htf_liquidity.json'); htfData = await r.json(); }
+  catch(e) { htfData = { pools: [], summary: {} }; }
+}
+
+async function loadSessionBands() {
+  if (sessionBands) return;
+  try { const r = await fetch('session_boundaries.json'); sessionBands = await r.json(); }
+  catch(e) { sessionBands = []; }
+}
+
+async function loadCandles(date) {
+  if (candleCache[date]) return candleCache[date];
+  const r = await fetch(`candles_${date}.json`);
+  const raw = await r.json();
+  const result = {};
+  for (const tf of ['1m','5m','15m']) {
+    result[tf] = (raw[tf] || []).map(c => ({ time: toTs(c.time), o: c.open, h: c.high, l: c.low, c: c.close })).sort((a,b) => a.time - b.time);
+  }
+  candleCache[date] = result;
+  return result;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHART CREATION
+// ══════════════════════════════════════════════════════════════════
+function createChart() {
+  const el = document.getElementById('chart-el');
+  if (chart) { chart.remove(); chart = null; candleSeries = null; sessionPrimitive = null; }
+  const wrap = document.getElementById('chart-wrap');
+  chart = LightweightCharts.createChart(el, { ...LC_THEME, width: wrap.clientWidth, height: wrap.clientHeight });
+  candleSeries = chart.addCandlestickSeries(CANDLE_STYLE);
+  sessionPrimitive = new SessionBandsPrimitive();
+  candleSeries.attachPrimitive(sessionPrimitive);
+  chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+    if (sessionPrimitive?._requestUpdate) sessionPrimitive._requestUpdate();
+  });
+  new ResizeObserver(entries => {
+    for (const e of entries) { if (chart) chart.applyOptions({ width: e.contentRect.width, height: e.contentRect.height }); }
+  }).observe(wrap);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════════
+async function render() {
+  document.getElementById('loading').style.display = 'flex';
+  const candles = await loadCandles(state.day);
+  const tfCandles = candles[state.tf];
+
+  candleSeries.setData(tfCandles.map(c => ({ time: c.time, open: c.o, high: c.h, low: c.l, close: c.c })));
+
+  // Day time boundaries
+  const dayStart = tfCandles.length > 0 ? tfCandles[0].time : 0;
+  const dayEnd   = tfCandles.length > 0 ? tfCandles[tfCandles.length - 1].time : 0;
+
+  // Session bands
+  const dayBands = (sessionBands || []).filter(b => b.forex_day === state.day);
+  sessionPrimitive.setBands(dayBands.map(b => ({ startTS: toTs(b.start_time), endTS: toTs(b.end_time), color: b.color, border: b.border })));
+  requestAnimationFrame(() => { if (sessionPrimitive?._requestUpdate) sessionPrimitive._requestUpdate(); });
+
+  // Clear old pool lines
+  poolLineSeries.forEach(s => { try { chart.removeSeries(s); } catch(e) {} });
+  poolLineSeries = [];
+
+  // Filter pools: visible TF + first touch before day end + not taken before day start
+  const pools = (htfData?.pools || []).filter(p => {
+    if (!state.visibleTFs[p.timeframe]) return false;
+    const firstTouch = toTs(p.first_touch_time);
+    if (firstTouch >= dayEnd) return false;
+    if (p.taken_time && toTs(p.taken_time) < dayStart) return false;
+    return true;
+  });
+
+  for (const pool of pools) {
+    const sty = TF_STYLES[pool.timeframe] || TF_STYLES.H1;
+    const untouched = pool.status === 'UNTOUCHED';
+    const firstTouchTs = toTs(pool.first_touch_time);
+    const lineStart = Math.max(dayStart, firstTouchTs);
+
+    let lineEnd = dayEnd;
+    if (pool.taken_time) {
+      const takenTs = toTs(pool.taken_time);
+      if (takenTs >= lineStart && takenTs <= dayEnd) lineEnd = takenTs;
+    }
+
+    if (lineStart >= dayEnd) continue;
+    if (pool.taken_time && toTs(pool.taken_time) < dayStart) continue;
+
+    const lineColor = untouched ? sty.color : sty.muted;
+    const lineStyle = untouched ? LightweightCharts.LineStyle.Solid : LightweightCharts.LineStyle.Dashed;
+    const lineWidth = untouched ? 2 : 1;
+
+    const ls = chart.addLineSeries({
+      color: lineColor, lineWidth, lineStyle,
+      lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
+      title: `${pool.type} ${pool.touches}x`,
+    });
+    ls.setData([{ time: lineStart, value: pool.price }, { time: lineEnd, value: pool.price }]);
+    poolLineSeries.push(ls);
+  }
+
+  // Fit
+  if (tfCandles.length > 0) {
+    chart.timeScale().setVisibleRange({ from: tfCandles[0].time, to: tfCandles[tfCandles.length - 1].time });
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  updatePoolCards(pools);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════════
+function buildTFToggles() {
+  const container = document.getElementById('tf-toggles');
+  container.innerHTML = Object.entries(TF_STYLES)
+    .sort((a,b) => a[1].order - b[1].order)
+    .map(([tf, sty]) => {
+      const count = (htfData?.pools || []).filter(p => p.timeframe === tf).length;
+      return `<label class="toggle-row">
+        <input type="checkbox" data-tf="${tf}" ${state.visibleTFs[tf] ? 'checked' : ''}>
+        <div class="toggle-swatch" style="background:${sty.color};"></div>
+        <span style="color:${sty.color};font-family:var(--mono);font-weight:500;">${tf}</span>
+        <span style="margin-left:auto;font-family:var(--mono);color:var(--text-dim);">${count}</span>
+      </label>`;
+    }).join('');
+}
+
+function updatePoolCards(visiblePools) {
+  const container = document.getElementById('pool-cards');
+  document.getElementById('pool-cards-label').textContent = `Pools · ${visiblePools.length} visible`;
+  if (!visiblePools.length) { container.innerHTML = '<div style="font-size:11px;color:var(--text-dim);">No pools for visible TFs</div>'; return; }
+
+  const sorted = [...visiblePools].sort((a,b) => {
+    const ao = TF_STYLES[a.timeframe]?.order ?? 99, bo = TF_STYLES[b.timeframe]?.order ?? 99;
+    if (ao !== bo) return ao - bo;
+    return a.price - b.price;
+  });
+
+  container.innerHTML = sorted.map(p => {
+    const sty = TF_STYLES[p.timeframe] || TF_STYLES.H1;
+    const badgeClass = p.status === 'UNTOUCHED' ? 'untouched' : 'taken';
+    return `<div class="pool-card" style="border-left-color:${sty.color};">
+      <div class="pool-card-row">
+        <span class="pool-card-type" style="color:${sty.color};">${sty.label} ${p.type} ${p.touches}x</span>
+        <span class="pool-card-badge ${badgeClass}">${p.status}</span>
+      </div>
+      <div class="pool-card-detail">
+        ${p.price.toFixed(5)}<br>
+        ${p.first_touch_time.slice(0,16)} \u2192 ${p.last_touch_time.slice(0,16)}${p.taken_time ? '<br>taken ' + p.taken_time.slice(0,16) : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EVENTS
+// ══════════════════════════════════════════════════════════════════
+document.querySelector('.header').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-tf]');
+  if (!btn || btn.type === 'checkbox') return;
+  state.tf = btn.dataset.tf;
+  document.querySelectorAll('.header [data-tf]').forEach(b => b.classList.toggle('active', b.dataset.tf === state.tf));
+  candleCache = {};
+  render();
+});
+
+document.getElementById('day-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('[data-day]');
+  if (!btn) return;
+  state.day = btn.dataset.day;
+  document.querySelectorAll('[data-day]').forEach(b => b.classList.toggle('active', b.dataset.day === state.day));
+  render();
+});
+
+document.getElementById('tf-toggles').addEventListener('change', e => {
+  const cb = e.target;
+  if (!cb.dataset.tf) return;
+  state.visibleTFs[cb.dataset.tf] = cb.checked;
+  render();
+});
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+async function init() {
+  await Promise.all([loadHTFData(), loadSessionBands()]);
+  buildTFToggles();
+  createChart();
+  await render();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+</body>
+</html>

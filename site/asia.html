@@ -1,0 +1,1029 @@
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asia Range Calibration — Calibration Bible</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface2: #1e222d;
+    --border: #2a2e39;
+    --text-primary: #d1d4dc;
+    --text-muted: #787b86;
+    --accent-teal: #26a69a;
+    --accent-red: #ef5350;
+    --accent-blue: #2962ff;
+    --accent-yellow: #f7c548;
+    --accent-purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .header-primitive {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-teal);
+    background: rgba(38,166,154,0.12);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .header-nav {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-link {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .nav-link:hover { color: var(--text-primary); background: var(--surface2); }
+  .nav-link.active { color: var(--accent-teal); background: rgba(38,166,154,0.1); }
+
+  /* TIMEFRAME TOGGLE */
+  .tf-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px;
+  }
+  .tf-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tf-btn:hover { color: var(--text-primary); background: var(--surface2); }
+  .tf-btn.active { color: var(--surface); background: var(--accent-teal); }
+
+  /* MAIN CONTENT */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  /* THRESHOLD BUTTONS */
+  .threshold-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .threshold-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .threshold-btn:hover { border-color: var(--accent-teal); color: var(--text-primary); }
+  .threshold-btn.active {
+    background: rgba(38,166,154,0.2);
+    border-color: var(--accent-teal);
+    color: var(--accent-teal);
+  }
+
+  /* CLASSIFICATION BADGE */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .badge-tight { background: rgba(38,166,154,0.2); color: var(--accent-teal); }
+  .badge-wide { background: rgba(239,83,80,0.2); color: var(--accent-red); }
+
+  /* DAY SUMMARY LIST */
+  .day-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .day-summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: var(--surface2);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    gap: 8px;
+  }
+  .day-summary-item:hover { border-color: var(--border); }
+  .day-summary-item.active { border-color: var(--accent-teal); }
+  .day-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .day-pips {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: rgba(41, 98, 255, 0.08);
+    border: 1px solid rgba(41, 98, 255, 0.3);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.55;
+  }
+  .callout-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    margin-bottom: 6px;
+  }
+
+  /* CONTENT AREA */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* CHART INFO BAR */
+  .chart-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .chart-info-bar .info-tag {
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  /* Session legend items */
+  .ses-legend {
+    display: flex; gap: 8px; flex-wrap: wrap; padding: 3px 0;
+  }
+  .ses-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .ses-dot {
+    width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0;
+  }
+
+  /* DAY TABS */
+  .day-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0 16px;
+    gap: 2px;
+  }
+  .day-tab {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .day-tab:hover { color: var(--text-primary); }
+  .day-tab.active {
+    color: var(--accent-teal);
+    border-bottom-color: var(--accent-teal);
+  }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 100;
+  }
+  .loading-overlay.hidden { display: none; }
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 12px; color: var(--text-muted); }
+
+  /* CHART */
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  #chart-container {
+    width: 100%;
+    height: 100%;
+  }
+  .chart-legend {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(19, 23, 34, 0.88);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .legend-swatch {
+    width: 16px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .legend-swatch.dashed {
+    background: repeating-linear-gradient(90deg, currentColor 0, currentColor 4px, transparent 4px, transparent 8px);
+  }
+
+  /* STATS TABLE */
+  .stats-panel {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+  .stats-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .stats-table th {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stats-table td {
+    font-family: var(--font-mono);
+    text-align: center;
+    padding: 4px 8px;
+  }
+  .stats-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .stats-table .label-col {
+    font-family: var(--font);
+    text-align: left;
+    color: var(--text-muted);
+  }
+  .stats-table .active-row td { background: rgba(38,166,154,0.06); }
+
+  .cell-tight { color: var(--accent-teal); font-weight: 500; }
+  .cell-wide { color: var(--accent-red); }
+  .cell-highlight { color: var(--text-primary); font-weight: 600; }
+
+  /* FOOTER */
+  .footer {
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .footer a { color: var(--text-muted); text-decoration: none; }
+  .footer a:hover { color: var(--accent-teal); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <span class="header-title">Calibration Bible</span>
+    <span class="header-primitive">Asia Range</span>
+
+    <div class="tf-toggle" id="tf-toggle">
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn active" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+    </div>
+
+    <nav class="header-nav">
+      <a href="index.html" class="nav-link">← Index</a>
+      <a href="fvg.html" class="nav-link">FVG</a>
+      <a href="swings.html" class="nav-link">Swings</a>
+      <a href="htf.html" class="nav-link">HTF</a>
+      <a href="asia.html" class="nav-link active">Asia</a>
+      <a href="displacement.html" class="nav-link">Displacement</a>
+      <a href="ny-windows.html" class="nav-link">NY Windows</a>
+      <a href="ob-staleness.html" class="nav-link">OB Staleness</a>
+    </nav>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <div class="sidebar-section">
+        <div class="section-label">Threshold (pips)</div>
+        <div class="threshold-grid" id="threshold-grid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Sessions</div>
+        <div class="day-summary-list" id="day-summary-list">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Calibration Question</div>
+        <div class="callout">
+          <div class="callout-label">Your Task</div>
+          Which of these 5 sessions were <strong>consolidation</strong> to you? Which were <strong>trending</strong>?
+          <br><br>
+          At what pip threshold does the TIGHT/WIDE split match your intuition?
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- DAY TABS -->
+      <div class="day-tabs" id="day-tabs">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- CHART INFO BAR -->
+      <div class="chart-info-bar" id="chart-info-bar">
+        <span class="info-tag" id="info-tf">5m candles</span>
+        <span class="info-tag">Session-level Asia range</span>
+        <div class="ses-legend" id="ses-legend"></div>
+      </div>
+
+      <!-- CHART -->
+      <div class="chart-wrapper">
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading price data...</div>
+        </div>
+        <div id="chart-container"></div>
+        <div class="chart-legend" id="chart-legend">
+          <div class="legend-item">
+            <div class="legend-swatch" style="background: var(--accent-teal); height: 2px;"></div>
+            <span>Asia High</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background: var(--accent-red); height: 2px;"></div>
+            <span>Asia Low</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background: var(--accent-yellow); height: 2px; opacity: 0.7;"></div>
+            <span>Threshold Line</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS TABLE -->
+      <div class="stats-panel">
+        <div class="stats-title">Summary — All Thresholds</div>
+        <table class="stats-table" id="stats-table">
+          <!-- filled by JS -->
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+  </footer>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// Session Boundary Primitive — draws vertical colored bands
+// ═════════════════════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        // Left border line
+        ctx.strokeStyle = b.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xL, 0); ctx.lineTo(xL, H);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class SessionBandsPrimitive {
+  constructor() {
+    this._rawBands = [];
+    this._paneView = new SessionBandsPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const b of this._rawBands) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(rawBands) {
+    this._rawBands = rawBands;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+  injectRefs(chart, series) {
+    if (!this._chart) this._chart = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const DAYS = [
+  { key: '2024-01-08', label: 'Mon Jan 8',  short: 'Mon 8'  },
+  { key: '2024-01-09', label: 'Tue Jan 9',  short: 'Tue 9'  },
+  { key: '2024-01-10', label: 'Wed Jan 10', short: 'Wed 10' },
+  { key: '2024-01-11', label: 'Thu Jan 11', short: 'Thu 11' },
+  { key: '2024-01-12', label: 'Fri Jan 12', short: 'Fri 12' },
+];
+
+const THRESHOLDS = [12, 15, 18, 20, 25, 30];
+
+const SESSION_LABELS = {
+  asia: 'Asia 19:00\u201300:00',
+  lokz: 'LOKZ 02:00\u201305:00',
+  nyokz: 'NYOKZ 07:00\u201310:00',
+  other: 'Other',
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  tf: '5m',
+  day: '2024-01-09',
+  threshold: 20,
+  asiaData: null,
+  candlesByDay: {},
+  sessionBoundaries: null,
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function toTS(s) {
+  if (!s) return null;
+  // NY time string like "2024-01-09T08:15:00"
+  // Treat as-is (pretend UTC) so chart x-axis shows NY time
+  const clean = s.includes('T') ? s : s.replace(' ', 'T');
+  // Remove any trailing Z if present
+  const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
+  return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+// ─── CHART ───────────────────────────────────────────────────────────────────
+let chart = null;
+let candleSeries = null;
+let sessionBandsPrimitive = null;
+
+function createChart() {
+  const container = document.getElementById('chart-container');
+  container.innerHTML = '';
+
+  chart = LightweightCharts.createChart(container, {
+    layout: {
+      background: { color: '#131722' },
+      textColor: '#d1d4dc',
+      fontSize: 11,
+      fontFamily: "'IBM Plex Mono', monospace",
+    },
+    grid: {
+      vertLines: { color: '#1e222d' },
+      horzLines: { color: '#1e222d' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#4a4e5a', width: 1, style: 2 },
+      horzLine: { color: '#4a4e5a', width: 1, style: 2 },
+    },
+    rightPriceScale: {
+      borderColor: '#2a2e39',
+      scaleMargins: { top: 0.05, bottom: 0.05 },
+    },
+    timeScale: {
+      borderColor: '#2a2e39',
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time) => {
+        const d = new Date(time * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,'0');
+        const mm = String(d.getUTCMinutes()).padStart(2,'0');
+        return `${hh}:${mm}`;
+      },
+    },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
+    handleScale: { mouseWheel: true, pinch: true },
+    width: container.clientWidth,
+    height: container.clientHeight,
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor: '#26a69a',
+    downColor: '#ef5350',
+    borderUpColor: '#26a69a',
+    borderDownColor: '#ef5350',
+    wickUpColor: '#26a69a',
+    wickDownColor: '#ef5350',
+  });
+
+  // Attach session bands primitive
+  sessionBandsPrimitive = new SessionBandsPrimitive();
+  candleSeries.attachPrimitive(sessionBandsPrimitive);
+
+  // Resize observer
+  const ro = new ResizeObserver(() => {
+    chart.applyOptions({
+      width: container.clientWidth,
+      height: container.clientHeight,
+    });
+  });
+  ro.observe(container);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function getAsiaRange() {
+  if (!state.asiaData) return null;
+  return state.asiaData.ranges.find(r => r.forex_day === state.day);
+}
+
+function renderSessionBands() {
+  if (!sessionBandsPrimitive || !state.sessionBoundaries) return;
+  const dayBounds = state.sessionBoundaries.filter(b => b.forex_day === state.day);
+  const bands = dayBounds.map(b => ({
+    startTS: toTS(b.start_time),
+    endTS: toTS(b.end_time),
+    color: b.color,
+    border: b.border,
+  }));
+  sessionBandsPrimitive.setBands(bands);
+}
+
+function renderChart() {
+  if (!chart || !candleSeries) return;
+
+  const tf = state.tf;
+  const day = state.day;
+  const candles = state.candlesByDay[day];
+  if (!candles) return;
+
+  const raw = candles[tf];
+  if (!raw || raw.length === 0) return;
+
+  // Convert candle data — new format uses full field names
+  const data = raw.map(c => ({
+    time: toTS(c.time),
+    open:  c.open,
+    high:  c.high,
+    low:   c.low,
+    close: c.close,
+  })).sort((a,b) => a.time - b.time);
+
+  candleSeries.setData(data);
+
+  // Remove old series lines
+  if (window._asiaLines) {
+    window._asiaLines.forEach(s => { try { chart.removeSeries(s); } catch(e){} });
+  }
+  window._asiaLines = [];
+
+  // Render session boundary bands
+  renderSessionBands();
+
+  const range = getAsiaRange();
+  if (!range) return;
+
+  // Asia session time boundaries
+  const sessionStart = toTS(range.start_time);
+  const sessionEnd = toTS(range.end_time);
+
+  // Find the data range that covers Asia session
+  const asiaCandles = data.filter(c => c.time >= sessionStart && c.time <= sessionEnd);
+  if (asiaCandles.length === 0) return;
+
+  const asiaStartTime = asiaCandles[0].time;
+  const asiaEndTime = asiaCandles[asiaCandles.length - 1].time;
+
+  // Asia HIGH line
+  const highLine = chart.addLineSeries({
+    color: '#26a69a',
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Solid,
+    lastValueVisible: true,
+    priceLineVisible: false,
+    crosshairMarkerVisible: false,
+    title: `H ${range.high.toFixed(5)}`,
+  });
+  highLine.setData([
+    { time: asiaStartTime, value: range.high },
+    { time: asiaEndTime, value: range.high },
+  ]);
+  window._asiaLines.push(highLine);
+
+  // Asia LOW line
+  const lowLine = chart.addLineSeries({
+    color: '#ef5350',
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Solid,
+    lastValueVisible: true,
+    priceLineVisible: false,
+    crosshairMarkerVisible: false,
+    title: `L ${range.low.toFixed(5)}`,
+  });
+  lowLine.setData([
+    { time: asiaStartTime, value: range.low },
+    { time: asiaEndTime, value: range.low },
+  ]);
+  window._asiaLines.push(lowLine);
+
+  // Threshold line: low + threshold_pips * 0.0001
+  const thresholdPrice = range.low + (state.threshold * 0.0001);
+  const threshLine = chart.addLineSeries({
+    color: '#f7c548',
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Dashed,
+    lastValueVisible: true,
+    priceLineVisible: false,
+    crosshairMarkerVisible: false,
+    title: `T${state.threshold} ${thresholdPrice.toFixed(5)}`,
+  });
+  threshLine.setData([
+    { time: asiaStartTime, value: thresholdPrice },
+    { time: asiaEndTime, value: thresholdPrice },
+  ]);
+  window._asiaLines.push(threshLine);
+
+  // Range band: subtle shaded area from low up to high
+  const bandSeries = chart.addAreaSeries({
+    topColor: 'rgba(38, 166, 154, 0.08)',
+    bottomColor: 'rgba(38, 166, 154, 0.01)',
+    lineColor: 'rgba(38, 166, 154, 0)',
+    lineWidth: 0,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+  });
+  bandSeries.setData([
+    { time: asiaStartTime, value: range.high },
+    { time: asiaEndTime, value: range.high },
+  ]);
+  window._asiaLines.push(bandSeries);
+
+  // Fit the Asia session with some padding
+  chart.timeScale().setVisibleRange({
+    from: asiaStartTime - 300,
+    to: asiaEndTime + 300,
+  });
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  if (!state.asiaData) return;
+
+  // Day summary list
+  const list = document.getElementById('day-summary-list');
+  list.innerHTML = '';
+  DAYS.forEach(d => {
+    const r = state.asiaData.ranges.find(x => x.forex_day === d.key);
+    const cls = r.classifications[String(state.threshold)];
+    const item = document.createElement('div');
+    item.className = 'day-summary-item' + (d.key === state.day ? ' active' : '');
+    item.innerHTML = `
+      <span class="day-name">${d.label}</span>
+      <span class="day-pips">${r.range_pips}p</span>
+      <span class="badge badge-${cls.toLowerCase()}">${cls}</span>
+    `;
+    item.addEventListener('click', () => {
+      state.day = d.key;
+      refresh();
+    });
+    list.appendChild(item);
+  });
+}
+
+// ─── THRESHOLD GRID ──────────────────────────────────────────────────────────
+function renderThresholdGrid() {
+  const grid = document.getElementById('threshold-grid');
+  grid.innerHTML = '';
+  THRESHOLDS.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'threshold-btn' + (t === state.threshold ? ' active' : '');
+    btn.textContent = `${t}p`;
+    btn.addEventListener('click', () => {
+      state.threshold = t;
+      refresh();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// ─── STATS TABLE ─────────────────────────────────────────────────────────────
+function renderStatsTable() {
+  if (!state.asiaData) return;
+  const table = document.getElementById('stats-table');
+
+  let html = '<thead><tr>';
+  html += '<th class="label-col">Threshold</th>';
+  DAYS.forEach(d => { html += `<th>${d.short}</th>`; });
+  html += '<th>TIGHT</th><th>WIDE</th>';
+  html += '</tr></thead><tbody>';
+
+  THRESHOLDS.forEach(t => {
+    const isActive = t === state.threshold;
+    html += `<tr class="${isActive ? 'active-row' : ''}">`;
+    html += `<td class="label-col" style="font-family:var(--font-mono); color:${isActive ? 'var(--accent-yellow)' : 'var(--text-muted)'}">${t} pips</td>`;
+
+    let tightCount = 0, wideCount = 0;
+    DAYS.forEach(d => {
+      const r = state.asiaData.ranges.find(x => x.forex_day === d.key);
+      const cls = r.classifications[String(t)];
+      const isTight = cls === 'TIGHT';
+      if (isTight) tightCount++; else wideCount++;
+      html += `<td class="cell-${isTight ? 'tight' : 'wide'}">${cls}</td>`;
+    });
+
+    html += `<td class="cell-highlight">${tightCount}</td>`;
+    html += `<td class="cell-wide">${wideCount}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ─── DAY TABS ────────────────────────────────────────────────────────────────
+function renderDayTabs() {
+  const tabsEl = document.getElementById('day-tabs');
+  tabsEl.innerHTML = '';
+  DAYS.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'day-tab' + (d.key === state.day ? ' active' : '');
+    const range = state.asiaData ? state.asiaData.ranges.find(r => r.forex_day === d.key) : null;
+    const pips = range ? ` (${range.range_pips}p)` : '';
+    btn.textContent = d.label + pips;
+    btn.addEventListener('click', () => {
+      state.day = d.key;
+      refresh();
+    });
+    tabsEl.appendChild(btn);
+  });
+}
+
+// ─── CHART INFO BAR ──────────────────────────────────────────────────────────
+function renderChartInfoBar() {
+  document.getElementById('info-tf').textContent = state.tf + ' candles';
+
+  // Session legend
+  const sesLegend = document.getElementById('ses-legend');
+  const colors = [
+    { label: 'Asia 19:00\u201300:00', color: 'rgba(156,39,176,0.5)' },
+    { label: 'LOKZ 02:00\u201305:00', color: 'rgba(41,98,255,0.5)' },
+    { label: 'NYOKZ 07:00\u201310:00', color: 'rgba(247,197,72,0.5)' },
+  ];
+  sesLegend.innerHTML = colors.map(c =>
+    `<span class="ses-tag"><span class="ses-dot" style="background:${c.color}"></span>${c.label}</span>`
+  ).join('');
+}
+
+// ─── FULL REFRESH ────────────────────────────────────────────────────────────
+function refresh() {
+  renderThresholdGrid();
+  renderDayTabs();
+  renderSidebar();
+  renderChart();
+  renderStatsTable();
+  renderChartInfoBar();
+}
+
+// ─── TIMEFRAME TOGGLE ────────────────────────────────────────────────────────
+document.getElementById('tf-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.tf-btn');
+  if (!btn) return;
+  const tf = btn.dataset.tf;
+  if (tf === state.tf) return;
+  state.tf = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
+  refresh();
+});
+
+// ─── LOAD DATA ───────────────────────────────────────────────────────────────
+async function loadData() {
+  // Load Asia data and session boundaries
+  const [asiaResp, sessionResp] = await Promise.all([
+    fetch('asia_data.json'),
+    fetch('session_boundaries.json'),
+  ]);
+  state.asiaData = await asiaResp.json();
+  state.sessionBoundaries = await sessionResp.json();
+
+  // Load candle data for all 5 days
+  await Promise.all(DAYS.map(async d => {
+    const resp = await fetch(`candles_${d.key}.json`);
+    state.candlesByDay[d.key] = await resp.json();
+  }));
+
+  createChart();
+  document.getElementById('loading-overlay').classList.add('hidden');
+  refresh();
+}
+
+loadData().catch(err => {
+  console.error('Failed to load data:', err);
+  document.getElementById('chart-container').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#787b86;font-size:13px;">Failed to load data. Please serve from a local server.</div>';
+});
+</script>
+</body>
+</html>

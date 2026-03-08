@@ -1,0 +1,150 @@
+{
+  "forex_days": [
+    "2024-01-08",
+    "2024-01-09",
+    "2024-01-10",
+    "2024-01-11",
+    "2024-01-12"
+  ],
+  "total_bars_1m": 7177,
+  "total_bars_5m": 1440,
+  "total_bars_15m": 480,
+  "pip": 0.0001,
+  "timezone": "America/New_York (EST, UTC-5)",
+  "sessions_ny": {
+    "asia": [
+      19,
+      24
+    ],
+    "lokz": [
+      2,
+      5
+    ],
+    "nyokz": [
+      7,
+      10
+    ]
+  },
+  "ny_windows_ny": {
+    "a": [
+      8,
+      9
+    ],
+    "b": [
+      10,
+      11
+    ]
+  },
+  "tf_config": {
+    "1m": {
+      "fvg_thresholds": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0
+      ],
+      "swing_height_thresholds": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        4.0
+      ],
+      "equal_tolerances": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    "5m": {
+      "fvg_thresholds": [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        7.0,
+        10.0
+      ],
+      "swing_height_thresholds": [
+        2.0,
+        3.0,
+        5.0,
+        7.0,
+        10.0,
+        15.0
+      ],
+      "equal_tolerances": [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0
+      ]
+    },
+    "15m": {
+      "fvg_thresholds": [
+        2.0,
+        3.0,
+        5.0,
+        7.0,
+        10.0,
+        15.0
+      ],
+      "swing_height_thresholds": [
+        3.0,
+        5.0,
+        7.0,
+        10.0,
+        15.0,
+        20.0
+      ],
+      "equal_tolerances": [
+        2.0,
+        3.0,
+        5.0,
+        7.0,
+        10.0
+      ]
+    }
+  },
+  "asia_thresholds": [
+    12,
+    15,
+    18,
+    20,
+    25,
+    30
+  ],
+  "disp_atr_multipliers": [
+    1.0,
+    1.25,
+    1.5,
+    2.0
+  ],
+  "disp_body_ratios": [
+    0.55,
+    0.6,
+    0.65,
+    0.7
+  ],
+  "ob_staleness_bars": [
+    5,
+    10,
+    15,
+    20,
+    30
+  ],
+  "swing_n": {
+    "1m": 5,
+    "5m": 3,
+    "15m": 2
+  },
+  "swing_strength_cap": 20
+}

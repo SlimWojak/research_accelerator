@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FVG Calibration — EURUSD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0a0e17;
+  --sfc:     #131722;
+  --sfc2:    #1e222d;
+  --border:  #2a2e39;
+  --text:    #d1d4dc;
+  --muted:   #787b86;
+  --teal:    #26a69a;
+  --red:     #ef5350;
+  --blue:    #2962ff;
+  --yellow:  #f7c548;
+  --font:    'IBM Plex Sans', system-ui, sans-serif;
+  --mono:    'IBM Plex Mono', monospace;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Header */
+.hdr {
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 16px; height: 44px;
+  background: var(--sfc); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.hdr-back { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.hdr-back:hover { color: var(--text); text-decoration: none; }
+.hdr-sep { width: 1px; height: 18px; background: var(--border); }
+.hdr-title { font-size: 15px; font-weight: 600; }
+.hdr-sub { font-size: 11px; color: var(--muted); }
+.hdr-nav { display: flex; gap: 12px; margin-left: auto; }
+.hdr-nav a { font-size: 11px; color: var(--muted); }
+.hdr-nav a:hover { color: var(--text); text-decoration: none; }
+
+/* Callout */
+.callout {
+  background: linear-gradient(90deg, rgba(41,98,255,0.12) 0%, rgba(41,98,255,0.03) 100%);
+  border-left: 3px solid var(--blue);
+  padding: 9px 16px; font-size: 12px; color: #a8b4e8; flex-shrink: 0;
+}
+.callout strong {
+  display: block; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; color: #c8d4f8; margin-bottom: 2px;
+}
+
+/* Day tabs */
+.day-tabs {
+  display: flex; background: var(--sfc);
+  border-bottom: 1px solid var(--border); padding: 0 16px; flex-shrink: 0;
+}
+.day-tab {
+  padding: 8px 14px; font-size: 11px; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s; white-space: nowrap; user-select: none;
+}
+.day-tab:hover { color: var(--text); }
+.day-tab.active { color: var(--text); border-bottom-color: var(--blue); }
+
+/* Main layout */
+.main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+/* Sidebar */
+.sidebar {
+  width: 236px; flex-shrink: 0;
+  background: var(--sfc2); border-right: 1px solid var(--border);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.s-sec { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.s-lbl {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
+}
+
+/* TF buttons */
+.tf-grp { display: flex; gap: 4px; }
+.tf-btn {
+  flex: 1; padding: 5px 0; font-size: 11px; font-family: var(--mono); font-weight: 500;
+  background: var(--bg); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 3px;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.tf-btn:hover { color: var(--text); border-color: #3a3f4d; }
+.tf-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* Threshold buttons */
+.thresh-grp { display: flex; flex-direction: column; gap: 3px; }
+.thresh-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 3px;
+  cursor: pointer; transition: all 0.15s; font-size: 12px; color: var(--muted);
+}
+.thresh-btn:hover { border-color: #3a3f4d; color: var(--text); }
+.thresh-btn.active { border-color: var(--yellow); color: var(--yellow); background: rgba(247,197,72,0.06); }
+.t-lbl { font-family: var(--mono); font-weight: 500; }
+.t-cnt { font-family: var(--mono); font-size: 11px; }
+.thresh-btn.active .t-cnt { color: rgba(247,197,72,0.7); }
+
+/* Stat rows */
+.sr { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; font-size: 12px; }
+.sk { color: var(--muted); }
+.sv { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.sv.bull { color: var(--teal); }
+.sv.bear { color: var(--red); }
+
+/* Legend */
+.leg { display: flex; flex-direction: column; gap: 5px; }
+.leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.leg-dot { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+
+/* Session legend items */
+.ses-legend { display: flex; gap: 8px; flex-wrap: wrap; padding: 3px 0; }
+.ses-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); font-family: var(--mono); }
+.ses-dot { width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0; }
+
+/* Chart area */
+.chart-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+.chart-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 12px; background: var(--sfc); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.chart-info { font-size: 11px; color: var(--muted); }
+.chart-info span { font-family: var(--mono); color: var(--text); }
+.chart-legend { display: flex; gap: 10px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+
+/* Chart container */
+.chart-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+#chartEl { width: 100%; height: 100%; }
+
+/* Tooltip */
+#tooltip {
+  position: fixed; background: var(--sfc2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 8px 10px;
+  font-size: 11px; line-height: 1.65; font-family: var(--mono); color: var(--text);
+  pointer-events: none; z-index: 9999; display: none; white-space: nowrap;
+}
+.tt-head { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+.tt-bull { color: var(--teal); }
+.tt-bear { color: var(--red); }
+
+/* Loading overlay */
+.loading-ov {
+  position: absolute; inset: 0;
+  background: rgba(10,14,23,0.8);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500; font-size: 13px; color: var(--muted);
+}
+.loading-ov.hidden { display: none; }
+
+/* Stats panel */
+.stats-panel {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--sfc2); border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sp-blk { min-width: 110px; }
+.sp-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+
+/* Footer */
+.footer {
+  padding: 7px 16px; border-top: 1px solid var(--border);
+  background: var(--sfc); font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+<nav style="background:#131722;border-bottom:1px solid #2a2e39;padding:6px 16px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;flex-shrink:0;z-index:100;"><a href="index.html" style="color:#787b86;text-decoration:none;font-weight:600;margin-right:8px;">← Index</a><span style="color:#2a2e39;">|</span><a href="fvg.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">FVG</a><a href="swings.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Swings</a><a href="htf.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">HTF</a><a href="asia.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Asia</a><a href="displacement.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Displacement</a><a href="ny-windows.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">NY Windows</a><a href="ob-staleness.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">OB Staleness</a></nav>
+
+<header class="hdr">
+  <div class="hdr-title">FVG</div>
+  <div class="hdr-sub">Fair Value Gap · EURUSD</div>
+</header>
+
+<div class="callout">
+  <strong>Calibration Question</strong>
+  Which density looks like the FVGs you'd actually mark on a chart? Toggle thresholds to find the right signal-to-noise balance.
+</div>
+
+<div class="day-tabs">
+  <div class="day-tab" data-day="2024-01-08">Mon Jan 8</div>
+  <div class="day-tab active" data-day="2024-01-09">Tue Jan 9</div>
+  <div class="day-tab" data-day="2024-01-10">Wed Jan 10</div>
+  <div class="day-tab" data-day="2024-01-11">Thu Jan 11</div>
+  <div class="day-tab" data-day="2024-01-12">Fri Jan 12</div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="s-sec">
+      <div class="s-lbl">Timeframe</div>
+      <div class="tf-grp">
+        <button class="tf-btn" data-tf="1m">1m</button>
+        <button class="tf-btn active" data-tf="5m">5m</button>
+        <button class="tf-btn" data-tf="15m">15m</button>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-lbl">Min Gap Threshold</div>
+      <div class="thresh-grp" id="threshGrp"></div>
+    </div>
+
+    <div class="s-sec" id="daySummary"></div>
+    <div class="s-sec" id="sessionSummary"></div>
+
+    <div class="s-sec">
+      <div class="s-lbl">Derived Overlays</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button id="ifvg-toggle" style="width:100%;text-align:center;padding:5px 0;font-size:11px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);cursor:pointer;">Show IFVG</button>
+        <button id="bpr-toggle" style="width:100%;text-align:center;padding:5px 0;font-size:11px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);cursor:pointer;">Show BPR</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;" id="derived-info"></div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-lbl">Zone State</div>
+      <div class="leg">
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(38,166,154,0.3);border:1px solid rgba(38,166,154,0.8)"></div>
+          Active bullish
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(239,83,80,0.3);border:1px solid rgba(239,83,80,0.8)"></div>
+          Active bearish
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(38,166,154,0.08);border:1px dashed rgba(38,166,154,0.45)"></div>
+          CE touched
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(100,100,100,0.1);border:1px solid rgba(100,100,100,0.3)"></div>
+          Boundary closed
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="chart-area">
+    <div class="chart-bar">
+      <div class="chart-info">EURUSD · <span id="tfLabel">5m</span> · <span id="dayLabel">Tue Jan 9</span></div>
+      <div class="chart-legend">
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(38,166,154,0.25);border:1px solid rgba(38,166,154,0.7)"></div>
+          <span style="font-size:11px;color:var(--muted)">Bullish FVG</span>
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background:rgba(239,83,80,0.25);border:1px solid rgba(239,83,80,0.7)"></div>
+          <span style="font-size:11px;color:var(--muted)">Bearish FVG</span>
+        </div>
+        <div class="chart-info" id="detectionLabel">Native 5m detection</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap" id="chartWrap">
+      <div id="chartEl"></div>
+      <div class="loading-ov hidden" id="loadingOv">Loading…</div>
+    </div>
+
+    <div class="stats-panel" id="statsPanel"></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<footer class="footer">
+  <span>EURUSD · Jan 8–12, 2024 · ICT FVG Calibration Tool</span>
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" style="margin-left:auto">Created with Perplexity Computer</a>
+</footer>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Session Boundary Primitive — draws vertical colored bands
+// ═══════════════════════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        // Left border line
+        ctx.strokeStyle = b.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xL, 0); ctx.lineTo(xL, H);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class SessionBandsPrimitive {
+  constructor() {
+    this._rawBands = [];
+    this._paneView = new SessionBandsPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const b of this._rawBands) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(rawBands) {
+    this._rawBands = rawBands;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+  injectRefs(chart, series) {
+    if (!this._chart) this._chart = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FVG Zone Primitive — draws colored rectangles directly on the chart canvas
+// Uses ISeriesPrimitive API from LightweightCharts v4.1.3
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class FvgZonesRenderer {
+  constructor() {
+    this._zones = [];
+  }
+
+  setZones(zones) {
+    this._zones = zones;
+  }
+
+  // Called by LightweightCharts v4 with a CanvasRenderingTarget2D
+  draw(target) {
+    if (!this._zones.length) return;
+
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const W   = scope.mediaSize.width;
+      const H   = scope.mediaSize.height;
+
+      for (const z of this._zones) {
+        if (z.x1 === null && z.x2 === null) continue;
+
+        const xL = Math.max(0,   z.x1 !== null ? z.x1 : 0);
+        const xR = Math.min(W,   z.x2 !== null ? z.x2 : W);
+        if (xR - xL < 0.5) continue;
+
+        const rawYT = Math.min(z.y1, z.y2);
+        const rawYB = Math.max(z.y1, z.y2);
+        const yT = Math.max(0, rawYT);
+        const yB = Math.min(H, rawYB);
+        if (yB - yT < 0.5) continue;
+
+        ctx.save();
+        const cType = z.displayType || z.type;
+
+        if (z.state === 'bpr') {
+          ctx.fillStyle = 'rgba(156,39,176,0.25)';
+          ctx.strokeStyle = 'rgba(156,39,176,0.7)';
+          ctx.setLineDash([]);
+          ctx.lineWidth = 1.2;
+        } else if (z.state === 'bc' && z.ifvg) {
+          ctx.fillStyle = cType === 'bullish'
+            ? 'rgba(38,166,154,0.18)' : 'rgba(239,83,80,0.18)';
+          ctx.strokeStyle = cType === 'bullish'
+            ? 'rgba(38,166,154,0.7)' : 'rgba(239,83,80,0.7)';
+          ctx.setLineDash([5, 3]);
+          ctx.lineWidth = 1.2;
+        } else if (z.state === 'bc') {
+          ctx.fillStyle   = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.10)'
+            : 'rgba(239,83,80,0.10)';
+          ctx.strokeStyle = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.40)'
+            : 'rgba(239,83,80,0.40)';
+          ctx.setLineDash([3, 3]);
+          ctx.lineWidth = 0.8;
+        } else if (z.state === 'ce') {
+          ctx.fillStyle   = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.06)'
+            : 'rgba(239,83,80,0.06)';
+          ctx.strokeStyle = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.35)'
+            : 'rgba(239,83,80,0.35)';
+          ctx.setLineDash([3, 3]);
+          ctx.lineWidth = 0.8;
+        } else {
+          ctx.fillStyle   = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.22)'
+            : 'rgba(239,83,80,0.22)';
+          ctx.strokeStyle = z.type === 'bullish'
+            ? 'rgba(38,166,154,0.85)'
+            : 'rgba(239,83,80,0.85)';
+          ctx.setLineDash([]);
+          ctx.lineWidth = 1.0;
+        }
+
+        ctx.fillRect(xL, yT, xR - xL, yB - yT);
+        ctx.beginPath();
+        ctx.rect(xL, yT, xR - xL, yB - yT);
+        ctx.stroke();
+
+        if (z.ifvg) {
+          ctx.fillStyle = cType === 'bullish' ? '#26a69a' : '#ef5350';
+          ctx.font = '9px IBM Plex Mono';
+          ctx.fillText('IF', xL + 3, yT + 10);
+        }
+        if (z.state === 'bpr') {
+          ctx.fillStyle = '#9c27b0';
+          ctx.font = '9px IBM Plex Mono';
+          ctx.fillText('BPR', xL + 3, yT + 10);
+        }
+        ctx.restore();
+      }
+    });
+  }
+
+  drawBackground(target) {
+    // No-op: we draw in the foreground
+  }
+}
+
+class FvgZonesPaneView {
+  constructor() {
+    this._renderer = new FvgZonesRenderer();
+  }
+
+  renderer() {
+    return this._renderer;
+  }
+
+  zOrder() {
+    return 'normal';
+  }
+}
+
+class FvgZonesPrimitive {
+  constructor() {
+    this._rawZones     = [];
+    this._paneView     = new FvgZonesPaneView();
+    this._chart        = null;
+    this._series       = null;
+    this._requestUpdate = null;
+  }
+
+  // Called by LightweightCharts v4.1.3 with {chart, series, requestUpdate}
+  attached({ chart, series, requestUpdate }) {
+    this._chart          = chart;
+    this._series         = series;
+    this._requestUpdate  = requestUpdate;
+  }
+
+  detached() {
+    this._chart = this._series = this._requestUpdate = null;
+  }
+
+  // Called before every frame — pre-compute pixel coordinates here
+  updateAllViews() {
+    if (!this._chart || !this._series) return;
+
+    const ts = this._chart.timeScale();
+    const ps = this._series;
+    const computed = [];
+
+    for (const z of this._rawZones) {
+      try {
+        const x1 = ts.timeToCoordinate(z.startTS);
+        const x2 = z.endTS != null ? ts.timeToCoordinate(z.endTS) : null;
+        const y1 = ps.priceToCoordinate(z.top);
+        const y2 = ps.priceToCoordinate(z.bot);
+
+        // Skip if price coords unavailable (can't compute verticals)
+        if (y1 == null || y2 == null) continue;
+        // Skip if both horizontal coords null (completely off screen)
+        if (x1 == null && x2 == null) continue;
+
+        computed.push({
+          x1, x2, y1, y2,
+          type:  z.type,
+          state: z.state,
+          ifvg:  z.ifvg || false,
+          displayType: z.displayType || z.type,
+        });
+      } catch (_) {}
+    }
+
+    this._paneView._renderer.setZones(computed);
+  }
+
+  paneViews() {
+    return [this._paneView];
+  }
+
+  setZones(rawZones) {
+    this._rawZones = rawZones;
+    // Request a redraw — updateAllViews() → draw() will be called next frame
+    if (this._requestUpdate) {
+      this._requestUpdate();
+    }
+  }
+
+  // Fallback: allow external code to inject chart/series if attached() hasn't fired
+  injectRefs(chart, series) {
+    if (!this._chart)  this._chart  = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// App State
+// ═══════════════════════════════════════════════════════════════════════════════
+const DAYS = [
+  { key: '2024-01-08', label: 'Mon Jan 8'  },
+  { key: '2024-01-09', label: 'Tue Jan 9'  },
+  { key: '2024-01-10', label: 'Wed Jan 10' },
+  { key: '2024-01-11', label: 'Thu Jan 11' },
+  { key: '2024-01-12', label: 'Fri Jan 12' },
+];
+
+const SES_LABELS = {
+  asia:  'Asia 19:00\u201300:00',
+  lokz:  'LOKZ 02:00\u201305:00',
+  nyokz: 'NYOKZ 07:00\u201310:00',
+  other: 'Other',
+};
+
+const app = {
+  day:       '2024-01-09',
+  tf:        '5m',
+  threshold: null,      // set from loaded thresholds
+
+  fvgData:       null,  // per-TF detection data {fvgs, thresholds, stats}
+  levelsData:    null,
+  candleData:    null,
+  sessionBands:  null,  // session_boundaries.json (loaded once)
+
+  chart:     null,
+  series:    null,
+  primitive: null,
+  sessionPrimitive: null,
+
+  pdhLine:   null,
+  pdlLine:   null,
+  showIFVG:  false,
+  showBPR:   false,
+};
+
+// ─── Utilities ──────────────────────────────────────────────────────────────
+function toTS(s) {
+  if (!s) return null;
+  // NY time string like "2024-01-09T08:15:00"
+  // Treat as-is (pretend UTC) so chart x-axis shows NY time
+  const clean = s.includes('T') ? s : s.replace(' ', 'T');
+  // Remove any trailing Z if present
+  const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
+  return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+function p5(n)        { return Number(n).toFixed(5); }
+function dayLabel(k)  { return DAYS.find(d => d.key === k)?.label || k; }
+function threshKey(t) { return t.toFixed(1); }
+
+// ─── Data loading ────────────────────────────────────────────────────────────
+async function loadData() {
+  // --- Levels (load once) ---
+  if (!app.levelsData) {
+    try {
+      const lr = await fetch('levels_data.json');
+      app.levelsData = await lr.json();
+    } catch (e) {
+      console.warn('Could not load levels data:', e);
+      app.levelsData = {};
+    }
+  }
+
+  // --- Session boundaries (load once) ---
+  if (!app.sessionBands) {
+    try {
+      const sr = await fetch('session_boundaries.json');
+      app.sessionBands = await sr.json();
+    } catch (e) {
+      console.warn('Could not load session boundaries:', e);
+      app.sessionBands = [];
+    }
+  }
+
+  // --- FVG data (per-TF, reload when TF changes) ---
+  const fvgUrl = `fvg_data_${app.tf}.json`;
+  try {
+    const fr = await fetch(fvgUrl);
+    app.fvgData = await fr.json();
+  } catch (e) {
+    console.warn('Could not load FVG data for', app.tf, e);
+    app.fvgData = { fvgs: [], thresholds: [], stats: {} };
+  }
+
+  // Default to lowest threshold (detection floor) — Olya sweeps upward from there
+  const thresholds = app.fvgData.thresholds || [];
+  if (thresholds.length > 0) {
+    if (app.threshold === null || !thresholds.includes(app.threshold)) {
+      app.threshold = thresholds[0];
+    }
+  }
+
+  // --- Candle data (per-day) ---
+  try {
+    const cr = await fetch('candles_' + app.day + '.json');
+    app.candleData = await cr.json();
+  } catch (e) {
+    console.warn('Could not load candles for', app.day, e);
+    app.candleData = null;
+  }
+}
+
+// ─── Chart initialisation ────────────────────────────────────────────────────
+function initChart() {
+  const el = document.getElementById('chartEl');
+
+  app.chart = LightweightCharts.createChart(el, {
+    autoSize: true,
+    layout: {
+      background: { type: 'solid', color: '#131722' },
+      textColor:  '#787b86',
+      fontSize:    11,
+      fontFamily: "'IBM Plex Mono', monospace",
+    },
+    grid: {
+      vertLines: { color: '#1e222d' },
+      horzLines: { color: '#1e222d' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#555', labelBackgroundColor: '#2a2e39' },
+      horzLine: { color: '#555', labelBackgroundColor: '#2a2e39' },
+    },
+    rightPriceScale: {
+      borderColor:   '#2a2e39',
+      scaleMargins:  { top: 0.08, bottom: 0.06 },
+    },
+    timeScale: {
+      borderColor:    '#2a2e39',
+      timeVisible:    true,
+      secondsVisible: false,
+    },
+  });
+
+  app.series = app.chart.addCandlestickSeries({
+    upColor:         '#26a69a',
+    downColor:       '#ef5350',
+    borderUpColor:   '#26a69a',
+    borderDownColor: '#ef5350',
+    wickUpColor:     '#26a69a',
+    wickDownColor:   '#ef5350',
+  });
+
+  // Create and attach FVG zones primitive
+  app.primitive = new FvgZonesPrimitive();
+  app.series.attachPrimitive(app.primitive);
+
+  // Create and attach session bands primitive
+  app.sessionPrimitive = new SessionBandsPrimitive();
+  app.series.attachPrimitive(app.sessionPrimitive);
+
+  // Subscribe to scale changes so zones stay updated when user pans/zooms
+  app.chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+    if (app.primitive && app.primitive._requestUpdate) {
+      app.primitive._requestUpdate();
+    }
+    if (app.sessionPrimitive && app.sessionPrimitive._requestUpdate) {
+      app.sessionPrimitive._requestUpdate();
+    }
+  });
+
+  // Tooltip on mousemove
+  setupZoneTooltip();
+}
+
+// ─── Session bands rendering ─────────────────────────────────────────────────
+function renderSessionBands() {
+  if (!app.sessionPrimitive || !app.sessionBands) return;
+
+  const dayBands = app.sessionBands.filter(b => b.forex_day === app.day);
+  const rawBands = dayBands.map(b => ({
+    startTS: toTS(b.start_time),
+    endTS:   toTS(b.end_time),
+    color:   b.color,
+    border:  b.border,
+  }));
+
+  app.sessionPrimitive.setBands(rawBands);
+
+  requestAnimationFrame(() => {
+    if (app.sessionPrimitive._requestUpdate) app.sessionPrimitive._requestUpdate();
+  });
+}
+
+// ─── Candle rendering ────────────────────────────────────────────────────────
+function renderCandles() {
+  if (!app.candleData || !app.series) return;
+
+  const raw  = app.candleData[app.tf] || [];
+  const bars = raw
+    .map(b => ({
+      time:  toTS(b.time),
+      open:  b.open,
+      high:  b.high,
+      low:   b.low,
+      close: b.close,
+    }))
+    .filter(b => b.time != null)
+    .sort((a, b) => a.time - b.time);
+
+  app.series.setData(bars);
+
+  // Remove old price lines
+  if (app.pdhLine) { try { app.series.removePriceLine(app.pdhLine); } catch(_){} }
+  if (app.pdlLine) { try { app.series.removePriceLine(app.pdlLine); } catch(_){} }
+  app.pdhLine = app.pdlLine = null;
+
+  const lvl = app.levelsData?.[app.day];
+  if (lvl?.pdh) {
+    app.pdhLine = app.series.createPriceLine({
+      price:              lvl.pdh,
+      color:              'rgba(247,197,72,0.55)',
+      lineWidth:          1,
+      lineStyle:          LightweightCharts.LineStyle.Dashed,
+      axisLabelVisible:   true,
+      title:              'PDH',
+    });
+  }
+  if (lvl?.pdl) {
+    app.pdlLine = app.series.createPriceLine({
+      price:              lvl.pdl,
+      color:              'rgba(247,197,72,0.55)',
+      lineWidth:          1,
+      lineStyle:          LightweightCharts.LineStyle.Dashed,
+      axisLabelVisible:   true,
+      title:              'PDL',
+    });
+  }
+
+  app.chart.timeScale().fitContent();
+
+  // After fitContent the chart needs a frame to settle its coordinate space.
+  // Use rAF + setTimeout to ensure zones are drawn after layout is stable.
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      renderZones();
+      renderSessionBands();
+    }, 50);
+  });
+}
+
+// ─── FVG zone preparation ────────────────────────────────────────────────────
+function getActiveFvgs() {
+  if (!app.fvgData) return [];
+  return app.fvgData.fvgs.filter(f => f.forex_day === app.day && f.gap_pips >= app.threshold);
+}
+
+function renderZones() {
+  if (!app.primitive || !app.candleData) return;
+
+  const fvgs = getActiveFvgs();
+  if (!fvgs.length) {
+    app.primitive.setZones([]);
+    return;
+  }
+
+  const tfCandles = app.candleData[app.tf] || [];
+  // Bar width in seconds
+  const tf_bw = tfCandles.length > 1
+    ? toTS(tfCandles[1].time) - toTS(tfCandles[0].time)
+    : (app.tf === '1m' ? 60 : app.tf === '5m' ? 300 : 900);
+
+  // End of chart = last bar + a few bar-widths
+  const lastTS = tfCandles.length > 0
+    ? toTS(tfCandles[tfCandles.length - 1].time) + tf_bw * 4
+    : null;
+
+  const zones = fvgs.map(fvg => {
+    let endTS;
+    if (fvg.boundary_closed_time)    endTS = toTS(fvg.boundary_closed_time)  + tf_bw;
+    else if (fvg.ce_touched_time)    endTS = toTS(fvg.ce_touched_time)       + tf_bw;
+    else                             endTS = lastTS;
+
+    const state = fvg.boundary_closed_time ? 'bc' : fvg.ce_touched_time ? 'ce' : 'active';
+
+    return {
+      startTS: toTS(fvg.detect_time),
+      endTS,
+      top:    fvg.top,
+      bot:    fvg.bottom,
+      type:   fvg.type,
+      state,
+      fvg,
+    };
+  });
+
+  // IFVG: flip colour on boundary-closed FVGs
+  if (app.showIFVG) {
+    for (const z of zones) {
+      if (z.state === 'bc') {
+        z.ifvg = true;
+        z.displayType = z.type === 'bullish' ? 'bearish' : 'bullish';
+      }
+    }
+  }
+
+  // BPR: find overlapping bullish + bearish FVG zones
+  if (app.showBPR) {
+    const bulls = zones.filter(z => z.type === 'bullish');
+    const bears = zones.filter(z => z.type === 'bearish');
+    for (const b of bulls) {
+      for (const r of bears) {
+        const oTop = Math.min(b.top, r.top);
+        const oBot = Math.max(b.bot, r.bot);
+        if (oTop > oBot) {
+          const oStart = Math.max(b.startTS, r.startTS);
+          const oEnd = Math.min(b.endTS, r.endTS);
+          if (oEnd > oStart) {
+            zones.push({
+              startTS: oStart, endTS: oEnd,
+              top: oTop, bot: oBot,
+              type: 'bpr', state: 'bpr',
+              displayType: 'bpr', fvg: null,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Update derived info
+  const ifvgCount = zones.filter(z => z.ifvg).length;
+  const bprCount = zones.filter(z => z.type === 'bpr').length;
+  const infoParts = [];
+  if (app.showIFVG) infoParts.push(`${ifvgCount} IFVG`);
+  if (app.showBPR) infoParts.push(`${bprCount} BPR`);
+  document.getElementById('derived-info').textContent = infoParts.join(' · ');
+
+  app.primitive.setZones(zones);
+
+  // Force additional updates in case the first requestUpdate fires too early
+  requestAnimationFrame(() => {
+    if (app.primitive._requestUpdate) app.primitive._requestUpdate();
+    requestAnimationFrame(() => {
+      if (app.primitive._requestUpdate) app.primitive._requestUpdate();
+    });
+  });
+}
+
+// ─── Zone tooltip ────────────────────────────────────────────────────────────
+const tipEl = document.getElementById('tooltip');
+
+function setupZoneTooltip() {
+  const wrap = document.getElementById('chartWrap');
+
+  wrap.addEventListener('mousemove', e => {
+    const rect = wrap.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    const my   = e.clientY - rect.top;
+
+    if (!app.chart || !app.series || !app.candleData) { hideTip(); return; }
+
+    const ts     = app.chart.timeScale();
+    const fvgs   = getActiveFvgs();
+    const tfC    = app.candleData[app.tf] || [];
+    const tf_bw  = tfC.length > 1 ? toTS(tfC[1].time) - toTS(tfC[0].time) : 300;
+    const lastTS = tfC.length > 0
+      ? toTS(tfC[tfC.length - 1].time) + tf_bw * 4
+      : null;
+
+    let hit = null;
+    for (const fvg of fvgs) {
+      try {
+        let endTS;
+        if (fvg.boundary_closed_time)    endTS = toTS(fvg.boundary_closed_time)  + tf_bw;
+        else if (fvg.ce_touched_time)    endTS = toTS(fvg.ce_touched_time)       + tf_bw;
+        else                             endTS = lastTS;
+
+        const x1 = ts.timeToCoordinate(toTS(fvg.detect_time));
+        const x2 = endTS != null ? ts.timeToCoordinate(endTS) : null;
+        const y1 = app.series.priceToCoordinate(fvg.top);
+        const y2 = app.series.priceToCoordinate(fvg.bottom);
+
+        if (x1 == null || y1 == null || y2 == null) continue;
+
+        const xL = x1;
+        const xR = x2 ?? rect.width;
+        const yT = Math.min(y1, y2);
+        const yB = Math.max(y1, y2);
+
+        if (mx >= xL && mx <= xR && my >= yT && my <= yB) {
+          hit = fvg;
+          break;
+        }
+      } catch (_) {}
+    }
+
+    if (hit) showTip(e, hit);
+    else     hideTip();
+  });
+
+  wrap.addEventListener('mouseleave', hideTip);
+}
+
+function showTip(e, fvg) {
+  const state = fvg.boundary_closed_time ? 'Boundary Closed' : fvg.ce_touched_time ? 'CE Touched' : 'Active';
+  const tc    = fvg.type === 'bullish' ? 'tt-bull' : 'tt-bear';
+  const name  = fvg.type.charAt(0).toUpperCase() + fvg.type.slice(1);
+  const dtStr = fvg.detect_time.replace('T', ' ');
+  tipEl.innerHTML = `
+    <div class="tt-head ${tc}">${name} FVG — ${state}</div>
+    <div>Gap:&nbsp;&nbsp;&nbsp; <b>${fvg.gap_pips.toFixed(2)} pip</b></div>
+    <div>Top:&nbsp;&nbsp;&nbsp; ${p5(fvg.top)}</div>
+    <div>Bot:&nbsp;&nbsp;&nbsp; ${p5(fvg.bottom)}</div>
+    <div>CE:&nbsp;&nbsp;&nbsp;&nbsp; ${p5(fvg.ce)}</div>
+    <div>Detect: ${dtStr} NY</div>
+    ${fvg.ce_touched_time ? `<div>CE@:&nbsp;&nbsp;&nbsp; ${fvg.ce_touched_time.replace('T',' ')} NY</div>` : ''}
+    ${fvg.boundary_closed_time ? `<div>Closed: ${fvg.boundary_closed_time.replace('T',' ')} NY</div>` : ''}
+    <div>Session: ${SES_LABELS[fvg.session] || fvg.session}</div>
+  `;
+  tipEl.style.display = 'block';
+  const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  let tx = e.clientX + 12, ty = e.clientY + 12;
+  if (tx + tw > window.innerWidth  - 8) tx = e.clientX - tw - 8;
+  if (ty + th > window.innerHeight - 8) ty = e.clientY - th - 8;
+  tipEl.style.left = tx + 'px';
+  tipEl.style.top  = ty + 'px';
+}
+
+function hideTip() {
+  tipEl.style.display = 'none';
+}
+
+// ─── Sidebar + stats ──────────────────────────────────────────────────────────
+function renderSidebar() {
+  const fvgs   = getActiveFvgs();
+  const tk     = threshKey(app.threshold);
+  const stats  = app.fvgData?.stats?.[app.day]?.[tk] || {};
+  const count  = stats.count     ?? fvgs.length;
+  const bull   = stats.bullish   ?? fvgs.filter(f => f.type === 'bullish').length;
+  const bear   = stats.bearish   ?? fvgs.filter(f => f.type === 'bearish').length;
+  const medGap = stats.median_gap != null ? stats.median_gap + ' pip' : '—';
+
+  const sc = {};
+  for (const f of fvgs) sc[f.session] = (sc[f.session] || 0) + 1;
+
+  document.getElementById('daySummary').innerHTML = `
+    <div class="s-lbl">This Day · ${app.threshold.toFixed(1)} pip</div>
+    <div class="sr"><span class="sk">Total FVGs</span><span class="sv">${count}</span></div>
+    <div class="sr"><span class="sk">▲ Bullish</span><span class="sv bull">${bull}</span></div>
+    <div class="sr"><span class="sk">▼ Bearish</span><span class="sv bear">${bear}</span></div>
+    <div class="sr"><span class="sk">Median gap</span><span class="sv">${medGap}</span></div>
+  `;
+  document.getElementById('sessionSummary').innerHTML = `
+    <div class="s-lbl">By Session</div>
+    <div class="sr"><span class="sk">Asia 19:00\u201300:00</span><span class="sv">${sc.asia  || 0}</span></div>
+    <div class="sr"><span class="sk">LOKZ 02:00\u201305:00</span><span class="sv">${sc.lokz  || 0}</span></div>
+    <div class="sr"><span class="sk">NYOKZ 07:00\u201310:00</span><span class="sv">${sc.nyokz || 0}</span></div>
+    <div class="sr"><span class="sk">Other</span><span class="sv">${sc.other || 0}</span></div>
+  `;
+}
+
+function renderThreshButtons() {
+  const grp = document.getElementById('threshGrp');
+  grp.innerHTML = '';
+  const thresholds = app.fvgData?.thresholds || [];
+  for (const t of thresholds) {
+    const cnt = app.fvgData?.stats?.[app.day]?.[threshKey(t)]?.count ?? '?';
+    const btn = document.createElement('button');
+    btn.className = 'thresh-btn' + (t === app.threshold ? ' active' : '');
+    btn.innerHTML = `<span class="t-lbl">${t.toFixed(1)} pip</span><span class="t-cnt">${cnt}</span>`;
+    btn.addEventListener('click', () => {
+      app.threshold = t;
+      document.querySelectorAll('.thresh-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderZones();
+      renderSidebar();
+      renderStatsPanel();
+    });
+    grp.appendChild(btn);
+  }
+}
+
+function renderStatsPanel() {
+  const fvgs   = getActiveFvgs();
+  const tk     = threshKey(app.threshold);
+  const stats  = app.fvgData?.stats?.[app.day]?.[tk] || {};
+  const count  = stats.count     ?? fvgs.length;
+  const bull   = stats.bullish   ?? fvgs.filter(f => f.type === 'bullish').length;
+  const bear   = stats.bearish   ?? fvgs.filter(f => f.type === 'bearish').length;
+  const medGap = stats.median_gap != null ? stats.median_gap + ' pip' : '—';
+  const bPct   = count > 0 ? (bull / count * 100).toFixed(0) : 0;
+  const rPct   = count > 0 ? (bear / count * 100).toFixed(0) : 0;
+
+  const sc = {};
+  for (const f of fvgs) sc[f.session] = (sc[f.session] || 0) + 1;
+
+  const thresholds = app.fvgData?.thresholds || [];
+  const allThreshRows = thresholds.map(t => {
+    const s  = app.fvgData?.stats?.[app.day]?.[threshKey(t)] || {};
+    const hl = t === app.threshold ? ' style="color:var(--yellow);font-weight:600"' : '';
+    return `<div class="sr"${hl}><span class="sk">${t.toFixed(1)} pip</span><span class="sv"${hl}>${s.count ?? '—'}</span></div>`;
+  }).join('');
+
+  document.getElementById('statsPanel').innerHTML = `
+    <div class="sp-blk">
+      <div class="sp-title">Summary</div>
+      <div class="sr"><span class="sk">Day</span><span class="sv">${dayLabel(app.day)}</span></div>
+      <div class="sr"><span class="sk">Threshold</span><span class="sv">${app.threshold.toFixed(1)} pip</span></div>
+      <div class="sr"><span class="sk">FVGs shown</span><span class="sv">${count}</span></div>
+      <div class="sr"><span class="sk">Median gap</span><span class="sv">${medGap}</span></div>
+    </div>
+    <div class="sp-blk">
+      <div class="sp-title">Direction</div>
+      <div class="sr"><span class="sk">▲ Bullish</span><span class="sv bull">${bull}</span></div>
+      <div class="sr"><span class="sk">▼ Bearish</span><span class="sv bear">${bear}</span></div>
+      <div class="sr"><span class="sk">B/B ratio</span><span class="sv">${bPct}% / ${rPct}%</span></div>
+    </div>
+    <div class="sp-blk">
+      <div class="sp-title">By Session</div>
+      <div class="sr"><span class="sk">Asia</span><span class="sv">${sc.asia  || 0}</span></div>
+      <div class="sr"><span class="sk">LOKZ</span><span class="sv">${sc.lokz  || 0}</span></div>
+      <div class="sr"><span class="sk">NYOKZ</span><span class="sv">${sc.nyokz || 0}</span></div>
+      <div class="sr"><span class="sk">Other</span><span class="sv">${sc.other || 0}</span></div>
+    </div>
+    <div class="sp-blk">
+      <div class="sp-title">All Thresholds · ${dayLabel(app.day)}</div>
+      ${allThreshRows}
+    </div>
+  `;
+}
+
+function updateLabels() {
+  document.getElementById('tfLabel').textContent  = app.tf;
+  document.getElementById('dayLabel').textContent = dayLabel(app.day);
+  document.getElementById('detectionLabel').textContent = `Native ${app.tf} detection`;
+}
+
+// ─── Full update ──────────────────────────────────────────────────────────────
+async function fullUpdate(showLoader = true) {
+  if (showLoader) setLoading(true);
+  try {
+    await loadData();
+    renderThreshButtons();
+    renderCandles();   // calls renderZones() + renderSessionBands() after fitContent + rAF
+    renderSidebar();
+    renderStatsPanel();
+    updateLabels();
+  } finally {
+    if (showLoader) setLoading(false);
+  }
+}
+
+function setLoading(v) {
+  document.getElementById('loadingOv').classList.toggle('hidden', !v);
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.day-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.dataset.day === app.day) return;
+    app.day        = tab.dataset.day;
+    app.candleData = null;
+    document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    fullUpdate(true);
+  });
+});
+
+document.querySelectorAll('.tf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tf === app.tf) return;
+    app.tf = btn.dataset.tf;
+    app.fvgData = null;     // Force reload of TF-specific detection data
+    app.threshold = null;   // Reset to let loadData pick middle threshold
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    fullUpdate(true);
+  });
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+document.getElementById('ifvg-toggle').addEventListener('click', () => {
+  app.showIFVG = !app.showIFVG;
+  const btn = document.getElementById('ifvg-toggle');
+  btn.textContent = app.showIFVG ? 'Hide IFVG' : 'Show IFVG';
+  btn.style.background = app.showIFVG ? 'rgba(41,98,255,0.2)' : '';
+  btn.style.color = app.showIFVG ? '#2962ff' : '';
+  renderZones();
+});
+
+document.getElementById('bpr-toggle').addEventListener('click', () => {
+  app.showBPR = !app.showBPR;
+  const btn = document.getElementById('bpr-toggle');
+  btn.textContent = app.showBPR ? 'Hide BPR' : 'Show BPR';
+  btn.style.background = app.showBPR ? 'rgba(156,39,176,0.2)' : '';
+  btn.style.color = app.showBPR ? '#9c27b0' : '';
+  renderZones();
+});
+
+(async function boot() {
+  initChart();
+  await fullUpdate(false);
+})();
+</script>
+</body>
+</html>

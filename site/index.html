@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a8ra Calibration Visual Bible — ICT Primitives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface-2: #1e222d;
+    --border: #2a2e39;
+    --text: #d1d4dc;
+    --text-muted: #787b86;
+    --text-faint: #4a4e59;
+    --teal: #26a69a;
+    --red: #ef5350;
+    --blue: #2962ff;
+    --yellow: #f7c548;
+    --purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .header {
+    padding: 48px 40px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+  }
+
+  .logo-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 680px;
+  }
+
+  .main {
+    flex: 1;
+    padding: 40px;
+    max-width: 1080px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.18s ease, background 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card:hover {
+    border-color: var(--blue);
+    background: var(--surface-2);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-letter {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-faint);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-priority {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .priority-tier1 { background: rgba(38,166,154,0.12); color: var(--teal); }
+  .priority-tier2 { background: rgba(41,98,255,0.12); color: var(--blue); }
+  .priority-low { background: rgba(120,123,134,0.12); color: var(--text-muted); }
+
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-faint);
+  }
+
+  .card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dot-teal { background: var(--teal); }
+  .dot-blue { background: var(--blue); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-purple { background: var(--purple); }
+  .dot-red { background: var(--red); }
+  .dot-grey { background: var(--text-faint); }
+
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+
+  .info-box h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--yellow);
+    margin-bottom: 8px;
+  }
+
+  .info-box p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .arch-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+    font-size: 13px;
+  }
+
+  .arch-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .arch-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(42,46,57,0.5);
+    color: var(--text);
+  }
+
+  .arch-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .layer-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .layer-l1 { background: rgba(38,166,154,0.12); color: var(--teal); }
+  .layer-l15 { background: rgba(247,197,72,0.12); color: var(--yellow); }
+  .layer-l2 { background: rgba(120,123,134,0.12); color: var(--text-muted); }
+
+  footer {
+    padding: 24px 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    color: var(--text);
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 32px 20px 24px; }
+    .main { padding: 24px 20px; }
+    h1 { font-size: 22px; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">a8</div>
+      <div class="logo-text">Calibration Visual Bible</div>
+    </div>
+    <h1>ICT Primitive Threshold Calibration</h1>
+    <p class="subtitle">
+      Phase 2 calibration interface for EURUSD (Jan 7–12, 2024). 
+      Detection runs <strong>natively on each timeframe</strong> (1m, 5m, 15m) — not projected from 1m. 
+      All times in <strong>NY (EST, UTC-5)</strong>. Session boundaries visualized on all charts. 
+      Select the view that matches your trading practice — your visual selection locks the parameter.
+    </p>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="info-box">
+    <h3>How to Use This Tool</h3>
+    <p>
+      Each page shows one primitive with threshold controls. Toggle between values and observe how detection density changes. 
+      The default view is <strong>5-minute candles</strong> — switch to 1m for micro-structure or 15m for structural context. 
+      Detection runs <strong>natively on each timeframe</strong> — switching TF reloads both candles and detections for that resolution. 
+      All timestamps are displayed in <strong>NY time (EST, UTC-5)</strong>. 
+      Session boundaries (Asia, LOKZ, NYOKZ) are shown as colored vertical bands on every chart. 
+      Your task for each primitive is stated at the top of the page.
+    </p>
+  </div>
+
+  <div class="section-label">Three-Layer Architecture</div>
+  <table class="arch-table">
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Name</th>
+        <th>Who Decides</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="layer-tag layer-l1">L1</span></td>
+        <td>Geometric Detection</td>
+        <td>Locked by Phase 1 research</td>
+        <td style="color: var(--teal);">Confirmed</td>
+      </tr>
+      <tr>
+        <td><span class="layer-tag layer-l15">L1.5</span></td>
+        <td>Parameter Thresholds</td>
+        <td>System calibrates → Olya validates</td>
+        <td style="color: var(--yellow);">← You are here</td>
+      </tr>
+      <tr>
+        <td><span class="layer-tag layer-l2">L2</span></td>
+        <td>Strategy Interpretation</td>
+        <td>Olya (post-calibration)</td>
+        <td style="color: var(--text-muted);">Deferred</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Core Primitives — Visual Calibration</div>
+  <div class="card-grid">
+
+    <a class="card" href="fvg.html">
+      <div class="card-header">
+        <div class="card-letter">A</div>
+        <div class="card-priority priority-tier1">Calibrated</div>
+      </div>
+      <div class="card-title">Fair Value Gap (FVG)</div>
+      <div class="card-desc">
+        Threshold sweep at 0.5–3.0 pips. Zones show invalidation states: active → CE touched → boundary closed. Native per-TF detection.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-teal"></span> 6 thresholds</span>
+        <span><span class="dot dot-yellow"></span> invalidation tracking</span>
+      </div>
+    </a>
+
+    <a class="card" href="swings.html">
+      <div class="card-header">
+        <div class="card-letter">B</div>
+        <div class="card-priority priority-tier1">Core</div>
+      </div>
+      <div class="card-title">Swing Points + Session Boxes</div>
+      <div class="card-desc">
+        Height filter at 0.5–15.0 pips. Strength color-coding. Session liquidity boxes with four-gate classification (range, efficiency, mid-cross, balance). Native per-TF detection.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-teal"></span> 6 thresholds</span>
+        <span><span class="dot dot-purple"></span> strength scale</span>
+      </div>
+    </a>
+
+    <a class="card" href="htf.html">
+      <div class="card-header">
+        <div class="card-letter">B+</div>
+        <div class="card-priority priority-tier1">Core</div>
+      </div>
+      <div class="card-title">HTF Liquidity Pools</div>
+      <div class="card-desc">
+        Structural EQH/EQL pools on H1–MN via fractal pivot clustering. Pools persist until swept. Colour-coded by TF with toggle per layer.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-teal"></span> 5 TFs</span>
+        <span><span class="dot dot-purple"></span> 13 pools</span>
+      </div>
+    </a>
+
+    <a class="card" href="asia.html">
+      <div class="card-header">
+        <div class="card-letter">C</div>
+        <div class="card-priority priority-tier1">Core</div>
+      </div>
+      <div class="card-title">Asia Range</div>
+      <div class="card-desc">
+        5 sessions with threshold lines at 12–30 pips. Three-tier classification: TIGHT (&lt;10 pip), MID (10–20 pip), WIDE (&gt;20 pip).
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-yellow"></span> 6 thresholds</span>
+        <span><span class="dot dot-blue"></span> three-tier classification</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="section-label">Dependent Primitives — Visual Calibration</div>
+  <div class="card-grid">
+
+    <a class="card" href="displacement.html">
+      <div class="card-header">
+        <div class="card-letter">D</div>
+        <div class="card-priority priority-tier2">Depends on ATR</div>
+      </div>
+      <div class="card-title">Displacement</div>
+      <div class="card-desc">
+        Dual parameter sweep: ATR multiplier × body/range ratio. AND/OR mode toggle. Cross-referenced with FVG creation. Native per-TF detection.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-teal"></span> 4×4 grid</span>
+        <span><span class="dot dot-red"></span> FVG cross-ref</span>
+      </div>
+    </a>
+
+    <a class="card" href="ny-windows.html">
+      <div class="card-header">
+        <div class="card-letter">E</div>
+        <div class="card-priority priority-tier2">Session Context</div>
+      </div>
+      <div class="card-title">NY Reversal Windows</div>
+      <div class="card-desc">
+        08:00–09:00 vs 10:00–11:00 NY. Side-by-side window comparison with FVG/swing/displacement annotations. Session bands overlay. Native per-TF detection.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-blue"></span> Window A</span>
+        <span><span class="dot dot-purple"></span> Window B</span>
+      </div>
+    </a>
+
+    <a class="card" href="ob-staleness.html">
+      <div class="card-header">
+        <div class="card-letter">F</div>
+        <div class="card-priority priority-tier2">Depends on Displacement</div>
+      </div>
+      <div class="card-title">Order Block Staleness</div>
+      <div class="card-desc">
+        OB zones with age counters. Staleness threshold at 5–30 bars without retest. Both wick and body boundaries shown. Session bands overlay. Native per-TF detection.
+      </div>
+      <div class="card-meta">
+        <span><span class="dot dot-grey"></span> 5 thresholds</span>
+        <span><span class="dot dot-yellow"></span> retest tracking</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="section-label">Primitive Coverage</div>
+  <table class="arch-table">
+    <thead>
+      <tr>
+        <th>Primitive</th>
+        <th>Type</th>
+        <th>Visual Page</th>
+        <th>Calibration Method</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>FVG</td><td>Core</td><td style="color: var(--teal);">fvg.html</td><td>Threshold sweep</td></tr>
+      <tr><td>Swing Points</td><td>Core</td><td style="color: var(--teal);">swings.html</td><td>Height + strength sweep</td></tr>
+      <tr><td>Session Boxes</td><td>Core</td><td style="color: var(--teal);">swings.html (tab)</td><td>Four-gate classification</td></tr>
+      <tr><td>HTF Liquidity</td><td>Core</td><td style="color: var(--teal);">htf.html</td><td>Fractal-clustered EQH/EQL pools</td></tr>
+      <tr><td>Asia Range</td><td>Core</td><td style="color: var(--teal);">asia.html</td><td>Threshold sweep</td></tr>
+      <tr><td>Displacement</td><td>Core</td><td style="color: var(--teal);">displacement.html</td><td>4×4 heatmap</td></tr>
+      <tr><td>NY Windows</td><td>Context</td><td style="color: var(--teal);">ny-windows.html</td><td>Preference (not threshold)</td></tr>
+      <tr><td>Order Block</td><td>Core</td><td style="color: var(--teal);">ob-staleness.html + displacement.html (overlay)</td><td>Staleness sweep + OB toggle</td></tr>
+      <tr><td>MSS</td><td>Composite</td><td style="color: var(--teal);">swings.html (overlay)</td><td>Toggle: swing break + displacement</td></tr>
+      <tr><td>Liquidity Sweep</td><td>Core</td><td style="color: var(--teal);">swings.html (overlay)</td><td>Toggle: wick sweep + close-back</td></tr>
+      <tr><td>OTE</td><td>Derived</td><td style="color: var(--text-muted);">—</td><td>Fib levels locked, anchor proposed</td></tr>
+      <tr><td>IFVG</td><td>Derived</td><td style="color: var(--text-muted);">—</td><td>State transition from FVG</td></tr>
+      <tr><td>BPR</td><td>Derived</td><td style="color: var(--text-muted);">—</td><td>Overlap detection from FVG</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Data Coverage</div>
+  <table class="arch-table">
+    <thead>
+      <tr>
+        <th>Property</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Pair</td><td>EURUSD</td></tr>
+      <tr><td>Resolution</td><td>1m / 5m / 15m — detection runs natively on each TF</td></tr>
+      <tr><td>Period</td><td>2024-01-07 17:00 → 2024-01-12 16:59 NY (EST)</td></tr>
+      <tr><td>Forex Days</td><td>5 (Mon Jan 8 – Fri Jan 12)</td></tr>
+      <tr><td>Timezone</td><td>NY (EST, UTC-5) — all chart times in NY</td></tr>
+      <tr><td>Forex Day Boundary</td><td>17:00 NY (EST)</td></tr>
+      <tr><td>Session Boundaries</td><td>Asia 19:00–00:00 · LOKZ 02:00–05:00 · NYOKZ 07:00–10:00 (all NY time)</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>
+  a8ra Calibration Visual Bible · Phase 2 · Built from Phase 1 Research Pack ·
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OB Staleness — Calibration Bible</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0a0e17;
+    --surface:  #131722;
+    --surface2: #1e222d;
+    --border:   #2a2e39;
+    --text:     #d1d4dc;
+    --muted:    #787b86;
+    --teal:     #26a69a;
+    --red:      #ef5350;
+    --blue:     #2962ff;
+    --yellow:   #f7c548;
+    --purple:   #9c27b0;
+    --mono:     'IBM Plex Mono', monospace;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; flex-direction: column; gap: 1px; }
+  .header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .header-subtitle { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+  .header-nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .nav-link {
+    font-size: 11px; color: var(--muted); text-decoration: none;
+    padding: 4px 10px; border-radius: 4px; transition: background 0.15s, color 0.15s;
+  }
+  .nav-link:hover { background: var(--surface2); color: var(--text); }
+  .nav-link.active { background: var(--blue); color: #fff; }
+
+  /* TF TOGGLE */
+  .tf-group {
+    display: flex; gap: 2px; background: var(--bg);
+    border-radius: 6px; padding: 2px; border: 1px solid var(--border);
+  }
+  .tf-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border: none; border-radius: 4px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .tf-btn:hover { color: var(--text); }
+  .tf-btn.active { background: var(--blue); color: #fff; }
+
+  /* MAIN */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .section-title {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px;
+  }
+
+  /* THRESH BUTTONS */
+  .thresh-group { display: flex; gap: 4px; flex-wrap: wrap; }
+  .thresh-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg); color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .thresh-btn:hover { color: var(--text); border-color: var(--muted); }
+  .thresh-btn.active { background: var(--yellow); color: #0a0e17; border-color: var(--yellow); font-weight: 700; }
+  .thresh-note { font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  /* SESSION LEGEND */
+  .ses-legend {
+    display: flex; gap: 8px; flex-wrap: wrap; padding: 3px 0;
+  }
+  .ses-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--muted); font-family: var(--mono);
+  }
+  .ses-dot {
+    width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0;
+  }
+
+  /* LEGEND */
+  .leg-item { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 11px; }
+  .leg-item:last-child { margin-bottom: 0; }
+  .leg-swatch { width: 28px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .sw-bull-body { background: rgba(38,166,154,0.5); border: 1px solid #26a69a; }
+  .sw-bull-wick { background: rgba(38,166,154,0.15); border: 1px solid rgba(38,166,154,0.35); }
+  .sw-bear-body { background: rgba(239,83,80,0.5);  border: 1px solid #ef5350; }
+  .sw-bear-wick { background: rgba(239,83,80,0.15);  border: 1px solid rgba(239,83,80,0.35); }
+  .sw-stale     { background: rgba(120,123,134,0.18); border: 1px solid rgba(120,123,134,0.3); }
+
+  /* STAT CARDS */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 10px;
+  }
+  .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
+  .stat-val { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 500; color: var(--text); }
+  .val-act { color: var(--teal); }
+  .val-sta { color: var(--muted); }
+  .val-bul { color: var(--teal); }
+  .val-bea { color: var(--red); }
+
+  .prog-wrap { background: var(--border); border-radius: 3px; height: 4px; margin-top: 10px; }
+  .prog-bar  { height: 4px; border-radius: 3px; background: var(--teal); transition: width 0.35s; }
+  .prog-labels {
+    font-size: 10px; color: var(--muted); margin-top: 4px;
+    display: flex; justify-content: space-between;
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: rgba(247,197,72,0.05); border: 1px solid rgba(247,197,72,0.2);
+    border-radius: 6px; padding: 12px;
+  }
+  .callout-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--yellow); margin-bottom: 6px;
+  }
+  .callout-q { font-size: 12px; color: var(--text); line-height: 1.55; }
+
+  /* CHART AREA */
+  .chart-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .chart-container { flex: 1; position: relative; }
+  #chart { width: 100%; height: 100%; }
+  .loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(19,23,34,0.9); font-size: 13px; color: var(--muted); z-index: 100;
+  }
+
+  /* DAY TABS */
+  .day-tabs {
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; height: 40px; gap: 4px; flex-shrink: 0;
+  }
+  .day-tab {
+    font-size: 12px; font-weight: 500; padding: 5px 14px;
+    border: 1px solid transparent; border-radius: 5px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .day-tab:hover { color: var(--text); background: var(--surface2); }
+  .day-tab.active { background: var(--surface2); color: var(--text); border-color: var(--border); }
+
+  /* SUMMARY TABLE */
+  .table-wrap {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 10px 20px; flex-shrink: 0; max-height: 180px; overflow-y: auto;
+  }
+  .table-title {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    padding: 3px 8px; border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; white-space: nowrap;
+  }
+  td {
+    padding: 4px 8px; border-bottom: 1px solid rgba(42,46,57,0.35);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* FOOTER */
+  .footer {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 8px 20px; font-size: 11px; color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  .footer a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+  .footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<nav style="background:#131722;border-bottom:1px solid #2a2e39;padding:6px 16px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;flex-shrink:0;z-index:100;"><a href="index.html" style="color:#787b86;text-decoration:none;font-weight:600;margin-right:8px;">← Index</a><span style="color:#2a2e39;">|</span><a href="fvg.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">FVG</a><a href="swings.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Swings</a><a href="htf.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">HTF</a><a href="asia.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Asia</a><a href="displacement.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">Displacement</a><a href="ny-windows.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">NY Windows</a><a href="ob-staleness.html" style="color:#787b86;text-decoration:none;padding:2px 6px;">OB Staleness</a></nav>
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-title">OB Staleness</div>
+    <div class="header-subtitle" id="header-sub">EURUSD · Native 5m detection · All times NY (EST)</div>
+  </div>
+  <div class="tf-group">
+    <button class="tf-btn" data-tf="1m">1m</button>
+    <button class="tf-btn active" data-tf="5m">5m</button>
+    <button class="tf-btn" data-tf="15m">15m</button>
+  </div>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link">Index</a>
+    <a href="ny-windows.html" class="nav-link">NY Windows</a>
+    <span class="nav-link active">OB Staleness</span>
+  </nav>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Staleness Threshold</div>
+      <div class="thresh-group" id="thresh-group">
+        <button class="thresh-btn" data-thresh="5">5</button>
+        <button class="thresh-btn" data-thresh="10">10</button>
+        <button class="thresh-btn active" data-thresh="15">15</button>
+        <button class="thresh-btn" data-thresh="20">20</button>
+        <button class="thresh-btn" data-thresh="30">30</button>
+      </div>
+      <div class="thresh-note">Bars after OB creation with no meaningful retest before OB is greyed out. Immediate retests (bars_since_ob=1) excluded.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Session Bands</div>
+      <div class="ses-legend">
+        <span class="ses-tag"><span class="ses-dot" style="background:rgba(156,39,176,0.6)"></span>Asia 19:00–00:00</span>
+        <span class="ses-tag"><span class="ses-dot" style="background:rgba(41,98,255,0.5)"></span>LOKZ 02:00–05:00</span>
+        <span class="ses-tag"><span class="ses-dot" style="background:rgba(247,197,72,0.5)"></span>NYOKZ 07:00–10:00</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Zone Legend</div>
+      <div class="leg-item">
+        <div class="leg-swatch sw-bull-body"></div>
+        <span style="color:var(--teal)">Bullish OB · body zone</span>
+      </div>
+      <div class="leg-item">
+        <div class="leg-swatch sw-bear-body"></div>
+        <span style="color:var(--red)">Bearish OB · body zone</span>
+      </div>
+      <div class="leg-item">
+        <div class="leg-swatch sw-stale"></div>
+        <span style="color:var(--muted)">Stale (no retest)</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Display</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;color:var(--muted)">
+        <input type="checkbox" id="show-connectors" style="accent-color:var(--yellow)">
+        Show retest connectors
+      </label>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Day Stats</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total OBs</div>
+          <div class="stat-val" id="s-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Alive</div>
+          <div class="stat-val val-act" id="s-active">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Invalidated</div>
+          <div class="stat-val val-bea" id="s-inval">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Expired</div>
+          <div class="stat-val val-sta" id="s-expired">—</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <div class="stat-card" style="flex:1">
+          <div class="stat-label">Bullish</div>
+          <div class="stat-val val-bul" id="s-bull">—</div>
+        </div>
+        <div class="stat-card" style="flex:1">
+          <div class="stat-label">Bearish</div>
+          <div class="stat-val val-bea" id="s-bear">—</div>
+        </div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-bar" id="prog" style="width:50%"></div>
+      </div>
+      <div class="prog-labels">
+        <span id="prog-a">Active: 50%</span>
+        <span id="prog-s">Stale: 50%</span>
+      </div>
+    </div>
+
+    <div class="section" style="flex:1">
+      <div class="callout">
+        <div class="callout-label">Calibration Question</div>
+        <div class="callout-q">At what age (in bars) would you stop watching this OB?</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <div class="chart-area">
+    <div class="chart-container" id="chart-container">
+      <div id="chart"></div>
+      <div class="loading" id="loading">Loading…</div>
+    </div>
+
+    <div class="day-tabs">
+      <button class="day-tab" data-day="2024-01-08">Mon Jan 8</button>
+      <button class="day-tab active" data-day="2024-01-09">Tue Jan 9</button>
+      <button class="day-tab" data-day="2024-01-10">Wed Jan 10</button>
+      <button class="day-tab" data-day="2024-01-11">Thu Jan 11</button>
+      <button class="day-tab" data-day="2024-01-12">Fri Jan 12</button>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-title">5-Day OB Summary · <span id="thresh-label">threshold = 15 bars</span> · <span id="tf-label">Native 5m detection</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Total</th>
+            <th style="color:var(--teal)">Bull</th>
+            <th style="color:var(--red)">Bear</th>
+            <th style="color:var(--teal)">Alive</th>
+            <th style="color:var(--red)">Inval</th>
+            <th style="color:var(--muted)">Expired</th>
+          </tr>
+        </thead>
+        <tbody id="sum-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>EURUSD · ICT Order Block Staleness · Jan 8–12 2024 · All times NY (EST, UTC-5)</span>
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+</footer>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// Session Boundary Primitive — draws vertical colored bands
+// ═════════════════════════════════════════════════════════════
+class SessionBandsRenderer {
+  constructor() { this._bands = []; }
+  setBands(bands) { this._bands = bands; }
+  draw(target) {
+    if (!this._bands.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const H = scope.mediaSize.height;
+      for (const b of this._bands) {
+        if (b.x1 == null && b.x2 == null) continue;
+        const xL = b.x1 != null ? b.x1 : 0;
+        const xR = b.x2 != null ? b.x2 : scope.mediaSize.width;
+        if (xR - xL < 0.5) continue;
+        ctx.save();
+        ctx.fillStyle = b.color;
+        ctx.fillRect(xL, 0, xR - xL, H);
+        // Left border line
+        ctx.strokeStyle = b.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xL, 0); ctx.lineTo(xL, H);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class SessionBandsPaneView {
+  constructor() { this._renderer = new SessionBandsRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class SessionBandsPrimitive {
+  constructor() {
+    this._rawBands = [];
+    this._paneView = new SessionBandsPaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const b of this._rawBands) {
+      try {
+        const x1 = ts.timeToCoordinate(b.startTS);
+        const x2 = ts.timeToCoordinate(b.endTS);
+        if (x1 == null && x2 == null) continue;
+        computed.push({ x1, x2, color: b.color, border: b.border });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setBands(computed);
+  }
+  paneViews() { return [this._paneView]; }
+  setBands(rawBands) {
+    this._rawBands = rawBands;
+    if (this._requestUpdate) this._requestUpdate();
+  }
+  injectRefs(chart, series) {
+    if (!this._chart) this._chart = chart;
+    if (!this._series) this._series = series;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// OB Zone Primitive — flat rectangles per OB, no cross-zone lines
+// ═════════════════════════════════════════════════════════════
+class OBZoneRenderer {
+  constructor() { this._zones = []; this._showConn = false; }
+  setData(zones, showConn) { this._zones = zones; this._showConn = showConn; }
+  draw(target) {
+    if (!this._zones.length) return;
+    target.useMediaCoordinateSpace(scope => {
+      const ctx = scope.context;
+      const W = scope.mediaSize.width;
+      for (const z of this._zones) {
+        const x1 = z.x1 != null ? z.x1 : 0;
+        const x2 = z.x2 != null ? z.x2 : W;
+        if (x2 - x1 < 1) continue;
+        ctx.save();
+        const rgb = z.dir === 'bullish' ? '38,166,154' : '239,83,80';
+        const grey = '120,123,134';
+
+        // Body zone — lifecycle-aware rendering
+        if (z.yBT != null && z.yBB != null) {
+          const bH = z.yBB - z.yBT;
+          if (bH > 0.5) {
+            const dead = z.state === 'INVALIDATED' || z.state === 'EXPIRED';
+            const mit = z.mitigated && !dead;
+
+            if (dead) {
+              ctx.fillStyle = `rgba(${grey}, 0.04)`;
+              ctx.fillRect(x1, z.yBT, x2 - x1, bH);
+              ctx.strokeStyle = `rgba(${grey}, 0.15)`;
+              ctx.lineWidth = 0.5;
+              ctx.setLineDash([4, 4]);
+            } else if (mit) {
+              ctx.fillStyle = `rgba(${rgb}, 0.07)`;
+              ctx.fillRect(x1, z.yBT, x2 - x1, bH);
+              ctx.strokeStyle = `rgba(${rgb}, 0.3)`;
+              ctx.lineWidth = 1;
+              ctx.setLineDash([2, 2]);
+            } else {
+              ctx.fillStyle = `rgba(${rgb}, 0.15)`;
+              ctx.fillRect(x1, z.yBT, x2 - x1, bH);
+              ctx.strokeStyle = `rgba(${rgb}, 0.55)`;
+              ctx.lineWidth = 1;
+              ctx.setLineDash([]);
+            }
+            ctx.beginPath();
+            ctx.moveTo(x1, z.yBT); ctx.lineTo(x2, z.yBT);
+            ctx.moveTo(x1, z.yBB); ctx.lineTo(x2, z.yBB);
+            ctx.stroke();
+
+            // Termination marker for dead zones
+            if (dead) {
+              ctx.strokeStyle = z.state === 'INVALIDATED'
+                ? `rgba(239,83,80, 0.4)` : `rgba(${grey}, 0.25)`;
+              ctx.lineWidth = 1;
+              ctx.setLineDash([]);
+              ctx.beginPath();
+              ctx.moveTo(x2, z.yBT); ctx.lineTo(x2, z.yBB);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Label on zone
+        if (z.label && z.yBT != null && z.yBB != null) {
+          const yM = (z.yBT + z.yBB) / 2;
+          ctx.font = '500 10px "IBM Plex Mono", monospace';
+          const dead = z.state === 'INVALIDATED' || z.state === 'EXPIRED';
+          ctx.fillStyle = dead ? `rgba(${grey}, 0.35)`
+            : z.mitigated ? `rgba(${rgb}, 0.55)`
+            : `rgba(${rgb}, 0.85)`;
+          ctx.textBaseline = 'middle';
+          ctx.fillText(z.label, x1 + 4, yM);
+        }
+
+        // Connector to retest
+        if (this._showConn && z.rtX != null && z.yBT != null && z.yBB != null) {
+          const yM = (z.yBT + z.yBB) / 2;
+          ctx.setLineDash([2, 2]);
+          ctx.strokeStyle = `rgba(${rgb}, 0.3)`;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x1 + 2, yM);
+          ctx.lineTo(z.rtX, yM);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(z.rtX, yM, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb}, 0.45)`;
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    });
+  }
+  drawBackground(target) {}
+}
+
+class OBZonePaneView {
+  constructor() { this._renderer = new OBZoneRenderer(); }
+  renderer() { return this._renderer; }
+  zOrder() { return 'bottom'; }
+}
+
+class OBZonePrimitive {
+  constructor() {
+    this._zones = [];
+    this._showConn = false;
+    this._paneView = new OBZonePaneView();
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+  attached({ chart, series, requestUpdate }) {
+    this._chart = chart; this._series = series; this._requestUpdate = requestUpdate;
+  }
+  detached() { this._chart = this._series = this._requestUpdate = null; }
+  updateAllViews() {
+    if (!this._chart || !this._series) return;
+    const ts = this._chart.timeScale();
+    const computed = [];
+    for (const z of this._zones) {
+      try {
+        const x1 = ts.timeToCoordinate(z.startTS);
+        const x2 = ts.timeToCoordinate(z.endTS);
+        if (x1 == null && x2 == null) continue;
+        const yBT = this._series.priceToCoordinate(z.bodyTop);
+        const yBB = this._series.priceToCoordinate(z.bodyBot);
+        let rtX = null;
+        if (z.retestTS != null) rtX = ts.timeToCoordinate(z.retestTS);
+        computed.push({ x1, x2, yBT, yBB, dir: z.dir,
+                        state: z.state, mitigated: z.mitigated,
+                        label: z.label, rtX });
+      } catch(_) {}
+    }
+    this._paneView._renderer.setData(computed, this._showConn);
+  }
+  paneViews() { return [this._paneView]; }
+  setZones(zones) { this._zones = zones; if (this._requestUpdate) this._requestUpdate(); }
+  setShowConnectors(v) { this._showConn = v; if (this._requestUpdate) this._requestUpdate(); }
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const DAYS = [
+  { date: '2024-01-08', short: 'Jan 8'  },
+  { date: '2024-01-09', short: 'Jan 9'  },
+  { date: '2024-01-10', short: 'Jan 10' },
+  { date: '2024-01-11', short: 'Jan 11' },
+  { date: '2024-01-12', short: 'Jan 12' },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentDay    = '2024-01-09';
+let currentTF     = '5m';
+let currentThresh = 15;
+let chart         = null;
+let cSeries       = null;
+let obData        = null;
+let sessionData   = null;
+let candleCache      = {};
+let obPrimitive          = null;
+let showConnectors       = false;
+let sessionPrimitive     = null;
+let lastLifecycleResults = [];
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function toTS(s) {
+  if (!s) return null;
+  // NY time string like "2024-01-09T08:15:00"
+  // Treat as-is (pretend UTC) so chart x-axis shows NY time
+  const clean = s.includes('T') ? s : s.replace(' ', 'T');
+  const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
+  return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+function tfSecs(tf) {
+  return tf === '1m' ? 60 : tf === '5m' ? 300 : 900;
+}
+
+// Is this OB active (has meaningful retest within threshold)?
+// Meaningful retest: bars_since_ob > 1 (exclude immediate b=1 displacement retest)
+function isObActive(ob, thresh) {
+  if (!ob.retests || ob.retests.length === 0) return false;
+  return ob.retests.some(r => r.bars_since_ob > 1 && r.bars_since_ob <= thresh);
+}
+
+// First meaningful retest bar count
+function firstMeaningfulRetest(ob) {
+  if (!ob.retests) return null;
+  const mr = ob.retests.find(r => r.bars_since_ob > 1);
+  return mr ? mr.bars_since_ob : null;
+}
+
+// Compute OB lifecycle state by scanning candles after creation
+function computeOBLifecycle(ob, sortedCandles, thresh) {
+  const obTS = toTS(ob.ob_time);
+  const isBull = ob.direction === 'bullish';
+  const bodyTop = ob.zone_body.top;
+  const bodyBot = ob.zone_body.bottom;
+  const candleHigh = ob.zone_wick ? ob.zone_wick.top : bodyTop;
+  const candleLow = ob.zone_wick ? ob.zone_wick.bottom : bodyBot;
+
+  let mitigated = false;
+  let barsSinceOB = 0;
+
+  for (let i = 0; i < sortedCandles.length; i++) {
+    const bar = sortedCandles[i];
+    if (bar.time <= obTS) continue;
+    barsSinceOB++;
+
+    // 1. Price invalidation (highest priority)
+    if (isBull && bar.close < candleLow) {
+      return { state: 'INVALIDATED', endTS: bar.time, mitigated };
+    }
+    if (!isBull && bar.close > candleHigh) {
+      return { state: 'INVALIDATED', endTS: bar.time, mitigated };
+    }
+
+    // 2. Expiry (secondary cleanup)
+    if (barsSinceOB >= thresh) {
+      return { state: 'EXPIRED', endTS: bar.time, mitigated };
+    }
+
+    // 3. Mitigation (zone touched, not killed)
+    if (!mitigated) {
+      if (isBull && bar.low <= bodyTop) mitigated = true;
+      if (!isBull && bar.high >= bodyBot) mitigated = true;
+    }
+  }
+
+  return { state: mitigated ? 'MITIGATED' : 'ACTIVE', endTS: null, mitigated };
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  // Load session boundaries (once)
+  try {
+    const sr = await fetch('session_boundaries.json');
+    sessionData = await sr.json();
+  } catch(e) { console.error('session_boundaries.json load failed', e); }
+
+  // Load OB data for default TF
+  await loadOBData();
+
+  // Build threshold buttons from data
+  rebuildThreshButtons();
+
+  const container = document.getElementById('chart-container');
+
+  chart = LightweightCharts.createChart(document.getElementById('chart'), {
+    layout: {
+      background: { type: 'solid', color: '#131722' },
+      textColor: '#787b86',
+      fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+      fontSize: 11,
+    },
+    grid: {
+      vertLines: { color: '#1e222d' },
+      horzLines: { color: '#1e222d' },
+    },
+    rightPriceScale: { borderColor: '#2a2e39' },
+    timeScale: {
+      borderColor: '#2a2e39',
+      timeVisible: true,
+      secondsVisible: false,
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#2a2e39', labelBackgroundColor: '#1e222d' },
+      horzLine: { color: '#2a2e39', labelBackgroundColor: '#1e222d' },
+    },
+    width:  container.offsetWidth,
+    height: container.offsetHeight || 520,
+  });
+
+  cSeries = chart.addCandlestickSeries({
+    upColor:        '#26a69a', downColor:        '#ef5350',
+    borderUpColor:  '#26a69a', borderDownColor:  '#ef5350',
+    wickUpColor:    '#26a69a', wickDownColor:    '#ef5350',
+  });
+
+  // Attach session bands primitive
+  sessionPrimitive = new SessionBandsPrimitive();
+  cSeries.attachPrimitive(sessionPrimitive);
+
+  // Attach OB zone primitive
+  obPrimitive = new OBZonePrimitive();
+  cSeries.attachPrimitive(obPrimitive);
+
+  new ResizeObserver(() => {
+    chart.resize(container.offsetWidth, container.offsetHeight);
+  }).observe(container);
+
+  // Wire controls
+  document.querySelectorAll('.day-tab').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDay = btn.dataset.day;
+    redraw();
+    buildSummary();
+  }));
+  document.querySelectorAll('.tf-btn').forEach(btn => btn.addEventListener('click', async () => {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTF = btn.dataset.tf;
+    document.getElementById('header-sub').textContent = `EURUSD · Native ${currentTF} detection · All times NY (EST)`;
+    document.getElementById('tf-label').textContent = `Native ${currentTF} detection`;
+    // Reload detection data for new TF
+    await loadOBData();
+    rebuildThreshButtons();
+    redraw();
+    buildSummary();
+  }));
+
+  // Wire connector toggle
+  document.getElementById('show-connectors').addEventListener('change', (e) => {
+    showConnectors = e.target.checked;
+    if (obPrimitive) obPrimitive.setShowConnectors(showConnectors);
+    renderOBs();
+  });
+
+  wireThreshButtons();
+
+  await redraw();
+  buildSummary();
+}
+
+// ── LOAD OB DATA PER TF ──────────────────────────────────────────────────────
+async function loadOBData() {
+  try {
+    const r = await fetch(`ob_data_${currentTF}.json`);
+    obData = await r.json();
+  } catch(e) { console.error(`ob_data_${currentTF}.json failed`, e); obData = null; }
+}
+
+// ── REBUILD THRESHOLD BUTTONS ─────────────────────────────────────────────────
+function rebuildThreshButtons() {
+  const thresholds = (obData && obData.staleness_bars) ? obData.staleness_bars : [5, 10, 15, 20, 30];
+  const group = document.getElementById('thresh-group');
+
+  // Pick middle threshold as default
+  const midIdx = Math.floor(thresholds.length / 2);
+  currentThresh = thresholds[midIdx];
+
+  group.innerHTML = thresholds.map(t =>
+    `<button class="thresh-btn${t === currentThresh ? ' active' : ''}" data-thresh="${t}">${t}</button>`
+  ).join('');
+
+  document.getElementById('thresh-label').textContent = `threshold = ${currentThresh} bars`;
+  wireThreshButtons();
+}
+
+function wireThreshButtons() {
+  document.querySelectorAll('.thresh-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.thresh-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentThresh = parseInt(btn.dataset.thresh);
+    document.getElementById('thresh-label').textContent = `threshold = ${currentThresh} bars`;
+    renderOBs();
+    updateStats();
+    buildSummary();
+  }));
+}
+
+// ── REDRAW ────────────────────────────────────────────────────────────────────
+async function redraw() {
+  document.getElementById('loading').style.display = 'flex';
+
+  if (!candleCache[currentDay]) {
+    try {
+      const r = await fetch(`candles_${currentDay}.json`);
+      candleCache[currentDay] = await r.json();
+    } catch(e) {
+      console.error('Candle load failed:', e);
+      document.getElementById('loading').style.display = 'none';
+      return;
+    }
+  }
+
+  const raw = candleCache[currentDay][currentTF] || [];
+  const seen = new Set();
+  const candles = raw
+    .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+    .sort((a,b) => a.time - b.time)
+    .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+
+  cSeries.setData(candles);
+
+  // Draw session boundary bands
+  renderSessionBands();
+
+  renderOBs();
+  updateStats();
+
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ── SESSION BOUNDARY BANDS ────────────────────────────────────────────────────
+function renderSessionBands() {
+  if (!sessionData || !sessionPrimitive) return;
+
+  const dayBands = sessionData.filter(s => s.forex_day === currentDay);
+  const rawBands = dayBands.map(s => ({
+    startTS: toTS(s.start_time),
+    endTS:   toTS(s.end_time),
+    color:   s.color,
+    border:  s.border,
+  }));
+
+  sessionPrimitive.setBands(rawBands);
+}
+
+// ── CLEAR OB OVERLAYS ─────────────────────────────────────────────────────────
+function clearOBs() {
+  if (obPrimitive) obPrimitive.setZones([]);
+  try { cSeries.setMarkers([]); } catch(e) {}
+}
+
+// ── RENDER OB ZONES ───────────────────────────────────────────────────────────
+function renderOBs() {
+  if (!obData || !candleCache[currentDay] || !obPrimitive) return;
+
+  const secs = tfSecs(currentTF);
+  const rawCandles = candleCache[currentDay][currentTF] || [];
+  const sortedCandles = rawCandles
+    .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+    .sort((a, b) => a.time - b.time);
+  if (sortedCandles.length === 0) { clearOBs(); return; }
+
+  const candleTimes = sortedCandles.map(c => c.time);
+  const lastCandleTS = candleTimes[candleTimes.length - 1];
+
+  function nearestCandleTime(ts) {
+    let best = candleTimes[0], minD = Math.abs(candleTimes[0] - ts);
+    for (const ct of candleTimes) {
+      const d = Math.abs(ct - ts);
+      if (d < minD) { minD = d; best = ct; }
+    }
+    return best;
+  }
+
+  const dayOBs = (obData.order_blocks || []).filter(ob => ob.forex_day === currentDay);
+  const zones = [];
+  // Store lifecycle results for stats
+  lastLifecycleResults = [];
+
+  for (const ob of dayOBs) {
+    const isBull = ob.direction === 'bullish';
+    const obStartTS = toTS(ob.ob_time);
+    const startT = nearestCandleTime(obStartTS);
+
+    const bodyTop = ob.zone_body.top;
+    const bodyBot = ob.zone_body.bottom;
+
+    // Compute lifecycle — terminate zone at death bar
+    const lc = computeOBLifecycle(ob, sortedCandles, currentThresh);
+    lastLifecycleResults.push(lc);
+
+    const endT = lc.endTS != null
+      ? nearestCandleTime(lc.endTS)
+      : lastCandleTS;
+
+    // Label with lifecycle state
+    const frt = firstMeaningfulRetest(ob);
+    let label = isBull ? 'OB\u2191' : 'OB\u2193';
+    if (frt !== null && frt <= currentThresh) label += ` RT@${frt}b`;
+    if (lc.state === 'INVALIDATED') label += ' \u2717';
+    if (lc.state === 'EXPIRED') label += ' exp';
+
+    let retestTS = null;
+    if (frt !== null && frt <= currentThresh) {
+      retestTS = nearestCandleTime(obStartTS + frt * secs);
+    }
+
+    zones.push({
+      startTS: startT,
+      endTS: endT,
+      bodyTop, bodyBot,
+      dir: ob.direction,
+      state: lc.state,
+      mitigated: lc.mitigated,
+      label,
+      retestTS,
+    });
+  }
+
+  obPrimitive.setZones(zones);
+
+  // Candle markers only when connectors shown
+  if (showConnectors) {
+    const rtMarkers = [];
+    for (const ob of dayOBs) {
+      const isBull = ob.direction === 'bullish';
+      const frt = firstMeaningfulRetest(ob);
+      if (frt === null || frt > currentThresh) continue;
+      const rtT = nearestCandleTime(toTS(ob.ob_time) + frt * secs);
+      rtMarkers.push({
+        time: rtT,
+        position: isBull ? 'belowBar' : 'aboveBar',
+        color: isBull ? '#26a69a' : '#ef5350',
+        shape: 'circle',
+        text: `RT@${frt}b`,
+        size: 0,
+      });
+    }
+    const seen = new Set();
+    const deduped = rtMarkers
+      .sort((a,b) => a.time - b.time)
+      .filter(m => { const k = `${m.time}_${m.position}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    try { cSeries.setMarkers(deduped); } catch(e) {}
+  } else {
+    try { cSeries.setMarkers([]); } catch(e) {}
+  }
+}
+
+// ── UPDATE STATS ──────────────────────────────────────────────────────────────
+function updateStats() {
+  if (!obData) return;
+  const dayOBs = (obData.order_blocks || []).filter(ob => ob.forex_day === currentDay);
+  const total = dayOBs.length;
+  const bull  = dayOBs.filter(ob => ob.direction === 'bullish').length;
+  const bear  = dayOBs.filter(ob => ob.direction === 'bearish').length;
+
+  // Use lifecycle results from last render
+  let alive = 0, inval = 0, expired = 0;
+  for (const lc of lastLifecycleResults) {
+    if (lc.state === 'ACTIVE' || lc.state === 'MITIGATED') alive++;
+    else if (lc.state === 'INVALIDATED') inval++;
+    else if (lc.state === 'EXPIRED') expired++;
+  }
+
+  const pct = total > 0 ? Math.round(alive / total * 100) : 0;
+
+  document.getElementById('s-total').textContent   = total;
+  document.getElementById('s-active').textContent  = alive;
+  document.getElementById('s-inval').textContent   = inval;
+  document.getElementById('s-expired').textContent = expired;
+  document.getElementById('s-bull').textContent    = bull;
+  document.getElementById('s-bear').textContent    = bear;
+  document.getElementById('prog').style.width      = pct + '%';
+  document.getElementById('prog-a').textContent    = `Alive: ${pct}%`;
+  document.getElementById('prog-s').textContent    = `Dead: ${100 - pct}%`;
+}
+
+// ── SUMMARY TABLE ─────────────────────────────────────────────────────────────
+async function buildSummary() {
+  if (!obData) { setTimeout(buildSummary, 300); return; }
+
+  // Preload candle data for all days (needed for lifecycle computation)
+  for (const d of DAYS) {
+    if (!candleCache[d.date]) {
+      try {
+        const r = await fetch(`candles_${d.date}.json`);
+        candleCache[d.date] = await r.json();
+      } catch(e) {}
+    }
+  }
+
+  const tbody = document.getElementById('sum-tbody');
+  tbody.innerHTML = '';
+
+  // Compute lifecycle for each day's OBs
+  for (const d of DAYS) {
+    const dayOBs = (obData.order_blocks || []).filter(ob => ob.forex_day === d.date);
+    const total = dayOBs.length;
+    const bull  = dayOBs.filter(ob => ob.direction === 'bullish').length;
+    const bear  = dayOBs.filter(ob => ob.direction === 'bearish').length;
+
+    // Need candle data for lifecycle computation
+    const rawC = candleCache[d.date] ? (candleCache[d.date][currentTF] || []) : [];
+    const sortedC = rawC
+      .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+      .sort((a, b) => a.time - b.time);
+
+    let alive = 0, inv = 0, exp = 0;
+    for (const ob of dayOBs) {
+      const lc = computeOBLifecycle(ob, sortedC, currentThresh);
+      if (lc.state === 'ACTIVE' || lc.state === 'MITIGATED') alive++;
+      else if (lc.state === 'INVALIDATED') inv++;
+      else if (lc.state === 'EXPIRED') exp++;
+    }
+
+    const isCurrent = d.date === currentDay;
+
+    tbody.innerHTML += `
+      <tr style="${isCurrent ? 'background:rgba(41,98,255,0.05)' : ''}">
+        <td style="color:var(--muted)">${d.short}</td>
+        <td>${total}</td>
+        <td style="color:var(--teal)">${bull}</td>
+        <td style="color:var(--red)">${bear}</td>
+        <td style="color:var(--teal)">${alive}</td>
+        <td style="color:var(--red)">${inv}</td>
+        <td style="color:var(--muted)">${exp}</td>
+      </tr>
+    `;
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

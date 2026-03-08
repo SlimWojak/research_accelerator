@@ -1,0 +1,805 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYNTHETIC OLYA METHOD v0.4
+# Machine-Canonical Method Definition
+# ═══════════════════════════════════════════════════════════════════════════════
+# A Claude instance reads this file and knows the COMPLETE method.
+# Zero ambiguity. Zero fluff. Every rule traces to source material.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+metadata:
+  version: "0.4"
+  date: "2026-02-24"
+  source_taxonomy: "reference_taxonomy_v1.1"
+  validated_by: "Olya (full validation pass)"
+  validation_date: "2026-02-12"
+  changelog:
+    v0.4: |
+      Volume Imbalance (VI) added as equal concept to FVG.
+      VI defined as body-to-body gap (wicks may overlap).
+      Both FVG and VI detected and named separately in system outputs.
+      Both treated identically in all trading logic.
+      Amendments: engine_event_detection, five_factor_checklist, entry_types, limit_order_placement.
+      Source: Olya decision 2026-02-24.
+    v0.3: |
+      Full Olya validation pass with 13 corrections:
+      1. Equilibrium — can still enter with full confluence (not automatic wait)
+      2. CBDR — removed entirely (not used)
+      3. Asia Range — locked to 19:00-00:00 NY, must be under 30 pips
+      4. Misalignment — can still take scalps on LTF, 1% risk
+      5. Judas Swing = Liquidity Sweep — same concept, 30-40 pip max
+      6. FVG Respected — bodies must stay inside, wicks can break
+      7. SMT — removed entirely for now
+      8. Position Sizing — removed calculation formula (system handles)
+      9. Stop Loss — by swings not pips
+      10. Time Stop — removed entirely (not used)
+      11. Structure Break Exit — removed entirely (not used now)
+      12. Session Close — no new entries after NYOKZ, overnight holds OK if structure intact
+      13. Chart Setup / Sessions / News — full update with correct times and rules
+    v0.2: "Order Flow hierarchy correction per Olya feedback. Three Questions reordered. 'Both' bias removed."
+    v0.1: "Initial synthesis from taxonomy v1.1 + all source material"
+  sources:
+    - "Layer 0 HTF Context spec v4.1 (Olya's own methodology)"
+    - "Blessed Trader YAMLs (17 lessons, Opus extraction)"
+    - "ICT 2022 Mentorship (Perplexity decomposition)"
+    - "Olya's trading notes (22 PDFs, vision-extracted)"
+    - "Perplexity reports 1-4 (academic/feature analysis)"
+    - "Olya validation session v0.3 (2026-02-12) — 13 corrections applied"
+  instrument: "EURUSD (primary only — will expand after validation)"
+  core_principle: >
+    Every analysis starts with HTF Order Flow direction (Weekly → Daily MSS).
+    If direction is unclear, there is no trade — regardless of what targets exist.
+    Within the established direction, IPDA identifies liquidity targets.
+    Timing (Power of 3, Kill Zones) and pattern recognition (MMXM) operate
+    within the direction. Execution filters (60min Middleman) provide final gate.
+    Order Flow gates everything. Targets are subordinate to direction.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHART SETUP (Reference Configuration)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+chart_setup:
+
+  timezone:
+    rule: "Always NY Time"
+    winter: "UTC-5 (EST)"
+    summer: "UTC-4 (EDT during US daylight saving)"
+
+  sessions:
+    asia:
+      time_ny: "19:00-00:00"
+      note: "Locked — not approximate"
+    lokz:
+      time_ny: "02:00-05:00"
+      name: "London Open Kill Zone"
+    nyokz:
+      time_ny: "07:00-10:00"
+      name: "NY Open Kill Zone"
+
+  kill_zone_reversal_times:
+    description: "Highest probability reversal windows within each Kill Zone"
+    kz_london_open:
+      time_ny: "03:00-04:00"
+    kz_ny_open:
+      time_ny: "08:00-09:00"
+
+  reference_levels:
+    week_day_separator:
+      rule: "Each day opens at 17:00 NY Time"
+    sunday_opening_price:
+      time_ny: "Sunday 17:00"
+      extension: "Extended to Friday"
+    ny_midnight_opening_price:
+      time_ny: "00:00 each day"
+      extension: "Extended to end of day"
+
+  news_rules:
+    high_impact_news:
+      rule: "Avoid entry 1 hour before high impact news (red folder)"
+    cpi_fomc_days:
+      rule: "No trading during NYOKZ on CPI or FOMC days"
+    nfp_week:
+      rule: "No trading Thursday and Friday of NFP week"
+
+  bank_holidays:
+    rule: "If one market is on bank holiday, trade the session of the active side"
+    example: "USD holiday → EUR active → LOKZ is still valid if setup is clean"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OPERATING FRAMEWORK
+# These are NOT equal-weight components. They form a strict hierarchy.
+# Each layer gates the next. If a higher layer says NO, nothing below matters.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+framework:
+
+  # ─── LAYER 1: DIRECTION (Primary Gate — everything flows from this) ─────────
+
+  hierarchy_principle: >
+    Every analysis starts with: Which direction is HTF Order Flow?
+    Then, within that direction: What targets exist?
+    Then: What is the timing and pattern?
+    Then: Is execution alignment present?
+    Order Flow gates everything. Targets are subordinate to direction.
+    If direction is unclear, NOTHING BELOW MATTERS — no trade.
+
+  order_flow:
+    description: >
+      HTF Order Flow is the PRIMARY gate. Weekly → Daily MSS determines
+      the direction the market is flowing. This must be answered FIRST,
+      before any targets, timing, or patterns are considered.
+    hierarchy_position: 1
+    rule: "If Order Flow is unclear → NO TRADE. Full stop."
+    determination:
+      weekly_mss: "Sets macro direction permission"
+      daily_mss: "Confirms daily directional intent"
+      order_flow_read: "HH+HL = bullish, LH+LL = bearish, mixed = no trade"
+    source: [weekly_daily_structure, layer_0_A1, layer_0_B1, olya_feedback_v0.1]
+
+  three_questions:
+    description: >
+      Decision protocol answered once per day at 00:00 NY. Bias frozen until
+      next day. No intraday re-biasing. Questions are answered in priority
+      order — Q1 gates Q2, Q2 gates Q3.
+    questions:
+      q1_direction: "Which direction is HTF Order Flow? (Weekly → Daily MSS) — PRIMARY GATE"
+      q2_target: "Where do we want price to go? (Draw on Liquidity targets in that direction)"
+      q3_phase: "What phase are we in? (MMXM, Power of 3 timing)"
+    decision_logic: >
+      If Q1 unclear → no trade (regardless of targets or timing).
+      If Q1 clear → Q2 identifies targets WITHIN that direction.
+      If Q1 + Q2 clear → Q3 refines timing for execution.
+    output: "long_only | short_only | none"
+    freeze_rule: "Set at 00:00 NY, locked until next 00:00 NY"
+    source: [weekly_daily_structure, layer_0_C, olya_feedback_v0.1]
+
+  # ─── LAYER 2: TARGETS (Subordinate to Direction) ───────────────────────────
+
+  ipda:
+    description: >
+      The Interbank Price Delivery Algorithm delivers price to institutional
+      levels over 20/40/60-day lookback windows. It provides the WHY behind
+      price movement — but targets only matter AFTER direction is established.
+      IPDA answers "where within the direction" not "which direction."
+    hierarchy_position: 2
+    parameters: { lookback_bars: [20, 40, 60], timeframe: Daily }
+    role: "Identifies liquidity targets WITHIN the established direction"
+    subordinate_to: "Order Flow — targets exist within direction, not independent of it"
+    source: [lesson_5_true_day_ipda, layer_0_B3]
+
+  mmxm:
+    description: >
+      Market Maker manipulation recognized as failed auction structure.
+      Two roles: (1) As origin — trade AWAY from MMXM manipulation.
+      (2) As target — trade TOWARDS the original MMXM consolidation,
+      which is itself a liquidity pool. Higher TF MMXM always overrides lower.
+    hierarchy_position: 2  # Co-equal with IPDA as target identification
+    roles:
+      manipulation_origin:
+        conditions: [liquidity_sweep, failed_auction, displacement, fvg, structural_consequence]
+        trade_direction: "Away from MMXM"
+      target_objective:
+        note: "MMXM IS the liquidity pool — no sweep required at MMXM boundary"
+        trade_direction: "Towards original MMXM consolidation"
+    priority_in_targets: 1  # Highest priority target type
+    lookback_constraint: "MMXM valid ONLY after last Daily MSS. Ignore ALL MMXM before last MSS. MSS resets narrative."
+    timeframe_priority:
+      daily: { weight: 1, role: "macro intent — primary targets" }
+      h4: { weight: 2, role: "HTF rebalance — secondary targets" }
+      h1: { weight: 3, role: "execution only — entry timing" }
+    override_rule: "Higher TF MMXM ALWAYS overrides lower TF"
+    source: [lesson_20_market_maker_models, layer_0_B4.5]
+
+  # ─── LAYER 3: TIMING (When within the direction + targets) ─────────────────
+
+  power_of_3:
+    description: >
+      Each trading day follows three phases within one Daily candle:
+      Accumulation (position building around midnight open),
+      Manipulation (liquidity sweep against direction during LOKZ),
+      Distribution (expansion toward daily target during NYOKZ).
+    hierarchy_position: 3
+    phases:
+      accumulation: { time_ny: "00:00-02:00", action: "Consolidation around midnight open" }
+      manipulation: { time_ny: "02:00-05:00", action: "Sweep against direction, form HOD/LOD" }
+      distribution: { time_ny: "07:00-10:00", action: "Expansion toward daily objective" }
+    frequency: "Few times per week, not every day"
+    source: [lesson_17_power_of_3]
+
+  # ─── LAYER 4: EXECUTION FILTER (Final gate before dropping to LTF) ─────────
+
+  middleman_60min:
+    description: >
+      The 60min timeframe validates alignment between Daily and execution
+      timeframes. Green light: 60min supports or is neutral to anticipated
+      direction. Red light: 60min against direction — do not enter (except
+      scalps where 60min must be at minimum neutral).
+    hierarchy_position: 4
+    green_light: "60min NOT against direction AND structure supports move"
+    red_light: "60min totally against direction OR sharp retracement ongoing"
+    scalp_exception: "60min at least neutral"
+    source: [lesson_11_middleman_60min]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: PRE-SESSION PREPARATION (Before 00:00 NY)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+pre_session:
+
+  weekly_context:
+    description: >
+      Evaluated once per week at Sunday 17:00 NY. Weekly provides MACRO
+      PERMISSION ONLY — never used for execution or entries.
+    provides: [pwh, pwl, weekly_fvgs, weekly_obs, expansion_limits]
+    does_not_provide: [execution_ranges, daily_bias_overrides, entry_decisions]
+    weekly_mss:
+      conditions:
+        - "Close beyond prior MSS-defined swing"
+        - "Displacement occurred (qualitative — no pip thresholds)"
+        - "FVG created OR respected"
+      all_required: true
+      if_missing: "NO_STRUCTURE state — system waits"
+    source: [layer_0_A1, layer_0_A2, layer_0_A3]
+
+  daily_bias_determination:
+    description: >
+      At 00:00 NY, determine Daily directional intent. Order Flow is answered
+      FIRST — it gates everything. Bias is FROZEN for the entire day.
+    daily_mss:
+      same_as: "Weekly MSS (close + displacement + FVG)"
+      bootstrap: "First MSS uses PDH/PDL/PWH/PWL as initial boundaries ONLY"
+    order_flow:
+      bullish: "HH + HL pattern in MSS-defined swings"
+      bearish: "LH + LL pattern in MSS-defined swings"
+      mixed: "Conflicting (HH + LL or LH + HL) — NO TRADE"
+    three_questions:
+      q1_direction: "Read HTF Order Flow (Weekly → Daily MSS) — if unclear, STOP HERE"
+      q2_target: "Identify primary Draw on Liquidity target IN the direction from Q1"
+      q3_phase: "Determine current phase (Premium/Discount position, MMXM timing)"
+    bias_output:
+      long_only: "HTF bullish, price in discount, clear bullish objective"
+      short_only: "HTF bearish, price in premium, clear bearish objective"
+      none: "Neutral/unclear HTF, or no clear objective"
+    no_trade_conditions:
+      - "Order Flow unclear or mixed (PRIMARY — gates all below)"
+      - "No Daily MSS exists"
+      - "No dealing range defined"
+      - "No clear Draw on Liquidity objective in the direction"
+    source: [layer_0_B1, layer_0_C, weekly_daily_structure, olya_feedback_v0.1]
+
+  dealing_range_identification:
+    description: >
+      The structural range within which the market operates. Defined FROM
+      MSS boundaries, NOT arbitrary time windows.
+    boundary_priority:
+      1: "Equal Highs/Lows (liquidity pools — highest quality)"
+      2: "External PDH/PDL/PWH/PWL (institutional reference)"
+      3: "MSS Swings (directional intent boundaries)"
+      4: "Validated Swings (local pivots with immediate displacement reaction)"
+      never: "Arbitrary time windows or recent bar highs/lows"
+    equilibrium:
+      definition: "Midpoint (50%) of range"
+      rule: >
+        At Equilibrium, you can still enter if all 5 factors are present and
+        the setup is clean — but probability is lower, so you need full confluence.
+    pdh_pdl_definition:
+      boundary: "17:00 NY forex day (NOT midnight)"
+      measurement: "Wicks only (NOT closes) — liquidity sits at wick extremes"
+      dst: "Use NY local time, auto-adjusts EDT/EST"
+    source: [layer_0_B3, lesson_7_pd_array_matrix, olya_feedback_v0.3]
+
+  draw_on_liquidity:
+    description: >
+      Identify external liquidity targets in direction of bias.
+    target_priority:
+      1: { type: "MMXM High/Low", note: "Original consolidation boundary" }
+      2: { type: "PDH/PDL", note: "Previous day high/low" }
+      3: { type: "PWH/PWL", note: "Previous week high/low" }
+      4: { type: "Daily/Weekly FVG", note: "Undelivered imbalances" }
+    target_status_filter:
+      NOT_DELIVERED: { quality: highest, valid: true, description: "Never touched — liquidity fully intact" }
+      LIQUIDITY_RUN: { quality: valid, valid: true, description: "Approached but no structural consequence" }
+      DELIVERED_WITH_CONSEQUENCE: { quality: invalid, valid: false, description: "Consequence occurred AT level — exclude" }
+    consequence_types: [displacement_from_level, mss_from_level, fvg_from_level, structure_change_from_level]
+    source: [layer_0_B5, layer_0_B5.1]
+
+  asia_range_filter:
+    description: >
+      Check Asia Range to determine if conditions are suitable for LOKZ trading.
+    asia_range:
+      window_ny: "19:00-00:00"
+      locked: true
+      max_pips: 30
+      rule: "Asia Range must be under 30 pips for clean LOKZ setup"
+    skip_lokz_if:
+      - "Asian Range > 30 pips"
+    source: [lesson_12_judas_swing_process, olya_feedback_v0.3]
+
+  htf_alignment_check:
+    description: >
+      Verify Weekly, Daily, and H4 agree on direction. Full alignment enables
+      aggressive entries. Partial alignment limits to scalps.
+    full_alignment:
+      condition: "Weekly + Daily + H4 all agree on direction"
+      action: "Full risk (1%), full setups, external liquidity target"
+    partial_alignment:
+      condition: "Daily clear but against Weekly, or missing H4 confirmation"
+      action: "Scalps only, internal liquidity target only"
+      olya_note: "Risk stays at 1% — what changes is setup type and target distance, not position size"
+    misalignment:
+      condition: "Weekly and Daily disagree"
+      action: "Can still take scalps on lower execution timeframes. Risk stays at 1%."
+    post_expansion_shift:
+      trigger: "Daily objective delivered WITH displacement (impulsive, not grind)"
+      effect: "Shift from Daily range to H4/H1 REBALANCE mode"
+      entry_criteria: "Same 5-factor checklist applied to H4/H1 timeframes"
+      permanent: "Until new Daily MSS"
+    source: [weekly_daily_structure, layer_0_B7, olya_feedback_v0.3]
+
+  middleman_check:
+    description: >
+      Before looking at lower timeframes, verify 60min alignment.
+    rule: "If 60min totally against anticipated direction, DO NOT drop to LTF"
+    exception: "For scalps, 60min must be at minimum neutral"
+    common_mistake: "2/5min looks great but 60min is against — do not enter"
+    patience: "Wait for 60min to align or become neutral"
+    sharp_retracement: "If 60min retracing sharply, wait for imbalance fill before LTF entries"
+    source: [lesson_11_middleman_60min]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: SESSION MONITORING (00:00 - 02:00 NY)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+session_monitoring:
+
+  midnight_open:
+    description: >
+      Record NY midnight (00:00) opening price. Draw horizontal line
+      extending to end of day. This is the intraday reference for the
+      Power of 3 accumulation phase.
+    rule: "Record price at 00:00 NY as MidnightOpenPrice"
+    extension: "Extended to end of day"
+    directional_guide:
+      bearish_opportunities: "ABOVE midnight open line during LOKZ"
+      bullish_opportunities: "BELOW midnight open line during LOKZ"
+    note: "Not 100% — sometimes price explodes after tiny sweep — but reliable filter"
+    source: [lesson_11_middleman_60min, lesson_17_power_of_3, olya_feedback_v0.3]
+
+  asia_liquidity_build:
+    description: >
+      Asia session (19:00-00:00 NY) builds liquidity pools. These pools
+      become targets for London manipulation.
+    time_ny: "19:00-00:00"
+    monitoring:
+      - "Mark Asia session high and low"
+      - "These are the liquidity pools LOKZ will target"
+      - "No core model execution during this period"
+    max_range: "30 pips (must be under this for clean LOKZ setup)"
+    source: [lesson_5_true_day_ipda, lesson_12_judas_swing_process, olya_feedback_v0.3]
+
+  accumulation_recognition:
+    description: >
+      Power of 3 Phase 1. Price consolidates around midnight open price.
+      Positions building. No trade action — observation only.
+    time: "00:00-02:00 NY"
+    observe: "Small range, building positions around opening price"
+    do_not: "Enter during accumulation — too early"
+    source: [lesson_17_power_of_3]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 3: LONDON MANIPULATION (02:00 - 05:00 NY)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+lokz_manipulation:
+
+  lokz_activation:
+    description: >
+      London Open Killzone (02:00-05:00 NY). The manipulation phase of the
+      daily Power of 3 cycle. Price sweeps Asia range liquidity and sets
+      the HOD or LOD for the day.
+    time_ny: "02:00-05:00"
+    kz_reversal_window: "03:00-04:00 NY (highest probability reversal)"
+    expectation:
+      bearish_day: "Price pushes UP, sweeps Asia high, then reverses DOWN (sets HOD)"
+      bullish_day: "Price pushes DOWN, sweeps Asia low, then reverses UP (sets LOD)"
+    source: [lesson_5_true_day_ipda, lesson_12_judas_swing_process]
+
+  liquidity_sweep:
+    description: >
+      The manipulation move against anticipated direction. Also known as Judas Swing.
+      Judas Swing = Liquidity Sweep — they are the same concept.
+    alternate_name: "Judas Swing"
+    size_guide:
+      max_pips: 40
+      rule: "Sweep should not exceed 30-40 pips — beyond that it becomes the trend, not a sweep"
+    what_is_swept:
+      - "Asia session high or low"
+      - "Previous day high or low"
+      - "Equal highs/lows"
+      - "Recent swing points"
+    confirmation: "Price must close back inside range — the breach triggers stops, the close shows rejection"
+    not_mss: "A sweep alone is NOT MSS — it's just a sweep. MSS requires displacement + FVG after."
+    source: [liquidity_concepts, lesson_15_fake_lows_highs, lesson_12_judas_swing_process, olya_feedback_v0.3]
+
+  engine_event_detection:
+    description: >
+      The composite event that enables entry. ALL THREE required simultaneously:
+      (1) Liquidity Sweep, (2) MSS with Displacement, (3) FVG created.
+      When all three fire together, the engine is active and entry search begins.
+    components:
+      sweep: "Price breaches liquidity pool and returns"
+      mss:
+        conditions:
+          - "Close beyond prior MSS-defined swing"
+          - "Displacement: qualitative 5-component (forceful exit, structure removed, FVG left, one-sided, no rotation)"
+          - "FVG created OR respected"
+        all_required: true
+      fvg: "Three-candle imbalance (wick-to-wick). Candle A wick high < Candle C wick low (bullish) or Candle A wick low > Candle C wick high (bearish)."
+      vi: "Three-candle imbalance (body-to-body). Candle A body top < Candle C body bottom (bullish) or Candle A body bottom > Candle C body top (bearish). Wicks may overlap."
+      vi_treatment: "Treated identically to FVG in all trading logic. Detected and labeled separately in system outputs."
+    zone_respect_definition:
+      applies_to: "FVG and VI equally"
+      description: >
+        A zone is "respected" when candle BODIES stay inside the zone boundaries.
+        Wicks can breach the zone, but bodies must remain within.
+      rule: "Candle BODIES must stay inside the zone — wicks can breach it, but bodies must remain within"
+      source: [olya_feedback_v0.3, olya_feedback_v0.4]
+    if_any_missing: "No valid setup. Wait."
+    source: [lesson_18_market_structure_shift, lesson_21_high_probability_scalping, layer_0_A1.2]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 4: ENTRY EXECUTION (When Engine Fires)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entry_execution:
+
+  five_factor_checklist:
+    description: >
+      ALL five required. No exceptions. Skip if ANY factor missing.
+    factors:
+      1: "Liquidity swept (Asia range, PDH/PDL, swing point)"
+      2: "PDA engaged (OB, FVG, VI, or Breaker in correct zone)"
+      3: "MSS confirmed (with displacement + FVG or VI)"
+      4: "OTE zone reached (61.8%-79% retracement of dealing range)"
+      5: "LTF PDA available for entry (5min OB, FVG, or VI for precise entry)"
+    rule: "All 5 or skip. No exceptions. Binary — not scored."
+    source: [lesson_21_high_probability_scalping]
+
+  entry_types:
+    fvg_retrace:
+      description: "Price retraces into FVG created by displacement"
+      where: "FVG in Discount (longs) or Premium (shorts), within OTE zone"
+      entry_price: "FVG boundary or CE (50% of FVG)"
+      quality: "Fresh FVG (untouched or single-tap) preferred"
+      source: [lesson_6_fvg_bisi_sibi]
+
+    vi_retrace:
+      description: "Price retraces into Volume Imbalance created by displacement"
+      where: "VI in Discount (longs) or Premium (shorts), within OTE zone"
+      entry_price: "VI body boundary or CE (50% of VI)"
+      quality: "Fresh VI (untouched or single-tap) preferred"
+      treatment: "Identical to FVG retrace in all logic"
+      source: [olya_feedback_v0.4]
+
+    ob_entry:
+      description: "Price retraces to Order Block body or Mean Threshold"
+      where: "OB in correct Premium/Discount zone"
+      entry_price: "OB body edge (conservative) or MT at 50% (aggressive)"
+      quality: "Big body + fast move away + FVG coupled = high quality OB"
+      mark: "Bodies only — NOT wicks"
+      source: [orderblock_propulsion_breaker]
+
+    sweep_into_pda:
+      description: "Liquidity sweep drives price into PDA where confirmation occurs"
+      sequence: "Identify LQ pool → sweep occurs → price enters PDA → MSS/displacement confirms"
+      timing_priority: "Kill zone > session > off-session"
+      source: [lesson_12_judas_swing_process]
+
+  ote_confirmation:
+    description: >
+      Fibonacci retracement 61.8%-79% of the dealing range or recent expansion.
+      Entry should be within this zone for highest probability.
+    fib_range: [0.618, 0.79]
+    application_methods:
+      method_a: "Body low to body high of expansion"
+      method_b: "OB high to wick top of expansion"
+    source: [lesson_7_pd_array_matrix]
+
+  limit_order_placement:
+    description: >
+      Execute via limit order at predetermined price, not market order.
+      Requires: PDA identified, zone confirmed, time window valid, HTF aligned.
+    order_types:
+      - "Limit at FVG boundary or CE"
+      - "Limit at VI body boundary or CE"
+      - "Limit at OB body or MT"
+      - "Limit at specific Fibonacci level within OTE"
+    source: [lesson_21_high_probability_scalping]
+
+  position_sizing:
+    description: >
+      Fixed risk per trade. System calculates position size automatically.
+    olya_rule: "Fixed 1% of account equity per trade. Always. No grading."
+    note: "System handles lot size calculation based on stop distance"
+    source: [layer_0_management_GAP6, olya_feedback_v0.3]
+
+  stop_loss_placement:
+    description: >
+      Stop loss placed by SWINGS, not by arbitrary pip count.
+      Usually lines up around 8-12 pips, but the swing is what matters.
+    rule: "Place stop beyond the swing that provided liquidity"
+    directional:
+      long: "Below the swing low that provided the liquidity"
+      short: "Above the swing high that provided the liquidity"
+    typical_range: "Usually 8-12 pips, but swing placement is primary"
+    source: [lesson_16_rejection_blocks_stop_placement, olya_feedback_v0.3]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 5: TRADE MANAGEMENT (Post-Entry)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+trade_management:
+
+  breakeven_management:
+    description: >
+      One move: entry price becomes stop loss. No further adjustments.
+    olya_rule: "Trail to breakeven ONLY. No further trailing."
+    trigger: "15min swing break in trade direction OR price moves 1R in favor"
+    after_trigger: "SL locked at entry price. No further changes."
+    source: [layer_0_management_GAP2, lesson_21_high_probability_scalping]
+
+  no_partials:
+    olya_rule: "Full exit at single target. No splitting. No partial take-profit."
+    rationale: "No mid-trade decisions. The position is on or off."
+    source: [layer_0_management_GAP1]
+
+  no_reentry:
+    olya_rule: "One attempt per narrative. Stopped out = done."
+    exception: "ONLY if a completely new MSS creates a genuinely new narrative"
+    rationale: "Prevents revenge trading. Prevents overtrading."
+    source: [layer_0_management_GAP3]
+
+  no_scaling:
+    olya_rule: "Single entry, single exit. No adding to winners or losers."
+    rationale: "Full position at entry. One price, one size, one outcome."
+    source: [layer_0_management_GAP4]
+
+  take_profit_targets:
+    description: >
+      Where to exit. Single target — distance varies by HTF alignment.
+    target_hierarchy:
+      1: "Nearest internal liquidity (session highs/lows within dealing range)"
+      2: "PDH/PDL (previous day levels)"
+      3: "20-day IPDA levels"
+      4: "External liquidity (major swing points, PWH/PWL)"
+    target_selection_by_alignment:
+      partial_alignment: "Target = nearest internal liquidity (PDH/PDL)"
+      full_alignment: "Target = external liquidity (PWH/PWL or MMXM boundary)"
+    olya_rule: "Single target always. What changes is HOW FAR, not how many exits."
+    runner_clarification: >
+      No runners in the traditional sense (leaving a portion on). When HTF is
+      strongly aligned (Weekly + Daily + H4 all agree), the single target extends
+      to external liquidity instead of internal. Still one entry, one exit.
+      Not a runner — a farther single target.
+    source: [lesson_21_high_probability_scalping, lesson_7_pd_array_matrix, olya_feedback_v0.1]
+
+  overnight_holds:
+    olya_rule: "Positions can run overnight if structure is still intact"
+    condition: "Structure intact = no MSS against position, thesis still valid"
+    source: [olya_feedback_v0.3]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 6: SESSION CLOSE & DAILY LIMITS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+session_close:
+
+  no_new_entries_after_nyokz:
+    rule: "No new entries after NYOKZ is over (10:00 NY)"
+    exception: "Open positions can run if structure intact"
+    source: [olya_feedback_v0.3]
+
+  daily_loss_limit:
+    description: >
+      Hard cap on daily losses to prevent emotional spiraling.
+    olya_rule: "2 losses = done for the day. Not percentage-based."
+    rationale: "Prevents emotional spiraling and revenge trading."
+    source: [lesson_21_high_probability_scalping, olya_feedback_v0.1]
+
+  counter_trend_rules:
+    description: >
+      When alignment is imperfect. Olya rarely takes counter-trend trades —
+      prefers to wait for alignment.
+    against_daily:
+      olya_approach: "Rarely taken. Prefer to wait for alignment."
+      if_taken: "Scalp only, same 1% risk, internal liquidity target only"
+    against_60min:
+      rule: "Do not enter if 60min totally against direction"
+      scalp_exception: "60min must be at minimum neutral"
+    no_clear_htf:
+      action: "No trade — wait for clarity"
+    source: [lesson_7_pd_array_matrix, lesson_10_daily_tf_analysis, lesson_11_middleman_60min, olya_feedback_v0.1]
+
+  friday_rules:
+    description: >
+      Friday trading adjustments. Trade normally but expect profit-taking
+      behavior in the market.
+    olya_rule: "Trade normally but take profits at internal liquidity. Stop trading by noon NY."
+    rationale: "Market tends toward profit-taking on Fridays. Less likely to reach external targets."
+    source: [olya_feedback_v0.1]
+
+  instrument_scope:
+    olya_rule: "EURUSD only for now."
+    expansion: "Will add pairs after the system is validated on EURUSD."
+    source: [olya_feedback_v0.1]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OLYA OVERRIDES SUMMARY
+# What Blessed teaches vs what Olya does differently
+# ═══════════════════════════════════════════════════════════════════════════════
+
+olya_overrides:
+
+  - override: "Fixed 1% Risk"
+    blessed_default: "Tiered: 1% full / 0.5% reduced / 0.25% consolidation"
+    olya_rule: "Always 1%. No grading."
+    rationale: "Remove decision complexity. One size for all setups."
+    source: layer_0_management_GAP6
+
+  - override: "No Partial Exits"
+    blessed_default: "50% at TP1 (10 pips), 50% at TP2 (15-20 pips)"
+    olya_rule: "Full exit at single target or SL/BE"
+    rationale: "No mid-trade decisions. Position is on or off."
+    source: layer_0_management_GAP1
+
+  - override: "No Re-Entry"
+    blessed_default: "Re-enter at next OTE if thesis intact"
+    olya_rule: "One attempt per narrative. Only new MSS = new attempt."
+    rationale: "Prevents revenge trading and overtrading."
+    source: layer_0_management_GAP3
+
+  - override: "No Position Scaling"
+    blessed_default: "Add to winners at key levels"
+    olya_rule: "Single entry, single exit. No adding."
+    rationale: "Full position at entry. Simplicity."
+    source: layer_0_management_GAP4
+
+  - override: "Breakeven-Only Trailing"
+    blessed_default: "Progressive trailing with structure"
+    olya_rule: "Move to BE only. No further trailing."
+    rationale: "Remove management complexity. Set and forget after BE."
+    source: layer_0_management_GAP2
+
+  - override: "Stop by Swing, Not Pips"
+    blessed_default: "Fixed 10 pip stop with buffer logic"
+    olya_rule: "Stop placed beyond the swing that provided liquidity"
+    rationale: "Structure-based, not arbitrary. Usually 8-12 pips anyway."
+    source: olya_feedback_v0.3
+
+  - override: "No Time Stop"
+    blessed_default: "15 min time stop for scalps"
+    olya_rule: "No time stops. Exits are price/structure-based only."
+    rationale: "Let the trade work. Structure tells you when it's done."
+    source: olya_feedback_v0.3
+
+  - override: "No CBDR"
+    blessed_default: "CBDR 14:00-20:00 with SD box extensions"
+    olya_rule: "Do not use CBDR. Only use Asia Range (19:00-00:00, max 30 pips)."
+    rationale: "Simplified filter. Asia Range is what matters."
+    source: olya_feedback_v0.3
+
+  - override: "No SMT (for now)"
+    blessed_default: "SMT as confirmation tool"
+    olya_rule: "SMT removed from method for now."
+    rationale: "Simplify. May add back later after core method is validated."
+    source: olya_feedback_v0.3
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# KNOWN GAPS (Concepts where source evidence is thin or absent)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+known_gaps:
+
+  resolved:
+    - concept: "Volume Imbalance vs FVG"
+      resolution: "VI (body-to-body gap) added as equal concept to FVG (wick-to-wick gap). Both detected and named separately. Both treated identically in all trading logic."
+      source: olya_feedback_v0.4
+
+  resolved_in_v0_2:
+    - concept: "Order Flow vs IPDA hierarchy"
+      resolution: "Order Flow is PRIMARY gate. IPDA/targets subordinate. Restructured framework."
+      source: olya_feedback_v0.1
+
+    - concept: "'Both' bias option"
+      resolution: "Dead code. Olya never uses 'both'. Bias = long_only | short_only | none."
+      source: olya_feedback_v0.1
+
+    - concept: "Runner logic with no-partials override"
+      resolution: "No runners. Single target, distance varies by alignment (internal vs external liquidity)."
+      source: olya_feedback_v0.1
+
+    - concept: "Daily loss limit specifics"
+      resolution: "2 losses = done for the day. Not percentage-based."
+      source: olya_feedback_v0.1
+
+    - concept: "Time stop beyond scalps"
+      resolution: "No time stop for swings. Structure-based exits only. (Subsequently removed entirely in v0.3.)"
+      source: olya_feedback_v0.1
+
+    - concept: "Confluence scoring thresholds"
+      resolution: "No numeric scoring. 5-factor checklist is binary: all 5 or no trade."
+      source: olya_feedback_v0.1
+
+    - concept: "Counter-trend trading"
+      resolution: "Rarely taken. Prefers to wait. If taken: scalp, 1%, internal target only."
+      source: olya_feedback_v0.1
+
+    - concept: "Post-expansion rebalance entry criteria"
+      resolution: "Same 5-factor checklist but applied to H4/H1 timeframes."
+      source: olya_feedback_v0.1
+
+  resolved_in_v0_3:
+    - concept: "Equilibrium rule"
+      resolution: "Can still enter at equilibrium with full 5-factor confluence — lower probability, not automatic no-trade."
+      source: olya_feedback_v0.3
+
+    - concept: "CBDR usage"
+      resolution: "Removed. Olya does not use CBDR."
+      source: olya_feedback_v0.3
+
+    - concept: "Asia Range timing"
+      resolution: "Locked to 19:00-00:00 NY. Not approximate."
+      source: olya_feedback_v0.3
+
+    - concept: "Misalignment rule"
+      resolution: "Can still take scalps on LTF when Weekly/Daily disagree. Risk stays 1%."
+      source: olya_feedback_v0.3
+
+    - concept: "Judas Swing vs Liquidity Sweep"
+      resolution: "Same concept. Consolidated. Max 30-40 pips before it becomes trend."
+      source: olya_feedback_v0.3
+
+    - concept: "FVG respected definition"
+      resolution: "Candle bodies must stay inside FVG. Wicks can break, bodies cannot."
+      source: olya_feedback_v0.3
+
+    - concept: "SMT usage"
+      resolution: "Removed for now. May add back after method validated."
+      source: olya_feedback_v0.3
+
+    - concept: "Position sizing calculation"
+      resolution: "System handles it. Just specify 1% risk."
+      source: olya_feedback_v0.3
+
+    - concept: "Stop loss placement"
+      resolution: "By swings, not pips. Below/above the swing that provided liquidity."
+      source: olya_feedback_v0.3
+
+    - concept: "Time stop"
+      resolution: "Removed. No time stops used."
+      source: olya_feedback_v0.3
+
+    - concept: "Structure break exit"
+      resolution: "Removed for now."
+      source: olya_feedback_v0.3
+
+    - concept: "Session close / dead time"
+      resolution: "No new entries after NYOKZ. Positions can run overnight if structure intact."
+      source: olya_feedback_v0.3
+
+    - concept: "News rules specifics"
+      resolution: "1hr before red folder news. No NYOKZ on CPI/FOMC. No Thu/Fri of NFP week."
+      source: olya_feedback_v0.3
+
+  no_source_evidence:
+    - concept: "Overnight hold management"
+      note: "Positions can run overnight if structure intact. No specific management rules beyond that."
+
+    - concept: "Multiple concurrent trades"
+      note: "No source addresses concurrent positions. Likely single position given EURUSD-only constraint."
+
+    - concept: "Consolidation/ranging day handling"
+      note: "Asia Range filter skips LOKZ on volatile days. What Olya does beyond skipping is unclear."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END OF SYNTHETIC OLYA METHOD v0.4 (YAML)
+# ═══════════════════════════════════════════════════════════════════════════════
