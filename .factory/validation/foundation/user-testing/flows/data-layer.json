@@ -1,0 +1,211 @@
+{
+  "groupId": "data-layer",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none (no auth needed)",
+    "namespace": "data-layer"
+  },
+  "toolsUsed": ["python3"],
+  "assertions": [
+    {
+      "id": "VAL-DATA-001",
+      "title": "CSV loads correct bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load CSV via load_csv()", "expected": "DataFrame created", "observed": "DataFrame with 7177 rows" },
+        { "action": "Assert len == 7177", "expected": "7177", "observed": "7177" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_1m) == 7177",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-002",
+      "title": "5m aggregation bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 5m via aggregate(bars_1m, '5m')", "expected": "5m DataFrame", "observed": "1440 bars" },
+        { "action": "Assert len == 1440", "expected": "1440", "observed": "1440" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_5m) == 1440",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-003",
+      "title": "15m aggregation bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 15m via aggregate(bars_1m, '15m')", "expected": "15m DataFrame", "observed": "480 bars" },
+        { "action": "Assert len == 480", "expected": "480", "observed": "480" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_15m) == 480",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-004",
+      "title": "1H aggregation bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 1H via aggregate(bars_1m, '1H')", "expected": "1H DataFrame", "observed": "120 bars" },
+        { "action": "Assert len == 120", "expected": "120", "observed": "120" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_1h) == 120",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-005",
+      "title": "4H aggregation bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 4H via aggregate(bars_1m, '4H')", "expected": "4H DataFrame", "observed": "31 bars" },
+        { "action": "Assert len == 31", "expected": "31", "observed": "31" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_4h) == 31",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-006",
+      "title": "1D aggregation bar count",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 1D via aggregate(bars_1m, '1D')", "expected": "1D DataFrame", "observed": "5 bars" },
+        { "action": "Assert len == 5", "expected": "5", "observed": "5" }
+      ],
+      "evidence": {
+        "python_check": "len(bars_1d) == 5",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-007",
+      "title": "Session tagging correctness",
+      "status": "pass",
+      "steps": [
+        { "action": "Check bar at 19:xx NY", "expected": "session='asia'", "observed": "session='asia'" },
+        { "action": "Check bar at 00:xx NY", "expected": "session='pre_london'", "observed": "session='pre_london'" },
+        { "action": "Check bar at 03:xx NY", "expected": "session='lokz'", "observed": "session='lokz'" },
+        { "action": "Check bar at 06:xx NY", "expected": "session='pre_ny'", "observed": "session='pre_ny'" },
+        { "action": "Check bar at 08:xx NY", "expected": "session='nyokz'", "observed": "session='nyokz'" },
+        { "action": "Check ny_window at 08:xx NY", "expected": "ny_window='a'", "observed": "ny_window='a'" },
+        { "action": "Check ny_window at 10:xx NY", "expected": "ny_window='b'", "observed": "ny_window='b'" }
+      ],
+      "evidence": {
+        "python_check": "Verified asia, pre_london, lokz, pre_ny, nyokz sessions and ny_window a/b",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-008",
+      "title": "Forex day boundary at 17:00 NY",
+      "status": "pass",
+      "steps": [
+        { "action": "Get forex_day at 16:59 NY", "expected": "Day N", "observed": "forex_day='2024-01-08'" },
+        { "action": "Get forex_day at 17:00 NY", "expected": "Day N+1", "observed": "forex_day='2024-01-09'" },
+        { "action": "Assert different forex days", "expected": "Different days", "observed": "2024-01-08 != 2024-01-09" }
+      ],
+      "evidence": {
+        "python_check": "forex_day@16:59=2024-01-08 != forex_day@17:00=2024-01-09",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-009",
+      "title": "NY timezone conversion",
+      "status": "pass",
+      "steps": [
+        { "action": "Check timestamp_ny column exists", "expected": "Column present", "observed": "Column present" },
+        { "action": "Check first bar's NY time", "expected": "NY timezone", "observed": "2024-01-07 17:04:00-05:00 (tz=America/New_York)" },
+        { "action": "Compare UTC vs NY", "expected": "Different representations", "observed": "UTC=2024-01-07 22:04:00+00:00, NY=2024-01-07 17:04:00-05:00" }
+      ],
+      "evidence": {
+        "python_check": "timestamp_ny exists, first=2024-01-07 17:04:00-05:00, tz=America/New_York",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-010",
+      "title": "Bar DataFrame contract compliance",
+      "status": "pass",
+      "steps": [
+        { "action": "Check all required columns present", "expected": "All 12 columns", "observed": "All 12 present" },
+        { "action": "Check integer index", "expected": "RangeIndex or Int64Index", "observed": "Index type: RangeIndex" }
+      ],
+      "evidence": {
+        "python_check": "All columns present (timestamp, timestamp_ny, open, high, low, close, volume, is_ghost, session, kill_zone, ny_window, forex_day), index type=RangeIndex",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-011",
+      "title": "OHLCV aggregation rules",
+      "status": "pass",
+      "steps": [
+        { "action": "Find constituent 1m bars for 5m bar at 2024-01-07 17:04:00-05:00", "expected": "Constituent bars", "observed": "1 bar found (partial first window)" },
+        { "action": "Check open: 5m=1.09462 vs computed=1.09462", "expected": "1.09462", "observed": "1.09462" },
+        { "action": "Check high: 5m=1.09462 vs computed=1.09462", "expected": "1.09462", "observed": "1.09462" },
+        { "action": "Check low: 5m=1.094485 vs computed=1.094485", "expected": "1.094485", "observed": "1.094485" },
+        { "action": "Check close: 5m=1.094495 vs computed=1.094495", "expected": "1.094495", "observed": "1.094495" },
+        { "action": "Check volume: 5m=50.0 vs computed=50.0", "expected": "50.0", "observed": "50.0" }
+      ],
+      "evidence": {
+        "python_check": "Spot-checked 5m bar at 2024-01-07 17:04:00-05:00: open=first, high=max, low=min, close=last, volume=sum all verified",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DATA-012",
+      "title": "Partial bar guard",
+      "status": "fail",
+      "steps": [
+        { "action": "Create truncated 1m series (skip first 2 bars)", "expected": "First 5m window has < 5 bars", "observed": "First 5m window has 3 bars" },
+        { "action": "Aggregate truncated series to 5m", "expected": "Partial first window excluded", "observed": "21 bars returned" },
+        { "action": "Count partial vs full groups", "expected": "Partial groups excluded from output", "observed": "4 partial groups, 17 full groups" },
+        { "action": "Verify partial bars excluded from output", "expected": "Output count = 17 (only full groups)", "observed": "Output count = 21 (partial bars INCLUDED - not discarded)" }
+      ],
+      "evidence": {
+        "python_check": "aggregate() does not discard partial bars. _aggregate_intraday groups by clock-aligned key and aggregates all groups regardless of constituent count. No partial bar filtering logic exists in tf_aggregator.py.",
+        "consoleErrors": "none"
+      },
+      "issues": "TF aggregator does not implement partial bar guard. Aggregated bars with fewer than expected constituent 1m bars are included in output. The _aggregate_group function processes all groups without checking constituent count against expected count for the timeframe."
+    },
+    {
+      "id": "VAL-DATA-013",
+      "title": "Ghost bar identification",
+      "status": "pass",
+      "steps": [
+        { "action": "Count ghost bars", "expected": "is_ghost matches volume==0", "observed": "ghost=0, zero_vol=0, non_ghost=7177, nonzero_vol=7177" },
+        { "action": "Check all ghost bars have volume==0", "expected": "0 mismatches", "observed": "0 ghost bars with non-zero volume" },
+        { "action": "Check all non-ghost bars have volume!=0", "expected": "0 mismatches", "observed": "0 non-ghost bars with zero volume" },
+        { "action": "Assert is_ghost == (volume==0) for all bars", "expected": "True", "observed": "True" }
+      ],
+      "evidence": {
+        "python_check": "is_ghost correlates exactly with volume==0. All 7177 bars have non-zero volume (no ghost bars in this dataset). Logic verified: is_ghost = (volume == 0.0) in csv_loader.py.",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 13 assertions: 12 passed, 1 failed. VAL-DATA-012 (Partial bar guard) failed because tf_aggregator.aggregate() does not discard aggregated bars with incomplete constituent 1m bar counts — all clock-aligned groups are emitted regardless of how many 1m bars they contain."
+}

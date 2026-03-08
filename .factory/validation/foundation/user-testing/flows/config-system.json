@@ -1,0 +1,112 @@
+{
+  "groupId": "config-system",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "config-system"
+  },
+  "toolsUsed": ["python3"],
+  "assertions": [
+    {
+      "id": "VAL-CFG-001",
+      "title": "Config loads from YAML file",
+      "status": "pass",
+      "steps": [
+        { "action": "Import load_config from ra.config.loader", "expected": "Module imports successfully", "observed": "Module imported successfully" },
+        { "action": "Call load_config('configs/locked_baseline.yaml')", "expected": "Returns valid RAConfig object", "observed": "Returned RAConfig instance" },
+        { "action": "Check all 14 primitive sections are populated", "expected": "All sections non-None", "observed": "All 14 primitive sections populated: fvg, ifvg, bpr, swing_points, displacement, session_liquidity, asia_range, mss, order_block, liquidity_sweep, htf_liquidity, ote, reference_levels, equal_hl" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "All 14 primitive sections populated. Config type: RAConfig"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CFG-002",
+      "title": "Unknown params rejected",
+      "status": "pass",
+      "steps": [
+        { "action": "Load locked_baseline.yaml, inject fvg.params.bogus_field=99", "expected": "Modified config data with unknown field", "observed": "Config data modified successfully" },
+        { "action": "Write modified config to temp file and call load_config()", "expected": "ValidationError raised", "observed": "ValidationError raised: Extra inputs are not permitted [type=extra_forbidden, input_value=99]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "ValidationError raised: 1 validation error for RAConfig - primitives.fvg.params.bogus_field - Extra inputs are not permitted [type=extra_forbidden, input_value=99, input_type=int]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CFG-003",
+      "title": "Per-TF override resolution",
+      "status": "pass",
+      "steps": [
+        { "action": "Load config and call resolve_per_tf for swing_points N at 1m", "expected": "Returns 5", "observed": "Returned 5" },
+        { "action": "Call resolve_per_tf for swing_points N at 5m", "expected": "Returns 3", "observed": "Returned 3" },
+        { "action": "Call resolve_per_tf for swing_points N at 15m", "expected": "Returns 2", "observed": "Returned 2" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "Per-TF N values correct: {'1m': 5, '5m': 3, '15m': 2}"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CFG-004",
+      "title": "Schema version mismatch rejected",
+      "status": "pass",
+      "steps": [
+        { "action": "Load locked_baseline.yaml, change schema_version to '99.0'", "expected": "Modified config with wrong version", "observed": "Config data modified successfully" },
+        { "action": "Write modified config to temp file and call load_config()", "expected": "Error raised at load time", "observed": "SchemaVersionError raised: Schema version mismatch: config has '99.0', engine expects '1.0'" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "SchemaVersionError raised: Schema version mismatch: config has '99.0', engine expects '1.0'"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CFG-005",
+      "title": "Missing required param rejected",
+      "status": "pass",
+      "steps": [
+        { "action": "Load locked_baseline.yaml, remove fvg.params.floor_threshold_pips", "expected": "Config data with missing required field", "observed": "Field removed from config data" },
+        { "action": "Write modified config to temp file and call load_config()", "expected": "ValidationError raised", "observed": "ValidationError raised: Field required [type=missing]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "ValidationError raised: 1 validation error for RAConfig - primitives.fvg.params.floor_threshold_pips - Field required [type=missing, input_value={}, input_type=dict]"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CFG-006",
+      "title": "Type mismatch rejected",
+      "status": "pass",
+      "steps": [
+        { "action": "Load locked_baseline.yaml, set fvg.params.floor_threshold_pips.locked to 'abc'", "expected": "Config data with string in numeric field", "observed": "Field modified to string value" },
+        { "action": "Write modified config to temp file and call load_config()", "expected": "ValidationError raised", "observed": "ValidationError raised: Input should be a valid number, unable to parse string as a number" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonExitCode": 0,
+        "detail": "ValidationError raised: 1 validation error for RAConfig - primitives.fvg.params.floor_threshold_pips.locked - Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='abc']"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions: 6 passed, 0 failed. Config system correctly loads valid YAML, rejects unknown params (extra='forbid'), resolves per-TF overrides, rejects schema version mismatches, missing required fields, and type mismatches."
+}

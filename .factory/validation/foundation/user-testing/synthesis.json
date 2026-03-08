@@ -1,0 +1,49 @@
+{
+  "milestone": "foundation",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 22,
+    "passed": 21,
+    "failed": 1,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CFG-001",
+    "VAL-CFG-002",
+    "VAL-CFG-003",
+    "VAL-CFG-004",
+    "VAL-CFG-005",
+    "VAL-CFG-006",
+    "VAL-DATA-001",
+    "VAL-DATA-002",
+    "VAL-DATA-003",
+    "VAL-DATA-004",
+    "VAL-DATA-005",
+    "VAL-DATA-006",
+    "VAL-DATA-007",
+    "VAL-DATA-008",
+    "VAL-DATA-009",
+    "VAL-DATA-010",
+    "VAL-DATA-011",
+    "VAL-DATA-013",
+    "VAL-NYW-001",
+    "VAL-NYW-002",
+    "VAL-NYW-003"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-DATA-012",
+      "reason": "TF aggregator does not implement partial bar guard. aggregate() emits all clock-aligned groups regardless of constituent 1m bar count. The first 5m window at 17:04 with only 1 constituent bar (instead of 5) is included rather than discarded. Note: VAL-DATA-002 expects 1440 5m bars which includes this partial bar — implementing the guard may change the expected count."
+    }
+  ],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance: python-check section with testing instructions, key imports, isolation rules for flow validator subagents",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}
