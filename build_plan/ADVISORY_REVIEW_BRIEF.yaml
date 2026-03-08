@@ -1,0 +1,413 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# a8ra RESEARCH ACCELERATOR — ADVISORY REVIEW BRIEF
+# ═══════════════════════════════════════════════════════════════════════════════
+# PURPOSE: Single dense orientation for CTO Claude (Opus) and Olya's Advisor.
+#          Lateral review gate before autonomous build via Droid Mission Control.
+#          Read this. Flag issues. If clean, we code.
+# DATE: 2026-03-08
+# STATUS: REVIEW_REQUESTED
+# REPO: https://github.com/SlimWojak/research_accelerator
+# AUTHOR: Craig (CTO) + Opus (Architecture Synthesis via Droid)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── CONTEXT ──────────────────────────────────────────────────────────────────
+
+problem:
+  what: |
+    Calibration tool hit a ceiling. Every parameter hypothesis requires Python
+    edits to preprocess_data_v2.py (2,816 lines monolithic), pipeline re-run,
+    JSON regeneration, chart refresh. The 2026-03-07 Liquidity Sweep session
+    consumed 6 hours — 1 hour on architecture, 5 hours in edit→run→check loops.
+  root_cause: |
+    L1.5 parameters are embedded in code, not config. Testing a parameter
+    change IS a code change. The tool cannot separate "what value?" from
+    "what algorithm?".
+  cost: |
+    Every calibration session has the same bottleneck. Multiplied across
+    remaining primitives + future instruments + regime validation = untenable.
+
+proposal:
+  what: |
+    Elevate calibration from disposable tool to core a8ra capability.
+    Research Accelerator: detection engine where algorithm variants and
+    parameter configurations are DATA, not CODE.
+  outcome: |
+    Parameter hypothesis → YAML config change → engine re-runs → chart updates.
+    No Python edits. Cascade auto-resolves downstream. Provenance recorded.
+  strategic_value: |
+    The moat is not locked parameters. The moat is the capacity to rigorously
+    derive, validate, and evolve parameters for any strategy, any instrument,
+    any market regime. RA makes that capacity institutional.
+
+# ─── ISOLATION MODEL ─────────────────────────────────────────────────────────
+
+isolation:
+  principle: "Side experiment alongside core. Zero risk to Phoenix/Dexter."
+  river_consumption: READ_ONLY
+  river_path: "~/phoenix-river/{pair}/{year}/{mm}/{dd}.parquet via DuckDB"
+  phoenix_imports: NONE
+  dexter_imports: NONE
+  detection_logic: "Cloned from pipeline, not imported. Independent codebase."
+  graduation_path: |
+    RA findings → documented recommendations with provenance → Craig/Olya review
+    → manual update to core YAML/code. One-way. Mirrors Bridge pattern
+    (analytical → governance via validated artifacts, never direct code injection).
+  repo: "https://github.com/SlimWojak/research_accelerator (separate from phoenix-swarm)"
+
+# ─── ARCHITECTURE DECISIONS (LOCKED) ─────────────────────────────────────────
+
+decisions:
+  DEC-RA-CONFIG-OVER-CODE: |
+    All L1.5 parameters live in YAML config. Detection modules accept params
+    as dict input. No hardcoded thresholds. If you edit Python to explore,
+    the system has failed.
+  DEC-RA-V05-AS-SCHEMA: |
+    SYNTHETIC_OLYA_METHOD_v0.5.yaml is the canonical primitive spec.
+    Runtime config schema derived from its L1.5 blocks.
+    L1 pseudocode in v0.5 defines what modules implement.
+    L1.5 values in runtime YAML define what config controls at runtime.
+  DEC-RA-RIVER-READONLY: |
+    Data from River parquet (read-only). CSV fallback for 5-day regression
+    dataset. No parallel data layer. No River schema changes.
+  DEC-RA-CASCADE-AUTO: |
+    Dependency graph declared in config YAML. Engine resolves topologically.
+    When upstream param changes, all downstream auto-re-run.
+    Cache unchanged upstream results.
+  DEC-RA-REGRESSION-GATE: |
+    Current pipeline output on 5-day dataset = ground truth.
+    32 JSON fixtures captured (16MB). Exact detection counts pinned.
+    No merge without byte-level regression PASS.
+  DEC-RA-NATIVE-TF: |
+    Detection runs natively on each TF's bar arrays (inherited from v0.5).
+    5m FVG = gap across 3 consecutive 5m candles. NOT 1m projection.
+
+# ─── DEPENDENCY GRAPH ─────────────────────────────────────────────────────────
+# Topological order. Engine runs top-to-bottom. Downstream auto-reruns on
+# upstream param change.
+
+cascade:
+  leaf_nodes:
+    - fvg                    # no upstream
+    - swing_points           # no upstream
+    - displacement           # no upstream
+    - asia_range             # no upstream
+    - session_liquidity      # no upstream
+    - reference_levels       # no upstream (PDH/PDL, MO, EQ)
+
+  derived:
+    - ifvg: [fvg]                          # state transition on closed FVG
+    - bpr: [fvg]                           # geometric overlap bull+bear FVG
+    - equal_hl: [swing_points]             # DEFERRED — stub only
+
+  composites:
+    - mss: [swing_points, displacement, fvg]
+    - order_block: [displacement, mss]
+    - ote: [mss]
+    - htf_liquidity: [swing_points]
+    - liquidity_sweep: [session_liquidity, reference_levels, htf_liquidity, swing_points]
+
+  cascade_implications:
+    displacement_param_change: "→ re-run MSS → re-run OB. FVG/Swings untouched."
+    swing_N_change: "→ re-run MSS, HTF Liquidity, Liquidity Sweep. Displacement untouched."
+    level_source_toggle: "→ re-run Liquidity Sweep only. All primitives untouched."
+
+# ─── MODULE INVENTORY ─────────────────────────────────────────────────────────
+# Each module implements PrimitiveDetector interface:
+#   detect(bars: DataFrame, params: dict, upstream: dict?, context: dict?) → DetectionResult
+# DetectionResult = { detections: list[Detection], metadata: dict, params_used: dict }
+
+modules:
+
+  fvg:
+    file: detectors/fvg.py
+    v05_section: FVG
+    status: LOCKED
+    params: [floor_threshold_pips]
+    logic: "bars[i].low > bars[i-2].high (bull), anchor at candle A"
+    state_machine: ACTIVE → CE_TOUCHED → BOUNDARY_CLOSED → IFVG
+    also_implements: [IFVG, BPR]
+    regression:
+      1m: { count: 2017, bull: 1026, bear: 991 }
+      5m: { count: 345, bull: 179, bear: 166 }
+      15m: { count: 118, bull: 58, bear: 60 }
+
+  swing_points:
+    file: detectors/swing_points.py
+    v05_section: SWING_POINTS
+    status: LOCKED
+    params: [N_per_tf, height_filter_pips_per_tf, strength_cap]
+    logic: "N-bar pivot, >= left > right, strength capped at 20"
+    locked_N: { 1m: 5, 5m: 3, 15m: 2 }
+    locked_height: { 1m: 0.5pip, 5m: 3.0pip, 15m: 3.0pip }
+    strength_as_gate: false  # tag only — LOCKED decision by Olya
+    regression:
+      1m: { count: 833, high: 420, low: 413 }
+      5m: { count: 267, high: 135, low: 132 }
+      15m: { count: 124, high: 62, low: 62 }
+
+  displacement:
+    file: detectors/displacement.py
+    v05_section: DISPLACEMENT
+    status: LOCKED_LTF
+    params: [atr_multiplier, body_ratio, close_gate, combination_mode, decisive_override, cluster_2]
+    logic: |
+      Eval order: cluster_2 → single_atr → single_override.
+      Two-tier: LTF (1.5x/0.60/0.25/AND) LOCKED, HTF (1.5x/0.65/0.25/AND) PROPOSED.
+      Override: body>=0.75, close<=0.10, pip_floor per TF. Fires 1-3%.
+      Quality grades: STRONG(>=2.0x), VALID(>=1.5x), WEAK(>=1.25x).
+    regression:
+      1m: { total: 4170, fvg_creating: 608 }
+      5m: { total: 819, fvg_creating: 171 }
+      15m: { total: 258, fvg_creating: 76 }
+    note: |
+      Pipeline emits ALL candidates (including below-threshold).
+      JSON contains full sweep data. Regression matches JSON structure,
+      not the filtered counts from v0.5 calibration_data section.
+
+  session_liquidity:
+    file: detectors/session_liquidity.py
+    v05_section: SESSION_LIQUIDITY
+    status: PROPOSED
+    params: [efficiency_threshold, mid_cross_min, balance_score_min, range_cap_per_box]
+    logic: "Four-gate classifier: range + ε + mid_cross + balance → CONSOL or TREND"
+    regression:
+      boxes: 15  # 5 days × 3 boxes
+      specific: |
+        Jan8:  CONSOL/TREND_UP/TREND_UP
+        Jan9:  CONSOL/TREND_DN/TREND_DN
+        Jan10: CONSOL/TREND_DN/CONSOL
+        Jan11: CONSOL/TREND_UP/TREND_UP
+        Jan12: CONSOL/CONSOL/TREND_DN
+
+  asia_range:
+    file: detectors/asia_range.py
+    v05_section: ASIA_RANGE
+    status: PROPOSED
+    params: [tight_below, mid_below, wide_above, max_cap]
+    regression: { Jan8: 22.4, Jan9: 17.0, Jan10: 10.3, Jan11: 11.7, Jan12: 12.7 }
+
+  mss:
+    file: detectors/mss.py
+    v05_section: MSS
+    status: LOCKED_LTF
+    upstream: [swing_points, displacement, fvg]
+    params: [confirmation_window_bars, suppression_rules, fvg_tag_only, swing_consumption]
+    logic: |
+      Close beyond prior swing WITH displacement on break bar or within
+      confirmation window (3 bars LTF, 1 bar HTF). Impulse suppression:
+      pullback/opposite_disp/new_day resets. Break classified REV/CONT
+      (internal tag). FVG tagged not gated. Each swing consumed once.
+    regression:
+      1m: { total: 179, rev: 88, cont: 91, fvg_pct: 72 }
+      5m: { total: 44, rev: 20, cont: 24, fvg_pct: 80 }
+      15m: { total: 20, rev: 10, cont: 10, fvg_pct: 85 }
+
+  order_block:
+    file: detectors/order_block.py
+    v05_section: ORDER_BLOCK
+    status: LOCKED
+    upstream: [displacement, mss]
+    params: [zone_type, thin_candle_filter, fallback_scan, expiration_bars_per_tf]
+    logic: |
+      Last opposing candle before displacement+MSS. Body-only zone.
+      Thin filter (body>=0.10). Conditional fallback (3 bars back).
+      State: ACTIVE → MITIGATED/INVALIDATED/EXPIRED.
+      Expiry: LTF 10 bars, HTF 15-20 bars.
+    regression: { 1m: 138, 5m: 37, 15m: 17 }
+
+  liquidity_sweep:
+    file: detectors/liquidity_sweep.py
+    v05_section: LIQUIDITY_SWEEP
+    status: LOCKED
+    upstream: [session_liquidity, reference_levels, htf_liquidity, swing_points]
+    params: [return_window, rejection_wick_pct, min_breach, min_reclaim, max_sweep_atr, level_sources, qualified_sweep, delayed_sweep]
+    logic: |
+      Curated pool (PDH/PDL, Asia H/L, London H/L, LTF box, HTF EQH/EQL,
+      PWH/PWL, promoted swings). Breach + close back + wick >= 40%.
+      Continuation at 1.5x ATR. Qualified: displacement before(10)/after(5).
+      Delayed: bar+1 reclaim, wick >= 30%.
+    regression:
+      5m: { base: 14, qualified: 11, delayed: 15, continuation: 10 }
+      15m: { base: 11, qualified: 10, delayed: 15, continuation: 14 }
+    source_distribution_5m: "ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1"
+
+  htf_liquidity:
+    file: detectors/htf_liquidity.py
+    v05_section: HTF_LIQUIDITY_MODEL
+    status: LOCKED
+    upstream: [swing_points]
+    params: [tolerance_pips_per_tf, min_bars_between, rotation, max_lookback, asia_filter, invalidation]
+    logic: |
+      SwingPoint-sourced (fractal l=2, r=2). Fixed pip tolerance (H1:2, H4:3).
+      Separation + rotation gates. Asia intra-box filter. Invalidation during
+      formation. Candidate fallback on dead pool. Min 2 touches to emit.
+    regression:
+      H1: { bars: 120, swings: 34, pools: 3, untouched: 2, taken: 1 }
+      H4: { bars: 31, swings: 9, pools: 1, untouched: 1, taken: 0 }
+
+  ote:
+    file: detectors/ote.py
+    v05_section: OTE
+    status: PROPOSED
+    upstream: [mss]
+    params: [fib_levels, anchor_rule, kill_zone_gate]
+    logic: "Fib retrace of MSS-defined dealing range. 0.618/0.705/0.79."
+    regression: "No locked numbers. Validate via MSS anchor visual check."
+
+  reference_levels:
+    file: detectors/reference_levels.py
+    v05_section: REFERENCE_LEVELS
+    status: LOCKED
+    params: []  # deterministic
+    logic: "PDH/PDL (17:00 NY wicks), MO (00:00 NY), EQ (midpoint)"
+    regression: { PWH: 1.10001, PWL: 1.09104 }
+
+  equal_hl:
+    file: detectors/equal_hl.py
+    status: DEFERRED
+    note: "Stub only. NotImplementedError. Placeholder in dependency graph."
+
+# ─── DATA CONTRACT ────────────────────────────────────────────────────────────
+
+data:
+  source_primary: "River parquet (read-only via DuckDB, glob over daily partitions)"
+  source_fallback: "CSV (5-day dataset, identical DataFrame output)"
+  base_resolution: 1m
+  aggregation: "1m → 5m/15m/1H/4H/1D (clock-aligned, forex-day-aware)"
+  bar_columns: [timestamp_utc, timestamp_ny, open, high, low, close, volume, is_ghost, session, kill_zone, ny_window, forex_day]
+  ghost_handling: "Included in DataFrame, skipped by all detectors"
+  timezone: "NY throughout. UTC only in storage layer."
+  forex_day: "17:00 NY boundary"
+  sessions: { asia: "19:00-00:00", lokz: "02:00-05:00", nyokz: "07:00-10:00" }
+  dataset_regression: "eurusd_1m_2024-01-07_to_2024-01-12.csv (7,177 bars)"
+  dataset_expansion: "6-12 months EURUSD 1m from Dukascopy (Phase 2, via River)"
+
+# ─── REGRESSION BASELINE ─────────────────────────────────────────────────────
+
+regression:
+  captured: "2026-03-08"
+  method: "Ran current preprocess_data_v2.py, captured 32 JSON output files (16MB)"
+  location: "tests/fixtures/baseline_output/"
+  manifest: "tests/fixtures/BASELINE_MANIFEST.md"
+  gate_rule: |
+    New modular engine with locked params on same dataset MUST produce
+    identical detection output. Count match + per-detection time/price match.
+    No merge to main without regression PASS.
+  known_discrepancies_vs_docs: |
+    - Swing 5m: 267 (pipeline) vs 163 (PROJECT_STATE.md) — older pipeline version
+    - OB 5m: 37 (pipeline) vs 106 (PROJECT_STATE.md) — MSS gate added post-PROJECT_STATE
+    - Displacement 5m: 819 (pipeline, all candidates) vs 460 (v0.5, filtered)
+    Resolution: pipeline JSON output is ground truth. Docs are historical context.
+
+# ─── BUILD PLAN ───────────────────────────────────────────────────────────────
+
+build:
+  method: "Droid Mission Control (autonomous, Opus planning + Sonnet/Codex execution)"
+  branch: "phase1/detection-engine"
+  phases:
+    phase_1:
+      name: DETECTION_ENGINE
+      sessions: 3-4
+      deliverables:
+        D1: "Scaffolding + config loader + PrimitiveDetector ABC"
+        D2: "Data layer (CSV fallback + TF aggregation + session tagging)"
+        D3: "Leaf detectors (FVG, Swing Points, Displacement) — HIGHEST RISK"
+        D4: "Supporting leaves (Session Liquidity, Asia Range, Reference Levels)"
+        D5: "Composites (MSS, Order Block) — SECOND RISK (MSS state machine)"
+        D6: "Multi-source (HTF Liquidity, Liquidity Sweep, OTE) — THIRD RISK"
+        D7: "Cascade engine + full integration regression test"
+      exit_criterion: "pytest test_regression.py PASS — full cascade matches baseline"
+
+    phase_2:
+      name: EVALUATION_RUNNER
+      sessions: 2-3
+      scope: |
+        Statistical comparison, cascade funnel stats, parameter stability
+        sweep (grid + heatmap + plateau detection), walk-forward validation
+        (rolling train/test), regime-sliced evaluation.
+      prerequisite: "Phase 1 regression PASS + 6-12 month dataset via River"
+
+    phase_3:
+      name: COMPARISON_INTERFACE
+      sessions: 2-3
+      scope: |
+        Full-stack chart (Lightweight Charts), multi-config overlay,
+        parameter control panel (real-time re-compute), stats dashboard,
+        ground truth annotation layer, lock + provenance recording.
+      tech_stack: "FastAPI + WebSocket + existing Lightweight Charts patterns"
+
+    phase_4:
+      name: EXTERNAL_ALGOS
+      scope: "Per-indicator missions. PineScript → PrimitiveDetector transpilation."
+      ongoing: true
+
+# ─── REVIEW QUESTIONS ─────────────────────────────────────────────────────────
+
+review_for_cto:
+  q1: |
+    CASCADE GRAPH: Does the dependency graph above correctly capture all
+    primitive relationships from v0.5? Specifically: MSS consuming
+    swing_points + displacement + fvg, OB consuming displacement + mss,
+    liquidity_sweep consuming session_liquidity + reference_levels +
+    htf_liquidity + swing_points. Missing edges?
+  q2: |
+    DISPLACEMENT REGRESSION: Pipeline emits 819 candidates on 5m (all
+    candidates including below-threshold). The v0.5 calibration_data says
+    460 (filtered). The RA engine should emit the full candidate set with
+    threshold metadata, matching the current JSON structure. Correct approach?
+  q3: |
+    MSS CONFIRMATION WINDOW: v0.5 specifies 3-bar window (LTF) with
+    cluster-straddle support (window_used = -1). The module must handle:
+    same-bar displacement, 1-bar-back cluster straddle, and 1-3 bar forward
+    confirmation. Impulse suppression resets on pullback/opposite_disp/new_day.
+    Any edge cases in the current pipeline that the v0.5 pseudocode misses?
+  q4: |
+    OB ANCHOR LOGIC: Conditional fallback scan (3 bars back, only when
+    bars[i-1] fails). Thin candle filter (body_pct >= 0.10). Should the
+    RA module handle the case where ALL 3 fallback bars fail thin filter
+    (→ no OB emitted), or is there a deeper fallback in the current pipeline?
+  q5: |
+    SWEEP LEVEL TEMPORAL GATING: Each level source has a valid_from time
+    (Asia H/L valid after 00:00, London after 05:00, etc.). The curated pool
+    is assembled per-bar with temporal gates. Is the current pipeline's
+    temporal gating logic fully captured in the v0.5 YAML, or are there
+    implementation details in preprocess_data_v2.py not documented?
+
+review_for_advisor:
+  q1: |
+    OLYA'S DETECTION EXPECTATIONS: The locked regression counts (FVG=345 on 5m,
+    MSS=44, Sweeps=14 base) — do these match what Olya validated in her
+    calibration sessions? Any primitives where the count feels wrong relative
+    to what she sees on charts?
+  q2: |
+    STRENGTH AS TAG NOT GATE: Olya locked this decision (2026-03-05) — swing
+    strength grades (dim/mid/vivid) are tags only, never filter MSS or Sweep
+    detection. Confirmed this carries forward correctly?
+  q3: |
+    SESSION LIQUIDITY FOUR-GATE: The PROPOSED status means Olya hasn't
+    visually confirmed the box classifications. Should Phase 1 implement
+    the four-gate model as specified, or should we wait for Olya's
+    visual recheck before locking the session liquidity module?
+  q4: |
+    FVG TAG ON MSS: fvg_created is a tag, not a gate. MSS fires without
+    FVG. This was Olya's decision. The RA preserves this. Any concern
+    that the 80% FVG rate on 5m MSS means the 20% without FVG are noise?
+    Or is that expected (sub-floor gaps, prior wick coverage)?
+  q5: |
+    CURATED SWEEP POOL: The level sources are LOCKED (PDH/PDL, Asia H/L,
+    London H/L, LTF box, HTF EQH/EQL, PWH/PWL, promoted swings).
+    Equal HL is DEFERRED. Raw previous swings EXCLUDED. Does this match
+    Olya's current trading logic for what constitutes a sweepable level?
+
+# ─── RESPONSE FORMAT ──────────────────────────────────────────────────────────
+
+response_requested:
+  format: |
+    Per question: CONFIRMED | ISSUE: {description} | CLARIFICATION_NEEDED: {detail}
+    If all confirmed, state: "CLEAR FOR BUILD."
+    If issues found, state specific concern + recommended resolution.
+  deadline: "Before Phase 1 Mission Control launch"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END ADVISORY REVIEW BRIEF
+# ═══════════════════════════════════════════════════════════════════════════════
