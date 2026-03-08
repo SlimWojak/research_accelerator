@@ -10,6 +10,10 @@ src/ra/config/__init__.py
 src/ra/config/loader.py
 src/ra/config/schema.py
 src/ra/data/__init__.py
+src/ra/data/csv_loader.py
+src/ra/data/river_adapter.py
+src/ra/data/session_tagger.py
+src/ra/data/tf_aggregator.py
 src/ra/detectors/__init__.py
 src/ra/engine/__init__.py
 src/ra/engine/base.py
@@ -17,4 +21,5 @@ src/ra/engine/registry.py
 src/ra/evaluation/__init__.py
 src/ra/output/__init__.py
 tests/test_config.py
+tests/test_data_layer.py
 tests/test_engine_base.py
