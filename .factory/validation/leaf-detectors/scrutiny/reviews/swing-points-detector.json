@@ -1,0 +1,44 @@
+{
+  "featureId": "swing-points-detector",
+  "reviewedAt": "2026-03-08T09:15:00.000Z",
+  "commitId": "a9fb8cf",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "SwingPointDetector correctly implements the N-bar pivot algorithm matching the pipeline reference (detect_swings + compute_swing_height). Swing high uses >= left / > right, swing low uses <= left / < right — matching the v0.5 equality fix. Strength counting capped at strength_cap from config, height computed as pip distance from nearest opposite swing with 999.0 sentinel. All 3 TF regression counts match exactly (1m=833, 5m=267, 15m=124) with per-detection field-level match. 18 well-structured tests covering count regression, field matching, strength cap, boundary sentinel, config-driven params, and deterministic IDs. Implementation is clean, well-documented, and follows established patterns from the FVG detector. Two non-blocking issues found.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/swing_points.py",
+        "line": 127,
+        "severity": "non_blocking",
+        "description": "Dead code: is_ghost is extracted from the DataFrame (line 127), passed to _detect_pivots() (line 132), and accepted as a parameter (line 201), but is never actually used inside the method body. No ghost bar check exists in the pivot detection loop. The pipeline reference also does not skip ghost bars for swing detection (no is_ghost references in pipeline/preprocess_data_v2.py detect_swings), so the behavior is correct — but the dead parameter creates misleading documentation and unnecessary coupling."
+      },
+      {
+        "file": "src/ra/detectors/swing_points.py",
+        "line": 31,
+        "severity": "non_blocking",
+        "description": "Utility function duplication: _SESSION_MAP, _map_session(), and _bar_time_str() are copy-pasted identically across swing_points.py (lines 31-79), fvg.py (lines 40-82), and displacement.py (lines 40-82). AGENTS.md already notes this pattern and recommends extracting to a shared utility. This is a pre-existing pattern the worker inherited from the FVG detector — not a regression, but growing tech debt."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Three detectors (fvg.py, swing_points.py, displacement.py) now duplicate identical _SESSION_MAP, _map_session(), and _bar_time_str() helper functions. AGENTS.md already documents this issue and recommends a shared utility, but no shared module has been created yet. The duplication is growing with each new detector and will affect all future leaf/composite detectors.",
+      "evidence": "Grep for '_SESSION_MAP|_map_session|_bar_time_str' in src/ra/detectors/ shows identical definitions in all three files. AGENTS.md Session Label Mapping section says: 'Consider using a shared utility function from ra.data.session_tagger or ra.engine.base instead of each detector defining its own mapping.'"
+    },
+    {
+      "area": "conventions",
+      "observation": "The feature description lists 'Ghost bars skipped' as an expected behavior, and the implementation accepts is_ghost as a parameter — but neither the pipeline reference nor the RA implementation actually skips ghost bars during swing detection. The convention in AGENTS.md says 'All detectors must skip bars where is_ghost == True' but the pipeline ground truth does NOT skip ghost bars for swing detection. This spec-vs-pipeline discrepancy should be documented more clearly in AGENTS.md to prevent future workers from adding ghost bar filtering that would break regression.",
+      "evidence": "src/ra/detectors/swing_points.py line 127 extracts is_ghost but never checks it in _detect_pivots loop. Grep for 'is_ghost' in pipeline/preprocess_data_v2.py detect_swings() returns no matches. Tests pass without ghost bar filtering, confirming pipeline baseline doesn't filter them."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker's skillFeedback.suggestedChanges notes that build_plan/02_MODULE_MANIFEST.md has outdated regression expectations for swing points (says 5m: 163, 15m: ~45) that don't match actual baseline fixtures (5m: 267, 15m: 124). The feature description had the correct numbers. This could confuse future workers reading the manifest.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The module manifest regression expectations for swing points (5m: 163, 15m: ~45) are outdated and don't match the actual baseline fixtures (5m: 267, 15m: 124).'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. SwingPointDetector is a correct, well-tested implementation that exactly reproduces the pipeline reference behavior. The N-bar pivot algorithm, strength counting, and height computation all match the pipeline's detect_swings() and compute_swing_height() functions. All 3 TF regression targets hit exactly with per-detection field matching. 18 comprehensive tests. Two non-blocking issues: (1) dead is_ghost parameter passed but never used, (2) growing utility function duplication across detectors. Worker followed the skill procedure correctly, wrote tests first, matched baseline fixtures, and committed cleanly."
+}

@@ -1,0 +1,75 @@
+{
+  "milestone": "leaf-detectors",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider", "exitCode": 0, "detail": "209 tests passed in 2.84s" },
+    "typecheck": { "passed": true, "command": "", "exitCode": null, "detail": "No typecheck command configured in services.yaml" },
+    "lint": { "passed": true, "command": "", "exitCode": null, "detail": "No lint command configured in services.yaml" }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "featureReviews": {
+    "fvg-detector": {
+      "status": "pass",
+      "commitId": "e8caa32",
+      "nonBlockingIssues": 3,
+      "summary": "Clean implementation faithfully reproducing pipeline detect_fvgs() logic. 22 tests, all 3 TF regression exact match. Non-blocking: BPR O(n²) complexity, session mapping not centralized, BPR tests lack fixture regression."
+    },
+    "swing-points-detector": {
+      "status": "pass",
+      "commitId": "a9fb8cf",
+      "nonBlockingIssues": 2,
+      "summary": "Correct N-bar pivot with equality fix, strength capping, height sentinel. 18 tests, all 3 TF regression exact. Non-blocking: dead is_ghost parameter, utility function duplication."
+    },
+    "displacement-detector": {
+      "status": "pass",
+      "commitId": "45f18e6",
+      "nonBlockingIssues": 3,
+      "summary": "All three qualification paths (cluster_2, single_atr, single_override) correctly implemented in evaluation order. 22 tests, all TF regression exact, grade distribution matches. Non-blocking: utility duplication, FVG gap logic duplication, implicit floor_threshold_pips default."
+    },
+    "supporting-leaf-detectors": {
+      "status": "pass",
+      "commitId": "d899417",
+      "nonBlockingIssues": 5,
+      "summary": "All 4 detectors implemented correctly. 59 tests, 15 session boxes match, Asia ranges match, reference levels exact. Non-blocking: missing ghost bar filtering (matches pipeline), unused max_cap_pips, hardcoded thresholds in AsiaRange."
+    }
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add convention: Extract shared utility functions (_SESSION_MAP, _map_session(), _bar_time_str(), PIP constant) into a common module (e.g., ra.detectors._common or ra.engine.utils) before implementing composite detectors. All 4 leaf detectors duplicate these identically, and composites will need them too.",
+      "evidence": "All 4 reviewed detectors (fvg.py, swing_points.py, displacement.py, supporting detectors) define identical _SESSION_MAP, _map_session(), _bar_time_str() helpers. 3 of 4 reviewers flagged this as non-blocking tech debt. AGENTS.md already mentions it as a recommendation but doesn't mandate it.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Clarify ghost bar filtering convention: 'All candle-pattern detectors (FVG, displacement, swing points) must skip ghost bars. Session-aggregate detectors (session_liquidity, asia_range, reference_levels) do NOT filter ghost bars, matching pipeline behavior. Ghost bar filtering applies only to detectors that reason about individual bar OHLC patterns, not aggregate session range computations.'",
+      "evidence": "FVG, displacement, swing_points all check is_ghost. Session_liquidity, asia_range, reference_levels do not — matching pipeline behavior. Current AGENTS.md says 'All detectors must skip bars where is_ghost == True' which is overly broad and contradicts pipeline ground truth for aggregate detectors. Supporting-leaf-detectors reviewer flagged this convention gap.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add note about AsiaRangeDetector hardcoded thresholds: acknowledge this as a known deviation from the config-driven principle, to be addressed when asia_range config section is formalized. The thresholds [12, 15, 18, 20, 25, 30] should be moved to locked_baseline.yaml.",
+      "evidence": "AsiaRangeDetector uses _DEFAULT_THRESHOLDS = [12, 15, 18, 20, 25, 30] at module level instead of reading from config. AGENTS.md states: 'Config-driven: Every L1.5 parameter lives in YAML config.' Reviewer flagged as convention violation.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Worker's skillFeedback.suggestedChanges notes build_plan/02_MODULE_MANIFEST.md has outdated regression expectations for swing points (says 5m: 163, 15m: ~45) vs actual baseline (5m: 267, 15m: 124).",
+      "reason": "build_plan/ is off-limits (read-only). Feature descriptions in features.json had correct numbers. Workers should use baseline fixtures as ground truth, not manifest estimates."
+    },
+    {
+      "observation": "Skill feedback from FVG reviewer suggesting adding session label mismatch as a known gotcha to skill.",
+      "reason": "Already addressed — AGENTS.md was updated with 'Session Label Mapping (All Detectors)' section during the FVG detector implementation. No further skill change needed."
+    }
+  ],
+  "previousRound": null
+}

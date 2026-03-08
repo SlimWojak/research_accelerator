@@ -1,0 +1,45 @@
+{
+  "featureId": "fvg-detector",
+  "reviewedAt": "2026-03-08T16:15:00.000Z",
+  "commitId": "e8caa32",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "FVGDetector implementation is clean, well-structured, and faithfully reproduces the pipeline reference logic. All 5 phases (FVG detection, VI confluence, IFVG state tracking, BPR overlap, Detection building) are correctly implemented. The 3-candle gap detection logic exactly matches pipeline/preprocess_data_v2.py detect_fvgs(). Ghost bar handling is correctly added per AGENTS.md conventions. Session mapping (6-category to 4-category) is properly handled. Floor threshold is correctly used as metadata annotation, not a hard filter. Clock-aligned group-key timestamp derivation correctly reproduces pipeline time labeling. 22 tests provide comprehensive regression coverage across all 3 timeframes with per-detection field matching. No blocking issues found.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/fvg.py",
+        "line": 300,
+        "severity": "non_blocking",
+        "description": "BPR computation (_compute_bpr) uses O(n²) Cartesian product of all bull and bear FVGs. For 1m data (1026 bulls × 991 bears ≈ 1M pairs), this produces 1249 zones but checks all pairs. For the current 5-day dataset this is fast enough, but on larger datasets (e.g., months of 1m data) this could become a bottleneck. Consider adding temporal proximity filtering (e.g., only compare FVGs within N bars of each other) in a future optimization pass."
+      },
+      {
+        "file": "src/ra/detectors/fvg.py",
+        "line": 37,
+        "severity": "non_blocking",
+        "description": "The _SESSION_MAP and _map_session() helper duplicate session-mapping logic that AGENTS.md now recommends centralizing. The handoff correctly flags this as a discovered issue. Future detectors (swing_points, displacement, etc.) will need the same mapping. Not blocking since the pattern works and is documented, but a shared utility should be created before too many detectors duplicate it."
+      },
+      {
+        "file": "tests/test_fvg.py",
+        "line": 252,
+        "severity": "non_blocking",
+        "description": "BPR test (test_bpr_zones_computed) only verifies that bpr_zones is a list in metadata, and test_bpr_zone_structure checks the first zone's structure. There's no regression test comparing BPR zone count or specific zone values against a baseline. This is acceptable since BPR zones aren't in the pipeline baseline fixtures, but if BPR output becomes critical downstream, a fixture-based regression test should be added."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md was updated with 'Session Label Mapping (All Detectors)' section documenting the 6-to-4 session mapping pattern and recommending a shared utility. This is good — the handoff's discoveredIssues were incorporated. However, the recommendation to use a shared utility from ra.data.session_tagger or ra.engine.base hasn't been implemented yet. Each new detector will need to either copy _map_session() or a shared utility needs to be created.",
+      "evidence": "AGENTS.md 'Session Label Mapping' section references FVG detector's _map_session() helper. src/ra/detectors/fvg.py lines 37-48 define the local mapping."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker followed skill procedure correctly (TDD approach, spec reading order, baseline comparison, full suite verification). Skill feedback suggests mentioning the session label mismatch as a known gotcha — this has been addressed in AGENTS.md. No skill update needed.",
+      "evidence": "handoff.skillFeedback.followedProcedure=true, deviations=[], AGENTS.md updated with session mapping guidance."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "FVG detector passes review. The implementation faithfully reproduces pipeline detect_fvgs() logic with correct additions for ghost bar handling and session label mapping. All 22 tests pass with exact regression match on all 3 timeframes (1m=2017, 5m=345, 15m=118). Code is clean, well-documented, and follows project conventions. Three non-blocking observations: (1) BPR computation is O(n²) which may need optimization for larger datasets, (2) session mapping helper should eventually be centralized as AGENTS.md recommends, (3) BPR tests lack fixture-based regression coverage. No blocking issues."
+}

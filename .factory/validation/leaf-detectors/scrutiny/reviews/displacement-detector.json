@@ -1,0 +1,45 @@
+{
+  "featureId": "displacement-detector",
+  "reviewedAt": "2026-03-08T09:15:00.000Z",
+  "commitId": "45f18e6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "DisplacementDetector faithfully reproduces the pipeline's detect_displacement() logic. The three qualification paths (cluster_2 → single_atr → single_override) are correctly implemented in the specified evaluation order. ATR computation uses proper Wilder smoothing. Cluster-2 detection correctly applies all four filters (net efficiency, overlap, progressive extremes, same-direction). Decisive override is only applied to SINGLE bars with no quality grade. The qualifies grid, emission gate, FVG cross-reference, ghost bar skipping, session mapping, and NY window handling all match the pipeline. Tests are comprehensive (22 cases across 3 TFs) covering count regression, type/path splits, grade distribution, per-detection field matching, criteria validation, evaluation order, and interface compliance. All 150 tests pass with no regressions. Implementation is config-driven with params read from the config dict rather than hardcoded.",
+    "issues": [
+      {
+        "file": "src/ra/detectors/displacement.py",
+        "line": 40,
+        "severity": "non_blocking",
+        "description": "_SESSION_MAP, _TF_MINUTES, _map_session(), _bar_time_str() are now duplicated across 3 detector files (fvg.py, swing_points.py, displacement.py). AGENTS.md already notes this pattern and suggests consolidation into a shared utility. Technical debt is accumulating; consider extracting to a shared module (e.g., ra.engine.utils or ra.detectors._common) before more detectors are added."
+      },
+      {
+        "file": "src/ra/detectors/displacement.py",
+        "line": 547,
+        "severity": "non_blocking",
+        "description": "_compute_fvg_creating_indices() duplicates the core 3-candle FVG gap detection logic from fvg.py. This is a deliberate design trade-off to maintain leaf detector status (no upstream dependency on FVG results). However, if FVG detection logic changes (e.g., rounding behavior, ghost bar handling), this copy must be updated in sync. A shared static utility for the gap math could reduce this risk."
+      },
+      {
+        "file": "src/ra/detectors/displacement.py",
+        "line": 506,
+        "severity": "non_blocking",
+        "description": "floor_threshold_pips for FVG cross-reference defaults to 0.5 via params.get('floor_threshold_pips', 0.5). This param is typically from the FVG config section, not the displacement config. The default matches the locked baseline so tests pass, but when the full cascade engine wires configs, this param should be explicitly passed or documented as a cross-cutting concern."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Three detector files (fvg.py, swing_points.py, displacement.py) each define identical copies of _SESSION_MAP, _TF_MINUTES, _map_session(), and _bar_time_str(). AGENTS.md mentions this as a suggestion but doesn't enforce it. As more leaf detectors are added (session_liquidity, asia_range, etc.), the duplication will grow. A convention rule in AGENTS.md should either mandate a shared utility module or explicitly accept per-file duplication as the pattern.",
+      "evidence": "Grep for _map_session|_bar_time_str across src/ra/detectors/ shows 3 identical definitions in fvg.py:40,50,52,55; swing_points.py:31,41,51,56; displacement.py:40,50,60,65"
+    },
+    {
+      "area": "conventions",
+      "observation": "The PIP constant (0.0001) is defined as a module-level constant in each detector file independently. Could be centralized in engine/base.py or a constants module.",
+      "evidence": "fvg.py line 27: PIP = 0.0001; displacement.py line 30: PIP = 0.0001"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "DisplacementDetector passes review. The implementation correctly reproduces all three qualification paths (cluster_2, single_atr, single_override) in the specified evaluation order, with proper ATR computation, quality grading, qualifies grid, FVG cross-reference, and ghost bar handling. All regression counts match exactly (1m=4170/608, 5m=819/171, 15m=258/76), type splits and grade distributions are correct, and per-detection field matching passes across all timeframes. Tests are thorough with 22 cases. Three non-blocking issues noted: duplicated utility functions across detectors (growing technical debt), duplicated FVG gap logic for cross-reference, and implicit floor_threshold_pips default. No blocking issues found."
+}
