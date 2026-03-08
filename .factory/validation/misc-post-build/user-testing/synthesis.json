@@ -1,0 +1,21 @@
+{
+  "milestone": "misc-post-build",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "notes": "misc-post-build is a housekeeping milestone. Neither implementation feature (misc-gitignore-cleanup, misc-post-build-cleanup) declares fulfills assertions. All 378 pytest tests pass and CLI produces correct output (9784 detections across 14 primitives). No contract assertions to validate.",
+  "environmentVerification": {
+    "pytest": "378/378 passed in 50.26s",
+    "cli": "exit 0, 14 primitives, 9784 total detections"
+  },
+  "appliedUpdates": [],
+  "previousRound": null
+}
