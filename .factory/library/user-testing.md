@@ -35,7 +35,47 @@ from ra.detectors.session_liquidity import SessionLiquidityDetector
 from ra.detectors.asia_range import AsiaRangeDetector
 from ra.detectors.reference_levels import ReferenceLevelDetector
 from ra.detectors.equal_hl import EqualHLDetector
+from ra.detectors.mss import MSSDetector
+from ra.detectors.order_block import OrderBlockDetector
+from ra.detectors.htf_liquidity import HTFLiquidityDetector
+from ra.detectors.ote import OTEDetector
+from ra.detectors.liquidity_sweep import LiquiditySweepDetector
+from ra.engine.cascade import CascadeEngine
 ```
+
+## Composite Detector Testing Notes
+
+### MSS Detector
+- Depends on: swing_points, displacement, fvg (for tagging)
+- Config section: `mss`
+- Key fields: direction, break_type (reversal/continuation), broken_swing, fvg_created, window_used
+- Regression: 1m=179, 5m=44, 15m=20
+
+### Order Block Detector
+- Depends on: mss, displacement
+- Config section: `order_block`
+- Key fields: zone (top/bottom body-based), anchor_time, trigger_mss, retests list
+- Regression: 1m=138, 5m=37, 15m=17
+
+### HTF Liquidity Detector
+- Uses higher timeframes: H1, H4, D1, W1
+- Fractal swing detection with touch counting and rotation gate
+- Regression: H1=3 pools, H4=1 pool, D1=0, W1=0
+
+### OTE Detector
+- Depends on: mss results
+- Fib levels: 0.618, 0.705, 0.79
+- Kill zone gate: only actionable within LOKZ/NYOKZ
+
+### Liquidity Sweep Detector
+- Depends on: session_liquidity, reference_levels, htf_liquidity, swing_points (promoted)
+- Multi-source level pool with temporal gating
+- Types: base, qualified, delayed, continuation
+
+### Cascade Engine
+- Topological sort of dependency graph
+- Caching of unchanged upstream
+- CLI entry point: `python3 run.py --config ... --data ... --output ...`
 
 ## Flow Validator Guidance: pytest
 

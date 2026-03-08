@@ -1,0 +1,122 @@
+{
+  "groupId": "htf-liquidity-ote",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A — pure Python library, no accounts needed",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-HTF-001",
+      "title": "HTF Liquidity H1 pools",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars from CSV", "expected": "7177 bars loaded", "observed": "7177 bars loaded" },
+        { "action": "Run HTFLiquidityDetector with locked params", "expected": "DetectionResult returned", "observed": "DetectionResult returned" },
+        { "action": "Count H1 pools", "expected": "3 pools (2 untouched, 1 taken)", "observed": "3 pools (2 untouched, 1 taken)" },
+        { "action": "Check H1 fractal swings", "expected": "34 swings from 120 bars", "observed": "34 swings from 120 bars" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "assert len(h1_pools) == 3; assert untouched == 2; assert taken == 1; assert swings == 34 — all passed",
+        "pytestOutput": "tests/test_htf_liquidity.py::TestHTFLiquidityH1Counts — 5 tests PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HTF-002",
+      "title": "HTF Liquidity H4 pools",
+      "status": "pass",
+      "steps": [
+        { "action": "Count H4 pools from HTF result", "expected": "1 pool (1 untouched, 0 taken)", "observed": "1 pool (1 untouched, 0 taken)" },
+        { "action": "Check H4 fractal swings", "expected": "9 swings from 31 bars", "observed": "9 swings from 31 bars" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "assert len(h4_pools) == 1; assert untouched == 1; assert taken == 0; assert swings == 9 — all passed",
+        "pytestOutput": "tests/test_htf_liquidity.py::TestHTFLiquidityH4Counts — 5 tests PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HTF-003",
+      "title": "HTF Liquidity field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Load baseline fixture htf_liquidity.json", "expected": "4 baseline pools loaded", "observed": "4 baseline pools loaded" },
+        { "action": "Sort and compare all pool fields", "expected": "type, timeframe, price, touches, status, first_touch_time, last_touch_time, taken_time, touch_prices all match", "observed": "All fields match within 1e-6 tolerance for prices" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "Per-pool field comparison: type, timeframe, price (tol 1e-6), touches, status, formation times, taken_time, touch_prices — all 4 pools matched",
+        "pytestOutput": "tests/test_htf_liquidity.py::TestHTFLiquidityFieldMatch — 4 tests PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-HTF-004",
+      "title": "HTF D1/W1 zero pools",
+      "status": "pass",
+      "steps": [
+        { "action": "Count D1 pools", "expected": "0 pools", "observed": "0 pools" },
+        { "action": "Count W1 pools", "expected": "0 pools", "observed": "0 pools" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "assert len(d1_pools) == 0; assert len(w1_pools) == 0 — both passed",
+        "pytestOutput": "tests/test_htf_liquidity.py::TestHTFLiquidityD1W1 — 4 tests PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OTE-001",
+      "title": "OTE zones from MSS anchors",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate 1m to 5m bars", "expected": "1440 bars", "observed": "1440 bars" },
+        { "action": "Run swing -> displacement -> FVG -> MSS chain on 5m", "expected": "44 MSS events", "observed": "44 MSS events" },
+        { "action": "Run OTEDetector with MSS upstream", "expected": "44 OTE zones", "observed": "44 OTE zones" },
+        { "action": "Verify each zone has 3 fib levels (0.618, 0.705, 0.79)", "expected": "lower, sweet_spot, upper present in all zones", "observed": "All 44 zones have all 3 fib levels" },
+        { "action": "Verify fib levels within dealing range", "expected": "All levels between swing_price and break_price", "observed": "All fib levels within dealing range bounds" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "assert len(ote_result.detections) == 44; all zones have lower/sweet_spot/upper; all levels within [swing_price, break_price] — passed",
+        "pytestOutput": "tests/test_ote.py::TestOTEZoneCount, TestOTEFibCalculation — 4 tests PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OTE-002",
+      "title": "OTE kill zone gate",
+      "status": "pass",
+      "steps": [
+        { "action": "Check actionable flag for all 44 OTE zones", "expected": "Actionable only in LOKZ or NYOKZ", "observed": "16 actionable (all in lokz/nyokz), 28 non-actionable (all outside)" },
+        { "action": "Verify non-KZ zones are NOT actionable", "expected": "Zones in asia/other/pre_london/pre_ny sessions not actionable", "observed": "All 28 non-actionable zones confirmed outside kill zones" },
+        { "action": "Sanity: both actionable and non-actionable exist", "expected": ">0 in each group", "observed": "16 actionable, 28 non-actionable" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "N/A — Python library",
+        "network": "N/A",
+        "pythonCheck": "Verified actionable flag correlates exactly with session in {lokz, nyokz}; 16 actionable, 28 non-actionable — passed",
+        "pytestOutput": "tests/test_ote.py::TestOTEKillZoneGate — 4 tests PASSED"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions: 6 passed, 0 failed, 0 blocked. All 39 existing pytest tests for test_htf_liquidity.py and test_ote.py also passed. HTF Liquidity produces correct pool counts and field-level matches on H1 (3 pools), H4 (1 pool), D1/W1 (0 pools). OTE produces 44 zones with correct fib levels and kill zone gating (16 actionable in LOKZ/NYOKZ, 28 non-actionable)."
+}

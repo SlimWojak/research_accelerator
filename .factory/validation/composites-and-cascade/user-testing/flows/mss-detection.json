@@ -1,0 +1,105 @@
+{
+  "groupId": "mss-detection",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-MSS-001",
+      "title": "MSS 1m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Run MSSDetector on 1m bars with locked params", "expected": "179 total MSS events", "observed": "179 total MSS events" },
+        { "action": "Count reversal break_type", "expected": "88 reversal", "observed": "88 reversal" },
+        { "action": "Count continuation break_type", "expected": "91 continuation", "observed": "91 continuation" },
+        { "action": "Count fvg_created=true", "expected": "129 FVG-tagged", "observed": "129 FVG-tagged" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert total==179, rev==88, cont==91, fvg==129 — all pass",
+        "pytestOutput": "tests/test_mss.py::TestMSS1mCount — 4/4 passed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MSS-002",
+      "title": "MSS 5m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Run MSSDetector on 5m bars with locked params", "expected": "44 total MSS events", "observed": "44 total MSS events" },
+        { "action": "Count reversal break_type", "expected": "20 reversal", "observed": "20 reversal" },
+        { "action": "Count continuation break_type", "expected": "24 continuation", "observed": "24 continuation" },
+        { "action": "Count fvg_created=true", "expected": "35 FVG-tagged", "observed": "35 FVG-tagged" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert total==44, rev==20, cont==24, fvg==35 — all pass",
+        "pytestOutput": "tests/test_mss.py::TestMSS5mCount — 4/4 passed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MSS-003",
+      "title": "MSS 15m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Run MSSDetector on 15m bars with locked params", "expected": "20 total MSS events", "observed": "20 total MSS events" },
+        { "action": "Count reversal break_type", "expected": "10 reversal", "observed": "10 reversal" },
+        { "action": "Count continuation break_type", "expected": "10 continuation", "observed": "10 continuation" },
+        { "action": "Count fvg_created=true", "expected": "17 FVG-tagged", "observed": "17 FVG-tagged" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert total==20, rev==10, cont==10, fvg==17 — all pass",
+        "pytestOutput": "tests/test_mss.py::TestMSS15mCount — 4/4 passed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MSS-004",
+      "title": "MSS per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare all 44 5m detections against baseline fixture fields", "expected": "direction, break_type, bar_index, time, window_used, fvg_created, broken_swing, displacement all match", "observed": "All 44 events match on every field" },
+        { "action": "pytest regression field tests for 1m, 5m, 15m", "expected": "All field match tests pass", "observed": "TestMSS5mFieldMatch, TestMSS1mFieldMatch, TestMSS15mFieldMatch — all passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "Per-field assertion loop over all 44 5m events — direction, break_type, bar_index, time, window_used, fvg_created, broken_swing.type, broken_swing.price (1e-6 tol), displacement.displacement_type, displacement.path — all match",
+        "pytestOutput": "tests/test_mss.py::TestMSS5mFieldMatch::test_field_match PASSED; TestMSS1mFieldMatch::test_field_match PASSED; TestMSS15mFieldMatch::test_field_match PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MSS-005",
+      "title": "Impulse suppression prevents over-detection",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify MSS counts match baseline exactly (not more, not less) across all TFs", "expected": "179/44/20 exact counts", "observed": "179/44/20 exact counts" },
+        { "action": "Compare window_used distribution against baseline for 1m, 5m, 15m", "expected": "Distribution Counter matches exactly", "observed": "All three TF distributions match exactly" }
+      ],
+      "evidence": {
+        "pythonCheck": "Counter comparison of window_used values for all three TFs matches baseline exactly",
+        "pytestOutput": "tests/test_mss.py::TestMSSWindowUsedDistribution — 3/3 passed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-MSS-006",
+      "title": "Cluster-straddle displacement indexing",
+      "status": "pass",
+      "steps": [
+        { "action": "Filter 5m detections for window_used==-1 AND displacement_type==CLUSTER_2", "expected": "At least one case exists", "observed": "14 cluster-straddle cases found" },
+        { "action": "Verify count matches baseline", "expected": "14 baseline cluster-straddle events", "observed": "14 detected, exact match" },
+        { "action": "Verify bar_index matches for each straddle case", "expected": "All bar indices match", "observed": "All 14 bar indices match" }
+      ],
+      "evidence": {
+        "pythonCheck": "14 cluster-straddle cases (window_used=-1, CLUSTER_2) found on 5m; all bar_index values match baseline",
+        "pytestOutput": "tests/test_mss.py::TestMSSClusterStraddle::test_cluster_straddle_5m PASSED"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions: 6 passed, 0 failed. All MSS detector counts (1m/5m/15m), per-detection field matching, window_used distribution, and cluster-straddle indexing verified against baseline fixtures. Existing pytest suite (22 tests) also passes cleanly."
+}

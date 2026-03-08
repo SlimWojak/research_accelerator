@@ -1,0 +1,110 @@
+{
+  "groupId": "order-block-detection",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-OB-001",
+      "title": "OB 1m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars from CSV, run full upstream chain (swing→disp→fvg→mss→ob)", "expected": "OB detector produces detections", "observed": "OB detector produced 138 detections" },
+        { "action": "Assert count == 138", "expected": "Exactly 138 OBs on 1m", "observed": "138 OBs on 1m" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "len(result.detections) == 138 → True",
+        "pytestOutput": "tests/test_order_block.py::TestOrderBlockCountRegression::test_ob_1m_count PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OB-002",
+      "title": "OB 5m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars, aggregate to 5m, run full upstream chain", "expected": "OB detector produces detections", "observed": "OB detector produced 37 detections" },
+        { "action": "Assert count == 37", "expected": "Exactly 37 OBs on 5m", "observed": "37 OBs on 5m" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "len(result.detections) == 37 → True",
+        "pytestOutput": "tests/test_order_block.py::TestOrderBlockCountRegression::test_ob_5m_count PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OB-003",
+      "title": "OB 15m regression count",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m bars, aggregate to 15m, run full upstream chain", "expected": "OB detector produces detections", "observed": "OB detector produced 17 detections" },
+        { "action": "Assert count == 17", "expected": "Exactly 17 OBs on 15m", "observed": "17 OBs on 15m" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "len(result.detections) == 17 → True",
+        "pytestOutput": "tests/test_order_block.py::TestOrderBlockCountRegression::test_ob_15m_count PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OB-004",
+      "title": "OB per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Run OB detector on all 3 TFs (1m, 5m, 15m)", "expected": "Detections produced for each TF", "observed": "138/37/17 detections produced" },
+        { "action": "Compare each detection's fields against baseline fixture: ob_bar_index, disp_bar_index, direction, ob_time, disp_time, zone_body.top/bottom, zone_wick.top/bottom, mss_direction, mss_break_type, broken_swing.type/price/bar_index, forex_day", "expected": "All fields match within 1e-6 tolerance for prices", "observed": "All 192 detections across 3 TFs match baseline exactly" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "Per-detection field comparison across 1m(138), 5m(37), 15m(17) — all match baseline",
+        "pytestOutput": "tests/test_order_block.py::TestOrderBlockFieldMatch::test_ob_field_match[5m-5m-bars_5m] PASSED; test_ob_field_match[15m-15m-bars_15m] PASSED; test_ob_field_match[1m-1m-bars_1m] PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OB-005",
+      "title": "OB retest tracking",
+      "status": "pass",
+      "steps": [
+        { "action": "Run OB detector on all 3 TFs", "expected": "Detections with retest lists produced", "observed": "All detections include retest lists" },
+        { "action": "Compare each OB's retests list against baseline: total_retests count, per-retest bar_index, per-retest bars_since_ob", "expected": "All retest data matches baseline exactly", "observed": "All retest lists match baseline for all 192 OBs across 3 TFs" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "Retest list comparison: total_retests, bar_index, bars_since_ob — all match for 1m/5m/15m",
+        "pytestOutput": "tests/test_order_block.py::TestOrderBlockRetestTracking::test_ob_retest_match[5m-5m-bars_5m] PASSED; test_ob_retest_match[15m-15m-bars_15m] PASSED; test_ob_retest_match[1m-1m-bars_1m] PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OB-006",
+      "title": "OB fallback scan exhaustion",
+      "status": "pass",
+      "steps": [
+        { "action": "Run MSS and OB detectors on all 3 TFs, compare counts", "expected": "MSS count > OB count (some MSS events produce no OB due to fallback exhaustion)", "observed": "1m: MSS=179, OB=138 (41 exhaustion); 5m: MSS=44, OB=37 (7 exhaustion); 15m: MSS=20, OB=17 (3 exhaustion)" },
+        { "action": "Verify OB counts match baseline exactly", "expected": "Exact count match confirms exhaustion cases correctly produce no OB", "observed": "All 3 TF counts match baseline exactly: 138, 37, 17" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "pythonCheck": "MSS-to-OB gap confirms fallback exhaustion: 41 (1m) + 7 (5m) + 3 (15m) = 51 MSS events with no valid OB anchor. Counts match baseline exactly.",
+        "pytestOutput": "All 15 tests in tests/test_order_block.py PASSED"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions: 6 passed, 0 failed. All OB counts match baseline exactly (1m=138, 5m=37, 15m=17). Per-detection field matching confirmed for all 192 OBs across 3 TFs. Retest tracking fully verified. Fallback scan exhaustion confirmed via MSS-to-OB count gap. All 15 existing pytest tests pass."
+}

@@ -1,0 +1,119 @@
+{
+  "groupId": "liquidity-sweep",
+  "testedAt": "2026-03-08T00:00:00Z",
+  "credentials": {
+    "account": "n/a",
+    "namespace": "n/a"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-SWP-001",
+      "title": "Sweep 5m regression counts",
+      "status": "pass",
+      "steps": [
+        { "action": "Load 1m CSV, aggregate to 5m", "expected": "Bars loaded", "observed": "Bars loaded" },
+        { "action": "Run all upstream detectors (session_liquidity, reference_levels, htf_liquidity, swing_points, displacement)", "expected": "Upstream results produced", "observed": "Upstream results produced" },
+        { "action": "Run LiquiditySweepDetector on 5m", "expected": "base=14, qualified=11, delayed=15, continuation=10", "observed": "base=14, qualified=11, delayed=15, continuation=10" },
+        { "action": "Run pytest TestSweepCounts5m (4 tests)", "expected": "All 4 pass", "observed": "All 4 passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert base_sweep_count==14, qualified_count==11, delayed_count==15, continuation_count==10 — all passed",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestSweepCounts5m — 4/4 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-002",
+      "title": "Sweep 15m regression counts",
+      "status": "pass",
+      "steps": [
+        { "action": "Aggregate to 15m, run upstream", "expected": "Upstream results produced", "observed": "Upstream results produced" },
+        { "action": "Run LiquiditySweepDetector on 15m", "expected": "base=11, qualified=10, delayed=15, continuation=14", "observed": "base=11, qualified=10, delayed=15, continuation=14" },
+        { "action": "Run pytest TestSweepCounts15m (4 tests)", "expected": "All 4 pass", "observed": "All 4 passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert base_sweep_count==11, qualified_count==10, delayed_count==15, continuation_count==14 — all passed",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestSweepCounts15m — 4/4 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-003",
+      "title": "Sweep 1m regression counts",
+      "status": "pass",
+      "steps": [
+        { "action": "Use 1m bars directly, run upstream", "expected": "Upstream results produced", "observed": "Upstream results produced" },
+        { "action": "Run LiquiditySweepDetector on 1m", "expected": "base=7, qualified=5, delayed=22, continuation=18", "observed": "base=7, qualified=5, delayed=22, continuation=18" },
+        { "action": "Run pytest TestSweepCounts1m (4 tests)", "expected": "All 4 pass", "observed": "All 4 passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "assert base_sweep_count==7, qualified_count==5, delayed_count==22, continuation_count==18 — all passed",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestSweepCounts1m — 4/4 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-004",
+      "title": "Sweep 5m source distribution",
+      "status": "pass",
+      "steps": [
+        { "action": "Get source_distribution from 5m result metadata", "expected": "ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1", "observed": "ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1" },
+        { "action": "Run pytest TestSourceDistribution", "expected": "1 test passes", "observed": "Passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "Distribution: {'LTF_BOX': 6, 'ASIA_H_L': 3, 'LONDON_H_L': 2, 'PDH_PDL': 2, 'PROMOTED_SWING': 1} — all asserts passed",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestSourceDistribution — 1/1 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-005",
+      "title": "Sweep per-detection field match",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare each 5m base sweep detection fields (bar_index, time, level_price, source, breach_pips, reclaim_pips, rejection_wick_pct) against baseline fixture", "expected": "0 mismatches for all sweep types", "observed": "Base sweep: 0 mismatches, Delayed: 0 mismatches, Continuation: 0 mismatches" },
+        { "action": "Run pytest TestFieldMatch5m (3 tests)", "expected": "All 3 pass", "observed": "All 3 passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "14 base sweeps, 15 delayed sweeps, 10 continuations — all fields matched within 1e-6 tolerance for prices",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestFieldMatch5m — 3/3 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-006",
+      "title": "Temporal gating enforcement",
+      "status": "pass",
+      "steps": [
+        { "action": "Check all SWEEP and DELAYED_SWEEP detections for valid_from violations", "expected": "0 violations", "observed": "0 violations" },
+        { "action": "Run pytest TestTemporalGating", "expected": "Pass", "observed": "Passed" },
+        { "action": "Verify counts match baseline (implicit gating correctness)", "expected": "Counts match", "observed": "All counts match baseline exactly" }
+      ],
+      "evidence": {
+        "pythonCheck": "Temporal gating violations: 0. Counts match baseline => gating is correct (wrong gating would produce wrong counts).",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestTemporalGating — 1/1 PASSED"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SWP-007",
+      "title": "Level pool assembly completeness",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect level_pool in 5m result metadata", "expected": "Pool contains PWH and PWL entries", "observed": "Pool size: 85 levels. PWH and PWL both found." },
+        { "action": "Verify PWH price=1.10001, PWL price=1.09104", "expected": "Prices within 1e-5 tolerance", "observed": "PWH=1.10001 found, PWL=1.09104 found" },
+        { "action": "Verify all configured enabled sources present", "expected": "ASIA_H_L, HTF_EQH, HTF_EQL, LONDON_H_L, LTF_BOX, PDH_PDL, PROMOTED_SWING, PWH, PWL", "observed": "Pool sources: ['ASIA_H_L', 'HTF_EQH', 'HTF_EQL', 'LONDON_H_L', 'LTF_BOX', 'PDH_PDL', 'PROMOTED_SWING', 'PWH', 'PWL']" },
+        { "action": "Run pytest TestLevelPool (2 tests)", "expected": "Both pass", "observed": "Both passed" }
+      ],
+      "evidence": {
+        "pythonCheck": "Level pool: 85 entries, 9 unique sources including PWH (1.10001) and PWL (1.09104)",
+        "pytestOutput": "tests/test_liquidity_sweep.py::TestLevelPool — 2/2 PASSED"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 7 assertions (VAL-SWP-001 through VAL-SWP-007): all 7 passed. 19/19 existing pytest tests passed. All sweep counts (base, qualified, delayed, continuation) match baseline exactly across 1m, 5m, 15m. Source distribution, per-detection field match, temporal gating, and level pool assembly all verified correct."
+}
