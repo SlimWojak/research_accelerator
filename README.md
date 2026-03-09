@@ -116,6 +116,45 @@ Full schema definitions: `.factory/library/output_schemas.md`
 
 ---
 
+## Phase 3 Comparison Interface (`site/compare.html`)
+
+Single-page interactive comparison tool that consumes Phase 2's evaluation JSON (Schemas 4A–4E) for visual analysis of detection output, parameter sweeps, and walk-forward stability.
+
+### Quick Start
+
+```bash
+# Generate single-config evaluation data
+bash site/generate_eval_data.sh
+
+# Generate 2-config comparison fixture
+python3 site/generate_comparison_fixture.py
+
+# Serve and open
+python3 -m http.server 8100 -d site
+# then visit http://localhost:8100/compare.html
+```
+
+### Tabs
+
+| Tab | Visualization | Description |
+|-----|---------------|-------------|
+| **Chart** | TradingView LC candlestick | Multi-config detection overlays on price data. Click markers to inspect individual detections. |
+| **Stats** | Plotly bar charts, funnel, pairwise | Detection count deltas, Jaccard overlap, cascade funnel attrition across configs. |
+| **Heatmap** | Plotly 2D / 1D | Parameter sweep visualization — color-coded metric surface for single and grid sweeps. |
+| **Walk-Forward** | Plotly time series | Sliding-window stability analysis — parameter performance across out-of-sample periods. |
+
+### Additional Features
+
+- **Divergence Navigator** — Side panel listing A-only / B-only detections with click-to-scroll to chart location.
+- **Ground Truth Annotation** — Click detection markers to label `CORRECT` / `NOISE` / `BORDERLINE`. Persisted in `localStorage`.
+- **Lock Panel** — Record parameter lock decisions with full provenance (which sweep/comparison drove the choice).
+
+### Technology
+
+Vanilla HTML/CSS/JS — no build system. TradingView Lightweight Charts v4.1.3 and Plotly.js 2.35.2 loaded via CDN.
+
+---
+
 ## Calibration Visual Bible (`site/`)
 
 Interactive threshold calibration tool for visual review of L1.5 parameter tuning on EURUSD data.
@@ -154,8 +193,11 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── eval.py                        # CLI entry point for evaluation engine (Phase 2)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
-├── site/                          # Static calibration chart tool
+├── site/                          # Static calibration charts + comparison interface
 │   ├── index.html                 # Landing page → 6 chart pages
+│   ├── compare.html               # Phase 3 comparison interface
+│   ├── generate_eval_data.sh      # Generate single-config evaluation fixture
+│   ├── generate_comparison_fixture.py  # Generate 2-config comparison fixture
 │   └── *.html / *.json            # Chart pages + data
 │
 ├── pipeline/                      # Legacy data processing scripts
