@@ -12,15 +12,6 @@ let _allMarkers = [];       // All built markers (unfiltered) for current day/tf
 let _candleTimeSet = null;  // Current candle time set
 let _candleTimesArr = null; // Current candle times array
 
-/* ── CONFIG_COLORS for markers (bullish/bearish per config) ────────────────── */
-
-const MARKER_COLORS = CONFIG_COLORS.map(c => ({
-  bullish: c.base,
-  bearish: c.light,
-  bullishDark: c.dark,
-  bearishDark: c.base,
-}));
-
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Session Bands Primitive (ISeriesPrimitive 3-class pattern)
  * ═══════════════════════════════════════════════════════════════════════════════ */
@@ -334,43 +325,6 @@ function renderPrimitiveToggles(container) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Get detection counts for the current TF, per config, per primitive.
- * Returns: { configName: { primitiveName: count } }
- */
-function getDetectionCounts() {
-  const result = {};
-  if (!app.evalData || !app.evalData.per_config) return result;
-
-  const configs = app.evalData.configs || [];
-  for (const configName of configs) {
-    result[configName] = {};
-    const configData = app.evalData.per_config[configName];
-    if (!configData || !configData.per_primitive) {
-      for (const prim of PRIMITIVES) {
-        result[configName][prim] = 0;
-      }
-      continue;
-    }
-
-    for (const prim of PRIMITIVES) {
-      const primData = configData.per_primitive[prim];
-      if (!primData || !primData.per_tf) {
-        result[configName][prim] = 0;
-        continue;
-      }
-      const tfData = primData.per_tf[app.tf];
-      if (!tfData) {
-        result[configName][prim] = 0;
-        continue;
-      }
-      // Use detection_count from Schema 4B
-      result[configName][prim] = tfData.detection_count != null ? tfData.detection_count : 0;
-    }
-  }
-  return result;
-}
-
-/**
  * Get detection counts filtered by the current day (from actual detections array).
  * Returns: { configName: { primitiveName: count } }
  */
@@ -415,7 +369,6 @@ function renderDetectionSummary(container) {
 
   const configs = app.evalData.configs || [];
   const counts = getDetectionCountsForDay();
-  const isSingle = configs.length === 1;
 
   let html = '<div class="detection-summary">';
   html += '<div class="detection-summary-header">';
@@ -497,25 +450,6 @@ function renderSessionLegend(container) {
       <span class="session-label-text">${s.label}</span>
     </span>`;
   }
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
- * Config Color Legend
- * ═══════════════════════════════════════════════════════════════════════════════ */
-
-function renderConfigLegend(container) {
-  if (!app.evalData) return;
-  const configs = app.evalData.configs || [];
-  let html = '<div class="config-legend">';
-  configs.forEach((name, i) => {
-    const c = CONFIG_COLORS[Math.min(i, CONFIG_COLORS.length - 1)];
-    html += `<span class="config-legend-item">
-      <span class="config-swatch" style="background:${c.base}"></span>
-      <span class="config-legend-name">${name}</span>
-    </span>`;
-  });
   html += '</div>';
   container.innerHTML = html;
 }

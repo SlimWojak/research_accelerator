@@ -29,8 +29,8 @@ function getSessionFromTime(timeStr) {
   const match = clean.match(/T(\d{2}):(\d{2})/);
   if (!match) return 'other';
   const hour = parseInt(match[1], 10);
-  if (hour >= 19 || hour < 0) return 'asia';    // 19:00–23:59
-  if (hour >= 0 && hour < 2) return 'asia';      // 00:00–01:59 (tail of Asia)
+  if (hour >= 19) return 'asia';                 // 19:00–23:59
+  if (hour < 2) return 'asia';                   // 00:00–01:59 (tail of Asia)
   if (hour >= 2 && hour < 5) return 'lokz';      // 02:00–04:59
   if (hour >= 7 && hour < 10) return 'nyokz';    // 07:00–09:59
   return 'other';
@@ -279,13 +279,20 @@ function renderDivergencePanel(container) {
 
   html += '</div>';
 
-  // Entry list
+  // Entry list — limit DOM nodes for performance with large divergence sets
+  const DIV_RENDER_LIMIT = 500;
+  const totalFiltered = _divFilteredEntries.length;
+  const renderCount = Math.min(totalFiltered, DIV_RENDER_LIMIT);
+
   html += '<div class="div-entry-list" id="div-entry-list">';
 
-  if (_divFilteredEntries.length === 0) {
+  if (totalFiltered === 0) {
     html += '<div class="div-empty">No divergences</div>';
   } else {
-    for (let i = 0; i < _divFilteredEntries.length; i++) {
+    if (totalFiltered > DIV_RENDER_LIMIT) {
+      html += `<div class="div-limit-notice">Showing ${DIV_RENDER_LIMIT} of ${totalFiltered} — use filters to narrow</div>`;
+    }
+    for (let i = 0; i < renderCount; i++) {
       const entry = _divFilteredEntries[i];
       const entryColor = getDivEntryColor(entry);
       const entryBg = getDivEntryBg(entry);

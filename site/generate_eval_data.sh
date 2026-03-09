@@ -28,8 +28,22 @@ python3 "$ROOT_DIR/eval.py" compare \
   --output "$EVAL_DIR"
 echo "  ✓ compare done"
 
-# 2. Sweep — produces Schema 4D (sweep JSON)
-echo "[2/3] Running eval.py sweep (displacement: atr_multiplier × body_ratio) ..."
+# 2. Sweep (1D) — produces Schema 4D (sweep JSON, 1D line, y.param='_single')
+echo "[2/4] Running eval.py sweep 1D (displacement: atr_multiplier only) ..."
+python3 "$ROOT_DIR/eval.py" sweep \
+  --config "$CONFIG" \
+  --data "$DATA" \
+  --primitive displacement \
+  --x-param ltf.atr_multiplier \
+  --metric detection_count \
+  --output "$EVAL_DIR"
+# Rename 1D sweep so it doesn't collide with the 2D filename
+mv "$EVAL_DIR/sweep_displacement_ltf_atr_multiplier.json" \
+   "$EVAL_DIR/sweep_displacement_1d_atr_multiplier.json"
+echo "  ✓ 1D sweep done"
+
+# 3. Sweep (2D) — produces Schema 4D (sweep JSON, 2D grid)
+echo "[3/4] Running eval.py sweep 2D (displacement: atr_multiplier × body_ratio) ..."
 python3 "$ROOT_DIR/eval.py" sweep \
   --config "$CONFIG" \
   --data "$DATA" \
@@ -38,10 +52,10 @@ python3 "$ROOT_DIR/eval.py" sweep \
   --y-param ltf.body_ratio \
   --metric detection_count \
   --output "$EVAL_DIR"
-echo "  ✓ sweep done"
+echo "  ✓ 2D sweep done"
 
-# 3. Walk-forward — produces Schema 4E (walk_forward JSON)
-echo "[3/3] Running eval.py walk-forward ..."
+# 4. Walk-forward — produces Schema 4E (walk_forward JSON)
+echo "[4/4] Running eval.py walk-forward ..."
 python3 "$ROOT_DIR/eval.py" walk-forward \
   --config "$CONFIG" \
   --data "$DATA" \

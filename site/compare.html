@@ -703,6 +703,7 @@
 
   .stats-content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px 20px;
   }
@@ -1271,6 +1272,15 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+  }
+
+  .div-limit-notice {
+    padding: 6px 12px;
+    font-size: 10px;
+    color: var(--yellow);
+    background: rgba(247,197,72,0.08);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
   }
 
   .div-empty {

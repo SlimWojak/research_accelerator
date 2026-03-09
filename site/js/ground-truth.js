@@ -18,6 +18,7 @@
 let _gtLabels = {};         // Loaded labels keyed by detection_id
 let _gtRunId = '';          // Run ID for localStorage key scoping
 let _gtPopoverEl = null;    // Current popover DOM element
+let _gtOutsideClickHandler = null; // Tracked outside-click handler for cleanup
 let _gtInitialized = false; // Initialization flag
 let _lockInitialized = false;
 
@@ -205,16 +206,12 @@ function rebuildGTRings() {
     const isBullish = marker.position === 'belowBar';
 
     // For price coordinate, we need the low (bullish) or high (bearish) of the candle
-    // Use the marker time to find the candle
     let price = null;
-    if (_candleTimesArr && _candleTimeSet) {
-      // Find the candle data for this time
-      const candleData = app.candlesByDay[app.day];
-      if (candleData && candleData[app.tf]) {
-        const candle = candleData[app.tf].find(c => toTS(c.time) === marker.time);
-        if (candle) {
-          price = isBullish ? candle.low : candle.high;
-        }
+    const candleData = app.candlesByDay[app.day];
+    if (candleData && candleData[app.tf]) {
+      const candle = candleData[app.tf].find(c => toTS(c.time) === marker.time);
+      if (candle) {
+        price = isBullish ? candle.low : candle.high;
       }
     }
 
@@ -239,6 +236,11 @@ function closeGTPopover() {
   if (_gtPopoverEl) {
     _gtPopoverEl.remove();
     _gtPopoverEl = null;
+  }
+  // Remove tracked outside-click handler to prevent listener leak
+  if (_gtOutsideClickHandler) {
+    document.removeEventListener('mousedown', _gtOutsideClickHandler);
+    _gtOutsideClickHandler = null;
   }
 }
 
@@ -314,13 +316,12 @@ function showGTPopover(screenX, screenY, markerInfo) {
 
   // Close on outside click (with delay to avoid immediate close)
   setTimeout(() => {
-    const handler = (e) => {
+    _gtOutsideClickHandler = (e) => {
       if (_gtPopoverEl && !_gtPopoverEl.contains(e.target)) {
         closeGTPopover();
-        document.removeEventListener('mousedown', handler);
       }
     };
-    document.addEventListener('mousedown', handler);
+    document.addEventListener('mousedown', _gtOutsideClickHandler);
   }, 50);
 }
 

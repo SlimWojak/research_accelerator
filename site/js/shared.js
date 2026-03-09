@@ -239,9 +239,10 @@ async function loadEvalData() {
  * Tries sweep files matching common naming patterns.
  */
 async function loadSweepData() {
-  // Try known filenames
+  // Try known filenames (2D grid sweep, then 1D single-param sweep)
   const candidates = [
     'eval/sweep_displacement_ltf_atr_multiplier.json',
+    'eval/sweep_displacement_1d_atr_multiplier.json',
   ];
   for (const url of candidates) {
     const data = await fetchJSON(url);

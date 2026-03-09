@@ -37,8 +37,7 @@ def main() -> int:
     from ra.config.loader import load_config
     from ra.data.csv_loader import load_csv
     from ra.data.tf_aggregator import aggregate
-    from ra.evaluation.runner import EvaluationRunner, _build_all_locked_params
-    from ra.evaluation.param_extraction import extract_params
+    from ra.evaluation.runner import _build_all_locked_params
     from ra.engine.cascade import CascadeEngine, build_default_registry
     from ra.output.json_export import serialize_evaluation_run, write_json
 

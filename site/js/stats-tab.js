@@ -87,6 +87,12 @@ function renderStatsContent() {
   const container = document.getElementById('stats-content');
   if (!container || !app.evalData) return;
 
+  // Purge existing Plotly charts before re-creating to prevent memory leaks
+  const sessionChartEl = document.getElementById('stats-session-chart');
+  if (sessionChartEl) Plotly.purge(sessionChartEl);
+  const funnelChartEl = document.getElementById('stats-funnel-chart');
+  if (funnelChartEl) Plotly.purge(funnelChartEl);
+
   // Update TF indicator
   const tfInd = document.getElementById('stats-tf-indicator');
   if (tfInd) tfInd.textContent = `TF: ${app.tf}`;

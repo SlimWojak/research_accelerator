@@ -109,7 +109,6 @@ function render2DHeatmap(data) {
   // Plotly heatmap z[j][i] where z rows = y, z cols = x
   const zData = [];
   const customData = [];
-  const hasNulls = gridHasNulls(grid);
 
   for (let j = 0; j < yValues.length; j++) {
     const row = [];
@@ -140,7 +139,7 @@ function render2DHeatmap(data) {
     x: xValues.map(String),
     y: yValues.map(String),
     customdata: customData,
-    colorscale: buildDarkColorscale(hasNulls),
+    colorscale: buildDarkColorscale(),
     colorbar: {
       title: { text: metric, font: { color: '#d1d4dc', size: 11, family: "'IBM Plex Mono', monospace" } },
       tickfont: { color: '#d1d4dc', size: 10, family: "'IBM Plex Mono', monospace" },
@@ -156,7 +155,6 @@ function render2DHeatmap(data) {
       '%{customdata.xParam}: %{customdata.xVal}<br>' +
       '%{customdata.yParam}: %{customdata.yVal}' +
       '<extra></extra>',
-    zmin: hasNulls ? undefined : undefined,
     connectgaps: false,
   };
 
