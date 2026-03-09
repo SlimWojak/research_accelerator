@@ -52,7 +52,7 @@ Results land as one JSON file per primitive per timeframe in `results/`.
 python -m pytest tests/ -v
 ```
 
-378 tests covering every detector plus a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
+631 tests total (378 Phase 1 + 253 Phase 2) covering every detector, the evaluation engine, and a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
 
 ### Config
 
@@ -62,6 +62,57 @@ python -m pytest tests/ -v
 - Per-primitive locked values and sweep ranges
 - Per-timeframe overrides
 - Full dependency graph declaration
+
+---
+
+## Phase 2 Evaluation Engine (`src/ra/evaluation/` & `src/ra/output/`)
+
+Parameter sweep, comparison statistics, and walk-forward validation — all driven by the same YAML configs and detection engine from Phase 1.
+
+### Key Components
+
+| Component | Description |
+|-----------|-------------|
+| **EvaluationRunner** | Sweep (single-param), 2D grid, and locked-replay modes. Drives the cascade engine across parameter ranges. |
+| **Comparison Stats** | Side-by-side diff of two configs: detection count deltas, Jaccard overlap, per-primitive breakdown. |
+| **Cascade Funnel** | Stage-by-stage attrition stats across the detector dependency graph (how many signals survive each cascade layer). |
+| **Walk-Forward Validation** | Sliding-window train/test splits over time. Validates parameter stability across out-of-sample windows. |
+| **River Adapter** | Full DuckDB-based parquet reader for `~/phoenix-river` data. Streams tick/bar data by symbol and date range. |
+| **JSON Export** | Structured output via 5 schemas (4A–4E), documented in `.factory/library/output_schemas.md`. |
+
+### CLI (`eval.py`)
+
+Three subcommands: `sweep`, `compare`, `walk-forward`.
+
+```bash
+# Parameter sweep — single param
+python3 eval.py sweep --config configs/locked_baseline.yaml \
+                      --data data/eurusd_1m_*.csv \
+                      --primitive displacement --x-param ltf.close_gate \
+                      --output results/sweep/
+
+# Walk-forward validation via River adapter
+python3 eval.py walk-forward --river EURUSD --start 2024-01-01 --end 2024-08-31 \
+                             --config configs/locked_baseline.yaml \
+                             --output results/wf/
+
+# Compare two configs
+python3 eval.py compare --config configs/locked_baseline.yaml \
+                        --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv \
+                        --output results/compare/
+```
+
+### Output Schemas (4A–4E)
+
+All evaluation results are emitted as structured JSON conforming to 5 schemas:
+
+- **4A** — Single sweep result
+- **4B** — 2D grid sweep result
+- **4C** — Comparison report
+- **4D** — Cascade funnel statistics
+- **4E** — Walk-forward validation report
+
+Full schema definitions: `.factory/library/output_schemas.md`
 
 ---
 
@@ -89,17 +140,18 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 │   ├── data/                      # CSV loader, TF aggregator, session tagger
 │   ├── detectors/                 # 12 PrimitiveDetector modules
 │   ├── engine/                    # PrimitiveDetector ABC, CascadeEngine, registry
-│   ├── evaluation/                # (placeholder)
-│   └── output/                    # (placeholder)
+│   ├── evaluation/                # EvaluationRunner, comparison, cascade stats, walk-forward
+│   └── output/                    # JSON export (schemas 4A–4E)
 │
-├── tests/                         # 378 pytest tests
+├── tests/                         # 631 pytest tests (378 Phase 1 + 253 Phase 2)
 │   ├── fixtures/baseline_output/  # 32 golden-file regression fixtures
-│   └── test_*.py                  # Per-module + cascade + regression suites
+│   └── test_*.py                  # Per-module + cascade + regression + evaluation suites
 │
 ├── configs/
 │   └── locked_baseline.yaml       # Production config (locked params, dep graph)
 │
-├── run.py                         # CLI entry point for cascade pipeline
+├── run.py                         # CLI entry point for cascade pipeline (Phase 1)
+├── eval.py                        # CLI entry point for evaluation engine (Phase 2)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
 ├── site/                          # Static calibration chart tool
