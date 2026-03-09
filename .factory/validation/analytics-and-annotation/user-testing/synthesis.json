@@ -69,11 +69,11 @@
   "blockedAssertions": [
     {
       "id": "VAL-HEAT-007",
-      "blockedBy": "No 1D sweep fixture available — current data is 2D grid (7×7). Cannot verify 1D line chart rendering without fixture data where axes.y.param === '_single'."
+      "blockedBy": "No 1D sweep fixture available \u2014 current data is 2D grid (7\u00d77). Cannot verify 1D line chart rendering without fixture data where axes.y.param === '_single'."
     },
     {
       "id": "VAL-HEAT-008",
-      "blockedBy": "No 1D sweep fixture available — current data is 2D grid (7×7). Cannot verify 1D line chart shows param values on x-axis and metric on y-axis without 1D test data."
+      "blockedBy": "No 1D sweep fixture available \u2014 current data is 2D grid (7\u00d77). Cannot verify 1D line chart shows param values on x-axis and metric on y-axis without 1D test data."
     }
   ],
   "appliedUpdates": [
@@ -83,5 +83,13 @@
       "source": "setup"
     }
   ],
-  "previousRound": null
+  "previousRound": null,
+  "orchestratorOverride": {
+    "reason": "55/57 assertions passed. VAL-HEAT-007 and VAL-HEAT-008 blocked by missing 1D sweep fixture, not code defects. 1D rendering code exists in heatmap-tab.js. Deferred to misc-cleanup-m1 feature which will generate 1D fixture and verify.",
+    "deferredAssertions": [
+      "VAL-HEAT-007",
+      "VAL-HEAT-008"
+    ],
+    "deferredTo": "misc-cleanup-m1 feature"
+  }
 }
