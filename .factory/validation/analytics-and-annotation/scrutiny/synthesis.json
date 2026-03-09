@@ -1,0 +1,124 @@
+{
+  "milestone": "analytics-and-annotation",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd /Users/echopeso/research_accelerator && python3 -m pytest tests/test_config.py tests/test_data_layer.py tests/test_engine_base.py tests/test_fvg.py tests/test_swing_points.py tests/test_displacement.py tests/test_session_liquidity.py tests/test_asia_range.py tests/test_reference_levels.py tests/test_mss.py tests/test_order_block.py tests/test_htf_liquidity.py tests/test_ote.py tests/test_liquidity_sweep.py tests/test_cascade.py tests/test_regression.py -v --tb=short -x -q --no-header -p no:cacheprovider",
+      "exitCode": 0,
+      "note": "378 tests passed in 51.10s"
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "note": "Not configured in services.yaml"
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "note": "Not configured in services.yaml"
+    }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "multi-config-fixture",
+      "severity": "non_blocking",
+      "description": "Unused imports in generate_comparison_fixture.py: EvaluationRunner (line 40) and extract_params (line 41) are imported but never used."
+    },
+    {
+      "featureId": "parameter-heatmap",
+      "severity": "non_blocking",
+      "description": "Dead code in heatmap-tab.js: ternary `zmin: hasNulls ? undefined : undefined` always evaluates to undefined (line 149); buildDarkColorscale() called with hasNulls arg but function accepts no params (line 131 vs 396); unused nullMask variable in render1DLineChart (line 262)."
+    },
+    {
+      "featureId": "walk-forward-visualization",
+      "severity": "non_blocking",
+      "description": "Pass threshold line in walkforward-tab.js uses global mean of train values rather than per-window delta_pct boundary. Reasonable visualization approximation but slightly imprecise."
+    },
+    {
+      "featureId": "walk-forward-visualization",
+      "severity": "non_blocking",
+      "description": "Template literal HTML in walkforward-tab.js inserts data values (regime_tags, period strings) directly into innerHTML without escaping. Low risk since data comes from pre-generated JSON fixtures."
+    },
+    {
+      "featureId": "divergence-navigator",
+      "severity": "non_blocking",
+      "description": "Dead code in divergence.js: `hour < 0` check in getSessionFromTime() is unreachable since parseInt of a 2-digit string is never negative."
+    },
+    {
+      "featureId": "divergence-navigator",
+      "severity": "non_blocking",
+      "description": "Performance: all divergence entries (~10k) rendered into DOM at once via innerHTML concatenation. Acceptable given vanilla JS constraints, but could cause render latency with very large datasets."
+    },
+    {
+      "featureId": "ground-truth-and-lock",
+      "severity": "non_blocking",
+      "description": "Minor event listener leak in ground-truth.js: outside-click handler added via setTimeout(50ms) may not be cleaned up if popover is closed before timeout fires. Unlikely to accumulate in practice."
+    },
+    {
+      "featureId": "ground-truth-and-lock",
+      "severity": "non_blocking",
+      "description": "Misleading guard in ground-truth.js rebuildGTRings(): checks _candleTimesArr && _candleTimeSet but never uses them directly — uses app.candlesByDay[app.day] instead."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Added root cause documentation for displacement atr_multiplier/body_ratio having no sweep variation: hardcoded DISP_ATR_MULTS emission gate uses loosest-OR gate (atr >= 1.0 OR body >= 0.55).",
+      "sourceFeature": "multi-config-fixture"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Expand the 'Allowed' file list to include 'site/generate_*.py' or 'site/generate_*' to cover both shell and Python fixture generators. Currently only lists site/generate_eval_data.sh explicitly.",
+      "evidence": "multi-config-fixture created site/generate_comparison_fixture.py which is not in the allowlist. This is a reasonable fixture generator in site/.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document the cross-file variable sharing convention: top-level `let` declarations in JS files are implicitly global in the script-tag architecture. Document which variables are considered public API across files (e.g., _allMarkers from chart-tab.js consumed by ground-truth.js) and establish a naming convention for cross-file vs file-private variables.",
+      "evidence": "ground-truth.js:197 reads _allMarkers from chart-tab.js:11; ground-truth.js:210 reads _candleTimesArr/_candleTimeSet from chart-tab.js:12-13. All are top-level `let` declarations. No documentation of this pattern exists.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document the initialization guard pattern: init functions should check a _xxxInitialized flag to prevent double-initialization. Multiple features now use this pattern (initChartTab, initGroundTruth, initLockPanel, initDivergencePanel). Make it a required convention.",
+      "evidence": "ground-truth.js:678 (_gtInitialized), ground-truth.js:724 (_lockInitialized), chart-tab.js initChartTab, divergence.js initDivergencePanel all use this pattern independently.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Feature description suggested varying atr_multiplier but architecture.md already documents no variation",
+      "reason": "Process concern for orchestrator feature planning, not a file change. Architecture.md already documents this."
+    },
+    {
+      "observation": "Handoff reported 380 lines for walkforward-tab.js but actual file is 541 lines",
+      "reason": "Informational handoff inaccuracy; not actionable as a file update."
+    },
+    {
+      "observation": "features.json fulfills array includes VAL-DIV-009 which doesn't exist in validation contract",
+      "reason": "Orchestrator metadata issue. VAL-DIV-009 (filter by session) does exist in the validation-contract.md. The validation contract defines DIV assertions through VAL-DIV-009. This is not actually an error."
+    },
+    {
+      "observation": "Worker followed skill procedure correctly for divergence-navigator",
+      "reason": "Informational only — no action needed."
+    },
+    {
+      "observation": "1D grid schema convention (grid = [[v0, v1, ...]] single row) undocumented in shared docs",
+      "reason": "Already documented in .factory/library/output_schemas.md under Schema 4D section: 'y.param is _single and y.values is [0] (one dummy value)'. No additional documentation needed."
+    }
+  ],
+  "previousRound": null
+}

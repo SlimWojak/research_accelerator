@@ -1,0 +1,44 @@
+{
+  "featureId": "multi-config-fixture",
+  "reviewedAt": "2026-03-09T06:15:00.000Z",
+  "commitId": "9db1e27",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The implementation is correct and complete. site/generate_comparison_fixture.py (193 lines) creates a 2-config Schema 4A evaluation_run.json using the Phase 2 API directly (CascadeEngine, _build_all_locked_params, serialize_evaluation_run, write_json). Config A uses locked baseline params; Config B increases swing_points.N (5m: 3→5, 15m: 2→4) and mss.ltf.confirmation_window_bars (3→5), producing meaningful detection count differences in composite/terminal primitives (MSS 44→32, OB 37→22). The pairwise comparison with divergence_index is correctly generated via the existing serialize_evaluation_run pipeline. The worker deviated from the feature description's suggestion to use displacement atr_multiplier — this is justified because architecture.md documents that atr_multiplier produces no variation on the 5-day dataset, and the worker independently confirmed the emission gate is hardcoded. Visual verification in agent-browser confirmed 2 config toggles, distinct teal/amber colors, 2-column Stats, and zero console errors. Two non-blocking code quality issues noted.",
+    "issues": [
+      {
+        "file": "site/generate_comparison_fixture.py",
+        "line": 40,
+        "severity": "non_blocking",
+        "description": "Unused import: EvaluationRunner is imported from ra.evaluation.runner but never used in the code. Only _build_all_locked_params is used from that module."
+      },
+      {
+        "file": "site/generate_comparison_fixture.py",
+        "line": 41,
+        "severity": "non_blocking",
+        "description": "Unused import: extract_params is imported from ra.evaluation.param_extraction but never used in the code. The script uses _build_all_locked_params instead, which internally calls extract_params."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md allowlist says 'Create/modify: site/compare.html, site/js/*.js, site/eval/*.json, site/generate_eval_data.sh' but the worker created site/generate_comparison_fixture.py which is not explicitly in the allowlist. This is a reasonable creation (fixture generators in site/ are conceptually allowed), but AGENTS.md could be updated to use a broader pattern like 'site/generate_*.py' or 'site/generate_*' to cover both shell and Python fixture generators.",
+      "evidence": "AGENTS.md 'Allowed' section vs new file site/generate_comparison_fixture.py"
+    },
+    {
+      "area": "skills",
+      "observation": "The feature description suggested varying displacement atr_multiplier (1.5 vs 2.0) to produce different detection counts, but architecture.md already documents that displacement atr_multiplier produces no variation on the 5-day dataset. Future feature descriptions for fixture generators should reference the known-variation table in architecture.md to avoid suggesting params that won't produce differences.",
+      "evidence": "Feature description says 'different displacement atr_multiplier (e.g., 1.5 vs 2.0)' but .factory/library/architecture.md line 101 says 'Displacement atr_multiplier and body_ratio: No variation on this dataset'. Worker's skillFeedback.suggestedChanges confirms this."
+    },
+    {
+      "area": "knowledge",
+      "observation": "The worker discovered that the displacement detector's emission gate uses a hardcoded DISP_ATR_MULTS array (loosest OR gate at atr>=1.0 OR body>=0.55), meaning the config's atr_multiplier param has no effect on detection counts. The architecture.md notes 'No variation on this dataset' for atr_multiplier but doesn't explain the root cause (hardcoded emission gate). Recording the mechanism would prevent future workers from attempting atr_multiplier-based config differentiation.",
+      "evidence": "Handoff discoveredIssues[0]: 'the displacement detector's emission gate uses hardcoded DISP_ATR_MULTS array (loosest OR gate at atr>=1.0 OR body>=0.55), not the config's atr_multiplier param'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The generate_comparison_fixture.py script correctly produces a 2-config Schema 4A evaluation_run.json using Phase 2 APIs. It varies swing_points.N and mss.confirmation_window_bars (instead of the originally-suggested atr_multiplier, which is known to produce no variation) to create meaningful detection count differences between configs. Pairwise comparison with divergence_index is present. Visual verification confirmed 2 config toggles with distinct teal/amber colors, different detection counts, and zero console errors. Two non-blocking issues: unused imports of EvaluationRunner and extract_params on lines 40-41."
+}

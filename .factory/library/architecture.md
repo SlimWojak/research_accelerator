@@ -98,7 +98,7 @@ Phase 1 `tf_aggregator.py` uses clock-aligned 4H bars at NY hours [0, 4, 8, 12, 
 ### Sweep Variation on Calibration Data
 On the 5-day calibration dataset (`data/eurusd_1m_2024-01-07_to_2024-01-12.csv`), many sweep params produce zero variation in detection counts. Specifically:
 - **FVG `floor_threshold_pips`**: All sweep values produce identical detection counts (all bars pass all thresholds in this dataset)
-- **Displacement `atr_multiplier` and `body_ratio`**: No variation on this dataset
+- **Displacement `atr_multiplier` and `body_ratio`**: No variation on this dataset. Root cause: the displacement detector's emission gate uses a hardcoded `DISP_ATR_MULTS` array implementing a loosest-OR gate (`atr >= 1.0 OR body >= 0.55`), which means the config's `atr_multiplier` and `body_ratio` params do not actually filter detections on this dataset.
 - **Displacement `close_gate`**: This is the reliable param for demonstrating sweep variation on 5-day data
 Workers writing sweep tests or evaluation assertions should use `close_gate` as the go-to param for variation demonstrations.
 

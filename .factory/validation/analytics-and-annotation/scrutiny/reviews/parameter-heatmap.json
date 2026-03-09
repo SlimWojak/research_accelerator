@@ -1,0 +1,40 @@
+{
+  "featureId": "parameter-heatmap",
+  "reviewedAt": "2026-03-09T07:15:00.000Z",
+  "commitId": "0f6d968",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of the Heatmap tab (398 lines in heatmap-tab.js + 42 lines CSS/HTML in compare.html). Covers all 11 VAL-HEAT assertions: 2D Plotly heatmap with correct grid transposition, lock marker with crosshair overlay, plateau outline, dark-theme colorscale, hover tooltips with metric+param values, title showing primitive and metric, 1D degenerate line chart fallback, null cell handling via NaN replacement, error state for missing sweep data. The 1D grid access pattern (grid[0][i]) correctly matches the eval.py schema where 1D grids store a single row. Code follows project conventions: uses plotlyLayout() and PLOTLY_CONFIG from shared.js, primLabel() utility, CSS custom properties, vanilla JS with no frameworks. A few minor dead-code issues noted below but nothing blocking.",
+    "issues": [
+      {
+        "file": "site/js/heatmap-tab.js",
+        "line": 149,
+        "severity": "non_blocking",
+        "description": "Dead code: `zmin: hasNulls ? undefined : undefined` — ternary always evaluates to undefined regardless of condition. Likely leftover from an intent to set a different zmin for null-containing grids."
+      },
+      {
+        "file": "site/js/heatmap-tab.js",
+        "line": 131,
+        "severity": "non_blocking",
+        "description": "Function signature mismatch: buildDarkColorscale(hasNulls) is called with an argument, but the function definition on line 396 accepts no parameters (`function buildDarkColorscale()`). The hasNulls parameter is silently ignored. Originally may have been intended to produce a different colorscale when nulls are present."
+      },
+      {
+        "file": "site/js/heatmap-tab.js",
+        "line": 262,
+        "severity": "non_blocking",
+        "description": "Unused variable: `nullMask` array is computed in render1DLineChart but never read. Dead code that should be removed."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The 1D grid schema convention (grid = [[v0, v1, ...]] single row) differs from the 2D convention (grid[i][j] = x_values[i], y_values[j]). This is documented in eval.py comments (line 341: 'For 1D grids: grid has 1 row, grid[0][i] = metric at x_values[i]') but not in AGENTS.md or any shared documentation. Future workers dealing with Schema 4D data may be confused by this inconsistency.",
+      "evidence": "eval.py:341 documents 1D convention; heatmap-tab.js:257 uses grid[0] for 1D; eval.py:272 _build_1d_grid returns [metrics] (single row)"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The parameter-heatmap feature passes code review. The implementation fully covers all 11 VAL-HEAT validation assertions with correct data handling, dark theme styling, and proper error states. The 2D heatmap correctly transposes the grid for Plotly (z rows = y-axis, z cols = x-axis), the 1D line chart correctly uses the single-row grid convention from eval.py, and null handling uses NaN replacement with N/A tooltips. Three non-blocking code quality issues found: one dead-code ternary, one unused function parameter, and one unused variable. No blocking issues."
+}

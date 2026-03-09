@@ -1,0 +1,39 @@
+{
+  "featureId": "ground-truth-and-lock",
+  "reviewedAt": "2026-03-09T14:15:00.000Z",
+  "commitId": "1e1ece2",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of Ground Truth Annotation system and Lock Panel across 3 files (746 lines in ground-truth.js, 246 lines CSS in compare.html, 38 lines integration in chart-tab.js). The code correctly implements: label popover with 3 options (CORRECT/NOISE/BORDERLINE), colored rings via ISeriesPrimitive 3-class pattern, localStorage persistence with run_id scoping, JSON export for both labels and lock records, lock panel with params/comparison/verdict/notes, and UNSTABLE-disabling of the Record Lock button. All expected behaviors from the feature description are covered. Code follows project conventions (vanilla JS, CSS custom properties, global app state, no build system). Two minor non-blocking issues identified.",
+    "issues": [
+      {
+        "file": "site/js/ground-truth.js",
+        "line": 316,
+        "severity": "non_blocking",
+        "description": "Minor event listener leak: the outside-click handler for popover closing is added via setTimeout(50ms). If closeGTPopover() is called before the timeout fires (e.g., rapid open/close or label selection within 50ms), the handler is still added to document but _gtPopoverEl is null, so the handler never removes itself. Each such occurrence leaves a dangling mousedown listener. In practice unlikely to accumulate meaningfully since label selection takes >50ms of user interaction, but a cleanup-on-close pattern would be cleaner."
+      },
+      {
+        "file": "site/js/ground-truth.js",
+        "line": 210,
+        "severity": "non_blocking",
+        "description": "Misleading guard condition: rebuildGTRings() checks `if (_candleTimesArr && _candleTimeSet)` but never uses these variables directly — it uses `app.candlesByDay[app.day]` instead. The guard is harmless (these variables are set at the same time as candlesByDay) but could confuse future readers. A more meaningful guard would check `app.candlesByDay && app.candlesByDay[app.day]` directly."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Worker used `let` for module-level state variables (_gtLabels, _gtRunId, _gtPopoverEl, etc.) that are accessed across files (ground-truth.js reads _allMarkers, _candleTimesArr, _candleTimeSet from chart-tab.js). This cross-file dependency on implicitly global `let` variables works correctly in the no-module script-tag architecture but is undocumented in AGENTS.md. AGENTS.md says 'Each tab's logic in a separate JS file' but doesn't document how cross-file variable sharing works or which variables are considered public API across files.",
+      "evidence": "ground-truth.js:197 reads _allMarkers from chart-tab.js:11; ground-truth.js:210 reads _candleTimesArr/_candleTimeSet from chart-tab.js:12-13. All are top-level `let` declarations in their respective files."
+    },
+    {
+      "area": "conventions",
+      "observation": "The initialization guard pattern (_gtInitialized, _lockInitialized flags checked at top of init functions) is used consistently but is not documented as a required convention in AGENTS.md. Multiple features now use this pattern (initChartTab, initGroundTruth, initLockPanel, initDivergencePanel). If a future worker omits this guard, double-initialization bugs could occur.",
+      "evidence": "ground-truth.js:678 (_gtInitialized), ground-truth.js:724 (_lockInitialized), chart-tab.js initChartTab pattern"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Feature passes review. The Ground Truth Annotation system and Lock Panel are well-implemented with proper ISeriesPrimitive rendering for colored rings, robust localStorage persistence with run_id scoping, viewport-clamped popover positioning, correct UNSTABLE-disabling of the lock button, and full provenance recording in lock records. Two non-blocking issues found: a minor event listener leak on rapid popover open/close, and a misleading guard variable in rebuildGTRings. Both are cosmetic and do not affect functionality. The worker followed the ra-comparison-worker skill procedure correctly and verified all validation assertions via agent-browser."
+}
