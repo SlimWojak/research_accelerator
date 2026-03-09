@@ -1,0 +1,185 @@
+{
+  "groupId": "cli",
+  "testedAt": "2026-03-09T18:53:00Z",
+  "credentials": {
+    "account": "cli-test",
+    "namespace": "cli"
+  },
+  "toolsUsed": ["python3", "cat", "ls", "du"],
+  "assertions": [
+    {
+      "id": "VAL-CLI-001",
+      "title": "Basic batch generation",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detect.py --start 2025-09-01 --end 2025-09-12 --config configs/locked_baseline.yaml --output /tmp/ra_cli_test/", "expected": "Per-week directories with detection, candle, and session files", "observed": "Created detections/2025-W36.json, detections/2025-W37.json, candles/2025-W36.json, candles/2025-W37.json, sessions/2025-W36.json, sessions/2025-W37.json, params/locked.json, weeks.json" },
+        { "action": "ls /tmp/ra_cli_test/ subdirectories", "expected": "Per-week files in each directory", "observed": "All expected files present: 2 detection files (3.0MB each), 2 candle files (860KB each), 2 session files (5.3KB each), weeks.json, params/locked.json" }
+      ],
+      "evidence": {
+        "terminal": "Generating validation data: 2 weeks (2025-09-01 to 2025-09-12)\n[1/2] 2025-W36 — 9,770 detections (3.6s)\n[2/2] 2025-W37 — 9,661 detections (3.3s)\nDone: 2 weeks, 19,431 total detections in 6.9s",
+        "ls": "detections/2025-W36.json (3157916B), detections/2025-W37.json (3124586B), candles/2025-W36.json (880748B), candles/2025-W37.json (880838B), sessions/2025-W36.json (5399B), sessions/2025-W37.json (5399B)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-002",
+      "title": "Weeks manifest",
+      "status": "pass",
+      "steps": [
+        { "action": "cat site/data/weeks.json", "expected": "Array of week objects with week, start, end, forex_days, detection_count", "observed": "Array of 2 objects. W42: week=2025-W42, start=2025-10-13, end=2025-10-17, forex_days=[6 dates], detection_count=9561 (int). W43: week=2025-W43, start=2025-10-20, end=2025-10-24, forex_days=[6 dates], detection_count=9566 (int)." },
+        { "action": "Verify field types", "expected": "week=string ISO week ID, forex_days=array of strings, detection_count=integer", "observed": "All types correct" }
+      ],
+      "evidence": {
+        "structure": "list of 2 dicts, each with keys: week (str), start (str), end (str), forex_days (list[str]), detection_count (int), bars_1m (int), bars_5m (int), bars_15m (int)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-003",
+      "title": "Slim detection format",
+      "status": "pass",
+      "steps": [
+        { "action": "Parse 2025-W42.json detections, check for qualifies field", "expected": "No qualifies field in properties", "observed": "Checked all 9561 detections: qualifies field absent from all" },
+        { "action": "Verify required fields: id, time, direction, type, price, properties", "expected": "All fields present", "observed": "All required fields present in every detection" },
+        { "action": "Check average detection size", "expected": "< 600 bytes", "observed": "File 3101129 bytes / 9561 detections = 324.4 bytes avg" }
+      ],
+      "evidence": {
+        "sample": "{\"id\":\"asia_range_1m_2025-10-12T20:00:00_neutral\",\"time\":\"2025-10-12T20:00:00-04:00\",\"direction\":\"neutral\",\"type\":\"asia_range\",\"price\":1.161375,\"properties\":{\"forex_day\":\"2025-10-13\",\"high\":1.16275,\"low\":1.16,...}}",
+        "qualifies_present": false,
+        "avg_size_bytes": 324.4,
+        "primitives": ["asia_range", "displacement", "fvg", "reference_levels", "session_liquidity", "swing_points", "htf_liquidity", "liquidity_sweep", "mss", "order_block", "ote"]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-004",
+      "title": "Candle JSON format",
+      "status": "pass",
+      "steps": [
+        { "action": "Load candles/2025-W42.json, check keys", "expected": "Keys: 1m, 5m, 15m", "observed": "Keys: ['1m', '5m', '15m']" },
+        { "action": "Verify bar counts", "expected": "1m ~7200, 5m ~1440, 15m ~480", "observed": "1m=7200, 5m=1440, 15m=480 — exact match" },
+        { "action": "Verify fields per bar", "expected": "time, open, high, low, close", "observed": "All 5 fields present in each bar" }
+      ],
+      "evidence": {
+        "counts": {"1m": 7200, "5m": 1440, "15m": 480},
+        "sample_bar": {"time": "2025-10-12T20:00:00-04:00", "open": 1.16012, "high": 1.16032, "low": 1.16008, "close": 1.16021}
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-005",
+      "title": "Session boundaries per week",
+      "status": "pass",
+      "steps": [
+        { "action": "Load sessions/2025-W42.json", "expected": "Session boundary entries with forex_day, session, start_time, end_time", "observed": "26 entries, 5 sessions per weekday (asia, lokz, nyokz, ny_a, ny_b), 1 for Saturday" },
+        { "action": "Verify forex_days match manifest", "expected": "Session forex_days subset of manifest forex_days", "observed": "Session days {10-13..10-18} == manifest days {10-13..10-18}" }
+      ],
+      "evidence": {
+        "entry_count": 26,
+        "session_names": ["asia", "lokz", "ny_a", "ny_b", "nyokz"],
+        "sample_entry": {"forex_day": "2025-10-13", "session": "asia", "start_time": "2025-10-12T19:00:00", "end_time": "2025-10-13T00:00:00"}
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-006",
+      "title": "Locked params snapshot",
+      "status": "pass",
+      "steps": [
+        { "action": "cat site/data/params/locked.json", "expected": "Locked parameter values with per-primitive per-TF values", "observed": "JSON with schema_version, instrument, primitives object containing 11 primitives with parameter sections" }
+      ],
+      "evidence": {
+        "top_level_keys": ["schema_version", "instrument", "primitives"],
+        "primitives": ["fvg", "swing_points", "displacement", "session_liquidity", "asia_range", "mss", "order_block", "liquidity_sweep", "htf_liquidity", "ote", "reference_levels"]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-007",
+      "title": "Progress display",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detect.py and capture stdout", "expected": "Progress lines with [N/total] week_id — N,NNN detections (N.Ns)", "observed": "Output: [1/2] 2025-W36 — 9,770 detections (3.6s) / [2/2] 2025-W37 — 9,661 detections (3.3s)" }
+      ],
+      "evidence": {
+        "terminal": "Generating validation data: 2 weeks (2025-09-01 to 2025-09-12)\n\n[1/2] 2025-W36 — 9,770 detections (3.6s)\n[2/2] 2025-W37 — 9,661 detections (3.3s)\n\nDone: 2 weeks, 19,431 total detections in 6.9s\nOutput: /tmp/ra_cli_test"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-008",
+      "title": "Single week generation",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detect.py --start 2025-10-13 --end 2025-10-17 --output /tmp/ra_cli_test_single/", "expected": "Exactly 1 week's output", "observed": "Output: [1/1] 2025-W42 — 9,561 detections (3.3s). weeks.json contains exactly 1 entry." },
+        { "action": "ls output directories", "expected": "1 file each in detections/, candles/, sessions/", "observed": "Exactly 1 file (2025-W42.json) in each directory" }
+      ],
+      "evidence": {
+        "terminal": "Generating validation data: 1 weeks (2025-10-13 to 2025-10-17)\n[1/1] 2025-W42 — 9,561 detections (3.3s)\nDone: 1 weeks, 9,561 total detections in 3.3s",
+        "weeks_count": 1
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-009",
+      "title": "Missing data handling",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detect.py --start 2025-12-24 --end 2025-12-26 (Christmas week)", "expected": "CLI handles missing days gracefully, produces output for available days only", "observed": "CLI completed successfully. Week 2025-W52: 4 forex_days (Dec 22-24, 26 — Dec 25 missing), 4712 bars_1m (vs 7200 full week), 6213 detections" }
+      ],
+      "evidence": {
+        "terminal": "Generating validation data: 1 weeks (2025-12-24 to 2025-12-26)\n[1/1] 2025-W52 — 6,213 detections (2.3s)\nDone: 1 weeks, 6,213 total detections in 2.3s",
+        "forex_days": ["2025-12-22", "2025-12-23", "2025-12-24", "2025-12-26"],
+        "bars_1m": 4712,
+        "note": "Christmas Day (Dec 25) missing from forex_days, reduced bar count confirms graceful skip"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-010",
+      "title": "Performance target",
+      "status": "pass",
+      "steps": [
+        { "action": "Measure per-week generation time from CLI output", "expected": "26 weeks under 3 minutes (180s)", "observed": "Average 3.4s/week across 3 full-data weeks. Extrapolated 26 weeks = 88.4s = 1.5 min, well under 3 min target" }
+      ],
+      "evidence": {
+        "per_week_times": {"2025-W36": "3.6s", "2025-W37": "3.3s", "2025-W42": "3.3s"},
+        "avg_per_week": "3.4s",
+        "extrapolated_26_weeks": "88.4s (1.5 min)",
+        "target": "180s (3 min)",
+        "method": "Extrapolation from 3 full-data week runs"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-011",
+      "title": "Detection count accuracy",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare weeks.json detection_count vs actual count in detection files", "expected": "Counts match", "observed": "W42: manifest=9561, file=9561, match=True. W43: manifest=9566, file=9566, match=True." }
+      ],
+      "evidence": {
+        "2025-W42": {"manifest": 9561, "file": 9561, "match": true},
+        "2025-W43": {"manifest": 9566, "file": 9566, "match": true}
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-012",
+      "title": "File size target",
+      "status": "pass",
+      "steps": [
+        { "action": "du -sh on each week's files (detections + candles + sessions)", "expected": "Under 10MB per week", "observed": "W42: 3.80MB total, W43: 3.81MB total — both well under 10MB" }
+      ],
+      "evidence": {
+        "2025-W42": {"detections": 3101129, "candles": 880959, "sessions": 5399, "total_bytes": 3987487, "total_mb": 3.80},
+        "2025-W43": {"detections": 3112445, "candles": 880765, "sessions": 5399, "total_bytes": 3998609, "total_mb": 3.81},
+        "target_mb": 10
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 12 CLI assertions: all 12 passed. detect.py generates correct per-week detection/candle/session files with proper structure, slim format (no qualifies, 324 bytes avg), accurate counts, graceful holiday handling, and good performance (~3.4s/week, extrapolated 26 weeks in 1.5 min)."
+}

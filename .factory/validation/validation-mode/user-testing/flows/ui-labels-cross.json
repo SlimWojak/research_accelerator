@@ -1,0 +1,250 @@
+{
+  "groupId": "ui-labels-cross",
+  "testedAt": "2026-03-09T12:10:00Z",
+  "credentials": {
+    "account": "agent-browser-default",
+    "namespace": "ui-labels-cross"
+  },
+  "toolsUsed": ["agent-browser", "python3", "curl", "cat"],
+  "assertions": [
+    {
+      "id": "VAL-UI-011",
+      "title": "Clicking detection marker shows label popover",
+      "status": "pass",
+      "steps": [
+        { "action": "Select week 2025-W43 from dropdown", "expected": "Chart loads with candlestick data and detection markers", "observed": "Chart rendered with 251 markers on 5m TF, Mon Oct 20 day tab active" },
+        { "action": "Click detection marker via mouse coordinates (calculated from JS)", "expected": "Popover appears with LABEL DETECTION title and 3 buttons", "observed": "Popover appeared with 'Label Detection' title and three buttons: ✓ CORRECT, ✗ NOISE, ? BORDERLINE" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w43-persist.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-012",
+      "title": "Colored rings render for each label type",
+      "status": "pass",
+      "steps": [
+        { "action": "Label 3 detections: CORRECT, NOISE, BORDERLINE", "expected": "Green, red, yellow rings visible on chart", "observed": "Three distinct colored rings visible at labeled detection positions on chart — green (CORRECT), red (NOISE), yellow (BORDERLINE)" },
+        { "action": "Verify ring primitive attached", "expected": "VGTRingPrimitive active", "observed": "JS eval confirms _vgtRingPrimitive exists and is attached to candleSeries" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w43-persist.png"],
+        "jsState": "ringPrimitiveExists: true"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-013",
+      "title": "Label file saved to disk with correct schema",
+      "status": "pass",
+      "steps": [
+        { "action": "After labeling 3 detections, check disk file", "expected": "site/data/labels/2025-W43.json exists with correct JSON structure", "observed": "File exists with 3 label entries, each containing: detection_id, primitive, timeframe, direction, label, forex_day, labeled_at" }
+      ],
+      "evidence": {
+        "filePath": "site/data/labels/2025-W43.json",
+        "sampleEntry": {
+          "detection_id": "displacement_5m_2025-10-20T03:55:00_bear",
+          "primitive": "displacement",
+          "timeframe": "5m",
+          "direction": "bearish",
+          "label": "CORRECT",
+          "forex_day": "2025-10-20",
+          "labeled_at": "2026-03-09T11:55:21.660Z"
+        },
+        "entryCount": 3
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-014",
+      "title": "Labels persist across page reload",
+      "status": "pass",
+      "steps": [
+        { "action": "Reload page (navigate to validate.html fresh)", "expected": "Page reloads, week picker shows 'Select a week...'", "observed": "Page reloaded to initial state with empty state message" },
+        { "action": "Re-select week 2025-W43", "expected": "Labels reappear: ✓1 ✗1 ?1 Total:3", "observed": "Label counts show '✓ 1 ✗ 1 ? 1 Total: 3', colored rings visible on chart" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w43-persist.png"],
+        "labelCountText": "✓ 1✗ 1? 1Total: 3"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-015",
+      "title": "Labels survive week switch",
+      "status": "pass",
+      "steps": [
+        { "action": "With W43 selected (3 labels), switch to W42", "expected": "W42 shows Total: 0 (no labels)", "observed": "W42 loaded with '✓ 0 ✗ 0 ? 0 Total: 0', no colored rings visible" },
+        { "action": "Switch back to W43", "expected": "W43 shows ✓1 ✗1 ?1 Total: 3 with colored rings", "observed": "Label counts restored to '✓ 1 ✗ 1 ? 1 Total: 3', three colored rings visible on chart" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w42.png", "/tmp/val-w43-persist.png"],
+        "w42LabelCount": "✓ 0 ✗ 0 ? 0 Total: 0",
+        "w43LabelCount": "✓ 1 ✗ 1 ? 1 Total: 3"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-016",
+      "title": "Export button downloads labels JSON",
+      "status": "pass",
+      "steps": [
+        { "action": "Intercept download via JS monkey-patch on URL.createObjectURL", "expected": "Download triggered on click", "observed": "Download interceptor captured file" },
+        { "action": "Click 📥 Export button", "expected": "File named labels_2025-W43.json with 3 label entries", "observed": "Filename: labels_2025-W43.json, content contains 3 label objects with correct schema (detection_id, primitive, timeframe, direction, label, forex_day, labeled_at)" }
+      ],
+      "evidence": {
+        "downloadFilename": "labels_2025-W43.json",
+        "downloadContentPreview": "3 label entries matching disk file contents"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-017",
+      "title": "Lock panel displays locked parameters",
+      "status": "pass",
+      "steps": [
+        { "action": "Click 🔒 Lock button", "expected": "Panel slides in from right showing locked params", "observed": "Lock panel slides in with 320px width, shows 'LOCKED PARAMETERS' section header" },
+        { "action": "Verify parameter content", "expected": "schema_version, instrument, per-primitive params displayed", "observed": "Shows schema_version=1.0, instrument=EURUSD, then grouped primitives: Fvg (floor_threshold_pips=0.5), Swing_points (N.1m=5, N.5m=3, N.15m=2), Displacement (atr_period=14, combination_mode=AND, ltf/htf settings), plus OTE, Reference_levels, and all other primitives" },
+        { "action": "Verify Notes textarea and buttons present", "expected": "Notes input, Record Lock button, Export Labels button", "observed": "Textarea with placeholder 'Optional notes about this lock decision...', blue 🔒 Record Lock button, secondary 📥 Export Labels button" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-lock-panel.png", "/tmp/val-lock-recorded.png"],
+        "paramsDisplayed": ["schema_version", "instrument", "fvg", "swing_points", "displacement", "session_liquidity", "asia_range", "mss", "order_block", "liquidity_sweep", "htf_liquidity", "ote", "reference_levels"]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-018",
+      "title": "Record Lock saves to disk",
+      "status": "pass",
+      "steps": [
+        { "action": "Enter notes: 'Test lock record for VAL-UI-018 validation'", "expected": "Notes text entered in textarea", "observed": "Notes text visible in textarea" },
+        { "action": "Click 🔒 Record Lock", "expected": "Button shows success feedback", "observed": "Button briefly changed to '✓ Lock Recorded!' with teal background" },
+        { "action": "Verify file on disk", "expected": "site/data/lock-records/2025-W43.json exists with correct schema", "observed": "File created with: week='2025-W43', params=(full locked params object with 11 primitives), notes='Test lock record for VAL-UI-018 validation', recorded_at=ISO timestamp" }
+      ],
+      "evidence": {
+        "filePath": "site/data/lock-records/2025-W43.json",
+        "fileContent": {
+          "week": "2025-W43",
+          "notes": "Test lock record for VAL-UI-018 validation",
+          "recorded_at": "2026-03-09T12:02:55.400Z",
+          "params_keys": ["schema_version", "instrument", "primitives"]
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "End-to-end validation flow",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to validate.html", "expected": "Page loads with dark theme, week picker visible", "observed": "Page loaded, empty state shown" },
+        { "action": "Select week 2025-W43", "expected": "Chart renders with candles, markers, sessions", "observed": "Chart rendered: 251 markers, candlestick data, session bands, day tabs for Oct 20-25" },
+        { "action": "Verify all data loaded via JS eval", "expected": "candleData, detectionData, sessionData all present", "observed": "All data objects populated, chart and candleSeries active" },
+        { "action": "Labels loaded from disk", "expected": "3 previously saved labels restored", "observed": "labelCount=3, rings rendered, label counts show ✓1 ✗1 ?1 Total:3" },
+        { "action": "Export labels", "expected": "Download triggered with correct filename and content", "observed": "labels_2025-W43.json downloaded with 3 entries" },
+        { "action": "Open lock panel and record", "expected": "Lock record saved to disk with params and notes", "observed": "Lock record file created with full locked params and notes" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w43-persist.png", "/tmp/val-lock-panel.png"],
+        "jsState": {
+          "week": "2025-W43",
+          "tf": "5m",
+          "markersCount": 251,
+          "labelCount": 3,
+          "chartExists": true,
+          "ringPrimitiveExists": true
+        },
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Index.html navigation link to validate.html",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to http://localhost:8200/index.html", "expected": "Index page loads with cards", "observed": "Page loaded with 'ICT Primitive Threshold Calibration' title and card grid" },
+        { "action": "Scroll to 'Evaluation & Comparison' section", "expected": "Validation Mode card visible with Phase 3.5 badge", "observed": "Card shows 'Validation Mode' with 'PHASE 3.5' badge, description: 'Browse detection results week-by-week across 6 months of real EURUSD data. Label detections and export ground truth.'" },
+        { "action": "Click Validation Mode card", "expected": "Navigate to validate.html", "observed": "URL changed to http://localhost:8200/validate.html, page loaded with dark theme and week picker" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-index-scroll.png", "/tmp/val-nav-validate.png"],
+        "finalUrl": "http://localhost:8200/validate.html"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "Mode 1 independence on port 8100",
+      "status": "pass",
+      "steps": [
+        { "action": "curl http://localhost:8100/compare.html", "expected": "HTTP 200", "observed": "HTTP 200 returned" },
+        { "action": "Open http://localhost:8100/compare.html in browser", "expected": "Comparison interface loads independently", "observed": "Full comparison interface rendered: Chart tab active with candlestick data, config selector (candidate_relaxed, current_locked), divergence navigator (9832 total), primitive buttons, day tabs, TF selector. Completely independent from Mode 3.5 on port 8200." }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-mode1.png"],
+        "httpStatus": 200,
+        "port8100": "compare.html operational",
+        "port8200": "validate.html operational"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "title": "Label file on disk matches UI state",
+      "status": "pass",
+      "steps": [
+        { "action": "Label 3 detections in UI (CORRECT, NOISE, BORDERLINE)", "expected": "Labels saved to disk file", "observed": "site/data/labels/2025-W43.json contains 3 entries" },
+        { "action": "Verify disk file matches UI label counts", "expected": "File has same 3 labels shown in UI", "observed": "File contains exactly: displacement_5m_2025-10-20T03:55:00_bear=CORRECT, displacement_5m_2025-10-20T05:50:00_bear=NOISE, displacement_5m_2025-10-20T07:05:00_bull=BORDERLINE — matches ✓1 ✗1 ?1 Total:3 in UI" },
+        { "action": "Reload page and re-select week", "expected": "Labels loaded from disk match what was saved", "observed": "All 3 labels restored from disk, counts match" }
+      ],
+      "evidence": {
+        "diskFile": "site/data/labels/2025-W43.json",
+        "entryCount": 3,
+        "labelValues": ["CORRECT", "NOISE", "BORDERLINE"]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-005",
+      "title": "No stale state on week switch",
+      "status": "pass",
+      "steps": [
+        { "action": "With W43 selected (3 labels), switch to W42", "expected": "W42 shows zero labels, no colored rings", "observed": "Label counts show '✓ 0 ✗ 0 ? 0 Total: 0', chart shows W42 data (Oct 13-17), no rings visible" },
+        { "action": "Verify W42 metadata different from W43", "expected": "Different date range, day tabs, price levels", "observed": "W42 shows date range 2025-10-13 → 2025-10-17, day tabs Mon Oct 13 through Sat Oct 18, different price pattern and detection counts" },
+        { "action": "Switch back to W43", "expected": "W43 labels restored, no W42 labels bleeding through", "observed": "W43 shows '✓ 1 ✗ 1 ? 1 Total: 3' — only the original 3 labels, no stale data from W42" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-w42.png", "/tmp/val-w43-persist.png"],
+        "w42State": { "labels": 0, "week": "2025-W42", "dateRange": "2025-10-13 → 2025-10-17" },
+        "w43State": { "labels": 3, "week": "2025-W43", "dateRange": "2025-10-20 → 2025-10-24" }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-006",
+      "title": "Manifest matches files on disk",
+      "status": "pass",
+      "steps": [
+        { "action": "Parse weeks.json manifest", "expected": "2 weeks with detection counts", "observed": "2 weeks: W42 (9561 dets), W43 (9566 dets)" },
+        { "action": "Verify detection files exist and counts match", "expected": "detections/{week}.json exists with matching count", "observed": "W42: 9561 actual = 9561 manifest ✓, W43: 9566 actual = 9566 manifest ✓" },
+        { "action": "Verify candle files exist with all TFs", "expected": "candles/{week}.json exists with 1m, 5m, 15m keys", "observed": "Both weeks have candle files with ['1m', '5m', '15m'] keys" },
+        { "action": "Verify session files exist", "expected": "sessions/{week}.json exists", "observed": "Both week session files present" },
+        { "action": "Verify params/locked.json", "expected": "File exists with schema_version and instrument", "observed": "params/locked.json exists: schema_version=1.0, instrument=EURUSD" }
+      ],
+      "evidence": {
+        "manifestWeeks": 2,
+        "detectionCounts": { "2025-W42": { "manifest": 9561, "actual": 9561, "match": true }, "2025-W43": { "manifest": 9566, "actual": 9566, "match": true } },
+        "candleTFs": ["1m", "5m", "15m"],
+        "allFilesPresent": true
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 14 assertions (VAL-UI-011–018 + VAL-CROSS-001–006): all 14 passed. Ground truth labeling system (VAL-UI-011 through VAL-UI-018) fully functional: click-to-label popover shows CORRECT/NOISE/BORDERLINE buttons, colored rings render (green/red/yellow), labels saved to disk with correct schema (detection_id, primitive, timeframe, direction, label, forex_day, labeled_at), labels persist across page reload and week switches, export downloads JSON file, lock panel displays all locked parameters with notes input, and record lock saves to disk with params and timestamp. Cross-area flows (VAL-CROSS-001 through VAL-CROSS-006) all pass: end-to-end flow works seamlessly, index.html Validation Mode card navigates to validate.html, Mode 1 on port 8100 operates independently from Mode 3.5 on port 8200, no stale state bleeds between week switches, and manifest entries exactly match files on disk."
+}

@@ -1,0 +1,205 @@
+{
+  "groupId": "ui-core",
+  "testedAt": "2026-03-09T12:00:00Z",
+  "credentials": {
+    "account": "b1d2e43924ed__u1",
+    "namespace": "ui-core"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-UI-001",
+      "title": "Page loads with dark theme",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to http://localhost:8200/validate.html", "expected": "Page loads with dark theme", "observed": "Page loaded with dark background and light text" },
+        { "action": "Check body background color", "expected": "#0a0e17 (rgb(10,14,23))", "observed": "rgb(10, 14, 23) confirmed via getComputedStyle" },
+        { "action": "Check body text color", "expected": "#d1d4dc (rgb(209,212,220))", "observed": "rgb(209, 212, 220) confirmed via getComputedStyle" },
+        { "action": "Check Perplexity attribution", "expected": "Perplexity attribution in footer", "observed": "Footer link 'Created with Perplexity Computer' present" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-001-initial.png"],
+        "consoleErrors": "none",
+        "network": "GET /validate.html -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-002",
+      "title": "Week picker populated from manifest",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect week picker dropdown", "expected": "Dropdown shows available weeks from weeks.json", "observed": "Dropdown contains 2 options: '2025-W42 (2025-10-13 → 2025-10-17) · 9,561 dets' and '2025-W43 (2025-10-20 → 2025-10-24) · 9,566 dets'" },
+        { "action": "Verify week ID and date range displayed", "expected": "Week ID, date range, and detection count shown", "observed": "All three fields displayed for each week option" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-001-initial.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-003",
+      "title": "Week selection loads chart data",
+      "status": "pass",
+      "steps": [
+        { "action": "Select week 2025-W42 from dropdown", "expected": "Candlestick chart renders with week data", "observed": "Chart rendered with OHLC candles, detection markers, session bands, and day tabs for Oct 13-18" },
+        { "action": "Verify chart container", "expected": "Lightweight Charts canvas rendered", "observed": "tv-lightweight-charts div with 7 canvases present in chart-container" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png"],
+        "consoleErrors": "none",
+        "network": "GET /data/2025-W42/candles.json, GET /data/2025-W42/detections.json -> loaded"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-004",
+      "title": "Candlestick chart renders correctly",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify candlestick colors in source code", "expected": "upColor #26a69a, downColor #ef5350", "observed": "validate-chart.js line 143-148: upColor '#26a69a', downColor '#ef5350', borderUpColor '#26a69a', borderDownColor '#ef5350', wickUpColor '#26a69a', wickDownColor '#ef5350'" },
+        { "action": "Visual verification of chart", "expected": "Teal bullish and red bearish candles visible", "observed": "Chart shows teal (green) bullish candles and red bearish candles matching Mode 1 colors" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-005",
+      "title": "Detection markers visible",
+      "status": "pass",
+      "steps": [
+        { "action": "Visual inspection of chart after week load", "expected": "Arrow markers on chart - bullish below bar, bearish above bar", "observed": "Multiple colored arrow markers visible on chart: teal arrows below bullish candles, red/blue/orange arrows at appropriate positions. Markers correspond to different primitives (displacement, FVG, order block, etc.)" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png", "/tmp/val-ui-003-annotated.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-006",
+      "title": "Primitive toggles",
+      "status": "pass",
+      "steps": [
+        { "action": "Screenshot before toggling Displacement", "expected": "All markers visible including displacement", "observed": "Chart shows all detection markers, bottom bar shows Displacement: 137 (at 5m)" },
+        { "action": "Click Displacement button to toggle off", "expected": "Displacement markers hidden, other markers remain", "observed": "Displacement markers removed from chart, bottom bar no longer shows Displacement count first, other primitive counts updated" },
+        { "action": "Click Displacement button to toggle back on", "expected": "Displacement markers reappear", "observed": "Displacement markers restored" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-006-before-toggle.png", "/tmp/val-ui-006-after-toggle.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-007",
+      "title": "TF switching",
+      "status": "pass",
+      "steps": [
+        { "action": "Click 1m button", "expected": "Chart shows 1-minute candles with higher density", "observed": "Chart shows very dense candle data, Displacement count: 719 (vs 137 at 5m)" },
+        { "action": "Click 15m button", "expected": "Chart shows 15-minute candles with lower density", "observed": "Chart shows much wider/fewer candles, Displacement count: 45" },
+        { "action": "Click 5m button to restore", "expected": "Chart returns to 5-minute view", "observed": "Chart returns to medium density, Displacement count: 137" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-007-1m.png", "/tmp/val-ui-007-15m.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-008",
+      "title": "Day navigation within week",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify day tabs present", "expected": "Day tabs for forex days in week", "observed": "Tabs shown: Mon Oct 13, Tue Oct 14, Wed Oct 15, Thu Oct 16, Fri Oct 17, Sat Oct 18" },
+        { "action": "Click 'Tue Oct 14' tab", "expected": "Chart navigates to Tuesday's data", "observed": "Chart shows different price pattern, tab highlighted, detection counts changed (Displacement: 165 vs Mon's 137)" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-008-day1.png", "/tmp/val-ui-008-day2.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-009",
+      "title": "Session bands",
+      "status": "pass",
+      "steps": [
+        { "action": "Visual inspection of chart background", "expected": "Colored background zones for Asia, LOKZ, NYOKZ sessions", "observed": "Three distinct colored background bands visible behind candles. Session legend confirmed: Asia 19:00–00:00, LOKZ 02:00–05:00, NYOKZ 07:00–10:00" },
+        { "action": "Verify session legend", "expected": "Legend shows session names and time ranges", "observed": "Top-right legend shows Asia 19:00-00:00 (pink), LOKZ 02:00-05:00 (purple), NYOKZ 07:00-10:00 (dark)" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-010",
+      "title": "Detection count summary",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect metadata bar", "expected": "Per-primitive detection counts displayed", "observed": "metadata-bar shows: Week: 2025-W42, Range: 2025-10-13 → 2025-10-17, Detections: 9,561, plus per-primitive counts (Displacement: 165, FVG: 56, MSS: 10, Order Block: 5, etc.)" },
+        { "action": "Verify counts update with TF/day changes", "expected": "Counts change when switching TF or day", "observed": "Counts updated correctly when switching from 5m to 1m (Displacement: 137→719) and when changing days" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png", "/tmp/val-ui-008-day2.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-019",
+      "title": "Zero console errors",
+      "status": "pass",
+      "steps": [
+        { "action": "Check console errors after page load", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after week selection", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after TF switch (1m, 5m, 15m)", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after day tab click", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after primitive toggle", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after week switch to W43", "expected": "No errors", "observed": "No errors" },
+        { "action": "Check console errors after viewport resize", "expected": "No errors", "observed": "No errors" }
+      ],
+      "evidence": {
+        "consoleErrors": "none — checked at every step (page load, week switch, TF switch, day switch, primitive toggle, resize)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-020",
+      "title": "Week switching loads different data",
+      "status": "pass",
+      "steps": [
+        { "action": "Select week 2025-W43", "expected": "Different candle data loaded", "observed": "Chart shows Oct 20-24 date range, different price pattern and levels compared to W42. Day tabs updated to Mon Oct 20 through Sat Oct 25. Detection counts different." },
+        { "action": "Compare with W42 screenshot", "expected": "Visually different price data", "observed": "W42 shows Oct 13-17 data around 1.16 price range with specific pattern, W43 shows Oct 20-24 with different chart shape and price movements" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-003-week-selected.png", "/tmp/val-ui-020-w43.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UI-021",
+      "title": "Responsive chart",
+      "status": "pass",
+      "steps": [
+        { "action": "Resize viewport to 800x600", "expected": "Chart resizes without overflow", "observed": "Chart and all UI elements adapted to smaller viewport. Controls wrapped to fit, chart area reduced proportionally, no horizontal overflow or clipping" },
+        { "action": "Resize viewport to 1920x1080", "expected": "Chart fills wider viewport", "observed": "Chart expanded to fill the larger viewport, all controls fit on single row, chart area maximized" }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/val-ui-021-small.png", "/tmp/val-ui-021-wide.png"],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 13 assertions: all 13 passed. The validation UI loads correctly with dark theme and Perplexity attribution, week picker shows available weeks, chart renders candlesticks with correct colors, detection markers appear as arrows, primitive toggles work independently, TF switching (1m/5m/15m) shows different candle densities, day tabs navigate correctly, session bands render as colored zones, detection count summary updates dynamically, no console errors throughout all interactions, week switching loads different data, and the chart resizes responsively."
+}

@@ -1,0 +1,35 @@
+{
+  "milestone": "validation-mode",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 47,
+    "passed": 47,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CLI-001", "VAL-CLI-002", "VAL-CLI-003", "VAL-CLI-004", "VAL-CLI-005",
+    "VAL-CLI-006", "VAL-CLI-007", "VAL-CLI-008", "VAL-CLI-009", "VAL-CLI-010",
+    "VAL-CLI-011", "VAL-CLI-012",
+    "VAL-SRV-001", "VAL-SRV-002", "VAL-SRV-003", "VAL-SRV-004", "VAL-SRV-005",
+    "VAL-SRV-006", "VAL-SRV-007", "VAL-SRV-008",
+    "VAL-UI-001", "VAL-UI-002", "VAL-UI-003", "VAL-UI-004", "VAL-UI-005",
+    "VAL-UI-006", "VAL-UI-007", "VAL-UI-008", "VAL-UI-009", "VAL-UI-010",
+    "VAL-UI-011", "VAL-UI-012", "VAL-UI-013", "VAL-UI-014", "VAL-UI-015",
+    "VAL-UI-016", "VAL-UI-017", "VAL-UI-018", "VAL-UI-019", "VAL-UI-020",
+    "VAL-UI-021",
+    "VAL-CROSS-001", "VAL-CROSS-002", "VAL-CROSS-003", "VAL-CROSS-004",
+    "VAL-CROSS-005", "VAL-CROSS-006"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance sections for Phase 3.5 agent-browser and CLI/curl testing with isolation rules and data facts",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}

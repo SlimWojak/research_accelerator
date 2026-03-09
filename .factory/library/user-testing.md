@@ -22,6 +22,61 @@
 - POST label: `curl -X POST -H 'Content-Type: application/json' -d '[{"detection_id":"test","label":"CORRECT"}]' http://localhost:8200/api/labels/test-week`
 - Verify: `cat site/data/labels/test-week.json`
 
+### Known Data Facts (2-week test data)
+- Weeks available: 2025-W42 (Oct 13-17), 2025-W43 (Oct 20-24)
+- Each week: ~9,500+ detections, 6 forex days
+- Data paths: site/data/detections/{week}.json, site/data/candles/{week}.json, site/data/sessions/{week}.json
+- Manifest: site/data/weeks.json
+- Params: site/data/params/locked.json
+- Labels (created by UI): site/data/labels/{week}.json
+- Lock records (created by UI): site/data/lock-records/{week}.json
+
+## Flow Validator Guidance: agent-browser (Phase 3.5 Validation Mode)
+
+**Surface:** Web UI at http://localhost:8200/validate.html (served by serve.py write server)
+
+**Isolation rules:**
+- Write server supports both GET (static files) and POST (labels, lock-records).
+- Each subagent MUST use a unique browser session ID (prefixed with worker session ID).
+- Label/lock-record files are per-week. Subagents testing labels should use DIFFERENT weeks to avoid write conflicts.
+- Subagent A: use week 2025-W42 for labeling tests. Subagent B: use 2025-W43 for labeling tests.
+- Before testing labels, ensure no stale label files exist (start clean).
+
+**Boundaries:**
+- Do NOT modify any Python files or JS source code.
+- Do NOT stop the serve.py server.
+- Do NOT modify Mode 1 files or the port 8100 server.
+
+**Testing approach:**
+1. Navigate to http://localhost:8200/validate.html
+2. Wait for page to load — check that week picker is populated
+3. Select a week from the picker
+4. Wait for chart to render (candles visible)
+5. For each assertion, interact and verify
+6. Check browser console for errors after key interactions
+7. Report results in the flow JSON file
+
+**Detection marker interaction:**
+- Detection markers are arrows on the chart — bullish (upward) below candles, bearish (downward) above
+- Click near a marker to trigger the label popover
+- Markers may be dense — try zooming in first
+- After labeling, a colored ring should appear (green=CORRECT, red=NOISE, yellow=BORDERLINE)
+
+## Flow Validator Guidance: CLI/curl (Phase 3.5)
+
+**Surface:** Terminal commands — no browser needed
+
+**Isolation rules:**
+- CLI tests (detect.py) write to site/data/ — use a TEMPORARY output directory to avoid overwriting real data
+- Server tests (curl to serve.py) should use test-specific week IDs (e.g., "test-srv-week") to avoid conflicting with browser tests
+- Clean up any test files created after testing
+
+**Testing approach:**
+1. For CLI assertions: run detect.py with a small date range to a temp output dir, verify file structure/content
+2. For server assertions: use curl to POST/GET test data with unique week IDs
+3. Verify file contents on disk after POST operations
+4. Check for proper error handling (invalid JSON, etc.)
+
 ---
 
 ## Phase 3 Calibration Interface (Mode 1) — Phase 3 Comparison Interface

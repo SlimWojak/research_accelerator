@@ -1,0 +1,40 @@
+{
+  "group": "server",
+  "assertions": {
+    "VAL-SRV-001": {
+      "status": "pass",
+      "evidence": "curl -sf http://localhost:8200/ returns HTML content (DOCTYPE html, Perplexity ASCII art in head). Server running on port 8200."
+    },
+    "VAL-SRV-002": {
+      "status": "pass",
+      "evidence": "curl returns content for validate.html (HTML), validate-app.js (JS), data/weeks.json (JSON). All static file types served correctly."
+    },
+    "VAL-SRV-003": {
+      "status": "pass",
+      "evidence": "POST to /api/labels/test-srv-003 with JSON body returned HTTP 200. File site/data/labels/test-srv-003.json created on disk with matching JSON content: [{\"detection_id\":\"test-srv-003\",\"label\":\"CORRECT\",\"primitive\":\"displacement\"}]"
+    },
+    "VAL-SRV-004": {
+      "status": "pass",
+      "evidence": "POST to /api/lock-records/test-srv-004 with JSON body returned HTTP 200. File site/data/lock-records/test-srv-004.json created on disk with matching content: {\"week\":\"test-srv-004\",\"notes\":\"test lock\",\"params\":{\"displacement\":{\"atr_multiple\":1.5}}}"
+    },
+    "VAL-SRV-005": {
+      "status": "pass",
+      "evidence": "After POST to /api/labels/test-srv-003, GET /data/labels/test-srv-003.json returned identical JSON content. Static serving correctly returns saved files."
+    },
+    "VAL-SRV-006": {
+      "status": "pass",
+      "evidence": "First POST wrote [{\"label\":\"FIRST\"}], second POST to same endpoint wrote [{\"label\":\"SECOND\"}]. File on disk contains only SECOND content — overwrite behavior confirmed."
+    },
+    "VAL-SRV-007": {
+      "status": "pass",
+      "evidence": "POST with plain text body 'this is not json' returned HTTP 400. Invalid JSON properly rejected."
+    },
+    "VAL-SRV-008": {
+      "status": "pass",
+      "evidence": "POST to /api/labels/test-srv-008 returned HTTP 200 and file was created at site/data/labels/test-srv-008.json. Directory auto-creation works."
+    }
+  },
+  "frictions": [],
+  "blockers": [],
+  "toolsUsed": ["curl", "cat", "ls"]
+}
