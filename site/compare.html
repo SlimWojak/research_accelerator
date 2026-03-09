@@ -321,6 +321,153 @@
     color: var(--text);
   }
 
+  /* ── Chart Tab Layout ──────────────────────────────────────────────────── */
+
+  .chart-tab-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .chart-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-height: 40px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .chart-day-tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .chart-day-tab {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .chart-day-tab:hover {
+    color: var(--text);
+  }
+
+  .chart-day-tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+
+  .chart-tf-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .chart-tf-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .chart-tf-btn:hover {
+    color: var(--text);
+  }
+
+  .chart-tf-btn.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  .config-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .config-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .config-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .config-legend-name {
+    font-family: var(--mono);
+  }
+
+  .session-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .session-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .session-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .session-label-text {
+    font-family: var(--mono);
+  }
+
+  .chart-main-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .chart-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Chart tab override: no padding for full-bleed chart ─────────────── */
+
+  #tab-chart {
+    padding: 0;
+    overflow: hidden;
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -329,6 +476,8 @@
     .tab-bar { padding: 0 12px; }
     .tab-content { padding: 16px; }
     .tab-btn { padding: 9px 12px; font-size: 12px; }
+    .chart-controls-bar { padding: 6px 10px; gap: 10px; }
+    .chart-day-tab { padding: 5px 8px; font-size: 10px; }
   }
 </style>
 </head>
@@ -420,6 +569,7 @@
 
 <!-- Scripts -->
 <script src="js/shared.js"></script>
+<script src="js/chart-tab.js"></script>
 <script>
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
