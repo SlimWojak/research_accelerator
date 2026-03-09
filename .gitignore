@@ -14,3 +14,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Generated evaluation data (regenerate with: bash site/generate_eval_data.sh)
+site/eval/
