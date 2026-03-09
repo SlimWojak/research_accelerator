@@ -858,6 +858,47 @@
     color: var(--red);
   }
 
+  /* ── Heatmap Tab ───────────────────────────────────────────────────── */
+
+  #tab-heatmap {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .heatmap-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .heatmap-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .heatmap-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .heatmap-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .heatmap-chart-container {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -956,6 +997,7 @@
 <script src="js/shared.js"></script>
 <script src="js/chart-tab.js"></script>
 <script src="js/stats-tab.js"></script>
+<script src="js/heatmap-tab.js"></script>
 <script>
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
