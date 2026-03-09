@@ -468,6 +468,165 @@
     overflow: hidden;
   }
 
+  /* ── Chart Sidebar (config/primitive toggles + detection summary) ──── */
+
+  .chart-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .chart-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Toggle Controls ─────────────────────────────────────────────────── */
+
+  .config-toggles,
+  .primitive-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .toggle-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toggle-btn:hover {
+    color: var(--text);
+    border-color: var(--faint);
+  }
+
+  .toggle-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--blue);
+  }
+
+  .toggle-swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .toggle-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Detection Count Summary ─────────────────────────────────────────── */
+
+  .detection-summary {
+    font-size: 11px;
+  }
+
+  .detection-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .summary-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .summary-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--faint);
+  }
+
+  .detection-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .detection-summary-table th {
+    font-size: 10px;
+    font-weight: 500;
+    text-align: right;
+    padding: 2px 4px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+
+  .detection-summary-table td {
+    padding: 2px 4px;
+    border-bottom: 1px solid rgba(42,46,57,0.4);
+  }
+
+  .detection-summary-table .prim-col {
+    text-align: left;
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .detection-summary-table th.prim-col {
+    text-align: left;
+  }
+
+  .detection-summary-table .count-col {
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .detection-summary-table .totals-row td {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    font-weight: 600;
+    padding-top: 4px;
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -478,6 +637,7 @@
     .tab-btn { padding: 9px 12px; font-size: 12px; }
     .chart-controls-bar { padding: 6px 10px; gap: 10px; }
     .chart-day-tab { padding: 5px 8px; font-size: 10px; }
+    .chart-sidebar { width: 180px; }
   }
 </style>
 </head>

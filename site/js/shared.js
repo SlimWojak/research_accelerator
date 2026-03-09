@@ -18,6 +18,10 @@ const app = {
   selectedConfigs: [],      // config names currently selected for display
   selectedPrimitive: 'displacement',
 
+  // Toggle state (set by chart-tab.js controls)
+  configToggles: {},        // keyed by config name → boolean (visible)
+  primitiveToggles: {},     // keyed by primitive name → boolean (visible)
+
   // Chart refs (set by chart-tab.js)
   chart: null,
   candleSeries: null,

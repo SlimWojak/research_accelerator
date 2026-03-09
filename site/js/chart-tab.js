@@ -1,12 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  * chart-tab.js — Multi-config candlestick chart with detection markers,
- *                session bands, TF switching, and day navigation
+ *                session bands, TF switching, day navigation,
+ *                config/primitive toggles, and detection count summary
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ── Chart-specific state ──────────────────────────────────────────────────── */
 
 let _chartInitialized = false;
 let _sessionPrimitive = null;
+let _allMarkers = [];       // All built markers (unfiltered) for current day/tf
+let _candleTimeSet = null;  // Current candle time set
+let _candleTimesArr = null; // Current candle times array
 
 /* ── CONFIG_COLORS for markers (bullish/bearish per config) ────────────────── */
 
@@ -143,7 +147,7 @@ function findNearestCandleTime(detTime, candleTimeSet, candleTimes) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * Build markers from detection data
+ * Build markers from detection data (unfiltered — all configs/primitives)
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function buildMarkers(candleTimesSet, candleTimesArr) {
@@ -169,7 +173,6 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
       const dayDets = filterDetectionsByDay(tfData.detections, app.day);
 
       for (const det of dayDets) {
-        const cleanTime = (det.time || '').replace(/-05:00$/, '').replace(/\+00:00$/, '');
         const barTime = findNearestCandleTime(det.time, candleTimesSet, candleTimesArr);
         if (barTime == null) continue;
 
@@ -201,6 +204,260 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
     seen.add(k);
     return true;
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * rebuildMarkers — Filter markers by toggle state and apply to chart
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Read current toggle state and filter _allMarkers accordingly,
+ * then call candleSeries.setMarkers() with the filtered set.
+ */
+function rebuildMarkers() {
+  if (!app.candleSeries) return;
+
+  const filtered = _allMarkers.filter(m => {
+    // Check config toggle
+    if (app.configToggles[m._config] === false) return false;
+    // Check primitive toggle
+    if (app.primitiveToggles[m._primitive] === false) return false;
+    return true;
+  });
+
+  // LWC requires markers sorted by time
+  filtered.sort((a, b) => a.time - b.time);
+
+  try {
+    app.candleSeries.setMarkers(filtered);
+  } catch (e) {
+    console.warn('setMarkers error:', e);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Initialize toggle state from eval data
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function initToggles() {
+  if (!app.evalData) return;
+
+  // Config toggles: all on by default
+  const configs = app.evalData.configs || [];
+  const ct = {};
+  for (const c of configs) {
+    ct[c] = true;
+  }
+  app.configToggles = ct;
+
+  // Primitive toggles: all on by default
+  const pt = {};
+  for (const p of PRIMITIVES) {
+    pt[p] = true;
+  }
+  app.primitiveToggles = pt;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Config Toggle Controls
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function renderConfigToggles(container) {
+  if (!app.evalData) return;
+  const configs = app.evalData.configs || [];
+  container.innerHTML = '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'config-toggles';
+
+  const label = document.createElement('span');
+  label.className = 'toggle-group-label';
+  label.textContent = 'Configs';
+  wrapper.appendChild(label);
+
+  configs.forEach((name, i) => {
+    const c = CONFIG_COLORS[Math.min(i, CONFIG_COLORS.length - 1)];
+    const btn = document.createElement('button');
+    const isOn = app.configToggles[name] !== false;
+    btn.className = 'toggle-btn config-toggle-btn' + (isOn ? ' active' : '');
+    btn.dataset.config = name;
+    btn.title = isOn ? `Hide ${name}` : `Show ${name}`;
+    btn.innerHTML = `<span class="toggle-swatch" style="background:${isOn ? c.base : 'var(--faint)'}"></span><span class="toggle-label">${name}</span>`;
+
+    btn.addEventListener('click', () => {
+      app.configToggles[name] = !app.configToggles[name];
+      renderConfigToggles(container);
+      rebuildMarkers();
+    });
+    wrapper.appendChild(btn);
+  });
+
+  container.appendChild(wrapper);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Primitive Toggle Controls
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function renderPrimitiveToggles(container) {
+  container.innerHTML = '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'primitive-toggles';
+
+  const label = document.createElement('span');
+  label.className = 'toggle-group-label';
+  label.textContent = 'Primitives';
+  wrapper.appendChild(label);
+
+  for (const prim of PRIMITIVES) {
+    const isOn = app.primitiveToggles[prim] !== false;
+    const btn = document.createElement('button');
+    btn.className = 'toggle-btn prim-toggle-btn' + (isOn ? ' active' : '');
+    btn.dataset.primitive = prim;
+    btn.title = isOn ? `Hide ${primLabel(prim)}` : `Show ${primLabel(prim)}`;
+    btn.textContent = primLabel(prim);
+
+    btn.addEventListener('click', () => {
+      app.primitiveToggles[prim] = !app.primitiveToggles[prim];
+      renderPrimitiveToggles(container);
+      rebuildMarkers();
+    });
+    wrapper.appendChild(btn);
+  }
+
+  container.appendChild(wrapper);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Detection Count Summary Panel
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Get detection counts for the current TF, per config, per primitive.
+ * Returns: { configName: { primitiveName: count } }
+ */
+function getDetectionCounts() {
+  const result = {};
+  if (!app.evalData || !app.evalData.per_config) return result;
+
+  const configs = app.evalData.configs || [];
+  for (const configName of configs) {
+    result[configName] = {};
+    const configData = app.evalData.per_config[configName];
+    if (!configData || !configData.per_primitive) {
+      for (const prim of PRIMITIVES) {
+        result[configName][prim] = 0;
+      }
+      continue;
+    }
+
+    for (const prim of PRIMITIVES) {
+      const primData = configData.per_primitive[prim];
+      if (!primData || !primData.per_tf) {
+        result[configName][prim] = 0;
+        continue;
+      }
+      const tfData = primData.per_tf[app.tf];
+      if (!tfData) {
+        result[configName][prim] = 0;
+        continue;
+      }
+      // Use detection_count from Schema 4B
+      result[configName][prim] = tfData.detection_count != null ? tfData.detection_count : 0;
+    }
+  }
+  return result;
+}
+
+/**
+ * Get detection counts filtered by the current day (from actual detections array).
+ * Returns: { configName: { primitiveName: count } }
+ */
+function getDetectionCountsForDay() {
+  const result = {};
+  if (!app.evalData || !app.evalData.per_config) return result;
+
+  const configs = app.evalData.configs || [];
+  for (const configName of configs) {
+    result[configName] = {};
+    const configData = app.evalData.per_config[configName];
+    if (!configData || !configData.per_primitive) {
+      for (const prim of PRIMITIVES) {
+        result[configName][prim] = 0;
+      }
+      continue;
+    }
+
+    for (const prim of PRIMITIVES) {
+      const primData = configData.per_primitive[prim];
+      if (!primData || !primData.per_tf) {
+        result[configName][prim] = 0;
+        continue;
+      }
+      const tfData = primData.per_tf[app.tf];
+      if (!tfData || !tfData.detections) {
+        result[configName][prim] = 0;
+        continue;
+      }
+      const dayDets = filterDetectionsByDay(tfData.detections, app.day);
+      result[configName][prim] = dayDets.length;
+    }
+  }
+  return result;
+}
+
+function renderDetectionSummary(container) {
+  if (!app.evalData) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const configs = app.evalData.configs || [];
+  const counts = getDetectionCountsForDay();
+  const isSingle = configs.length === 1;
+
+  let html = '<div class="detection-summary">';
+  html += '<div class="detection-summary-header">';
+  html += `<span class="summary-title">Detections</span>`;
+  html += `<span class="summary-meta">${app.tf} · ${dayLabel(app.day)}</span>`;
+  html += '</div>';
+
+  // Table header
+  html += '<table class="detection-summary-table"><thead><tr>';
+  html += '<th class="prim-col">Primitive</th>';
+  for (let ci = 0; ci < configs.length; ci++) {
+    const c = CONFIG_COLORS[Math.min(ci, CONFIG_COLORS.length - 1)];
+    html += `<th class="count-col" style="color:${c.base}">${configs[ci]}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (const prim of PRIMITIVES) {
+    html += '<tr>';
+    html += `<td class="prim-col">${primLabel(prim)}</td>`;
+    for (const cfgName of configs) {
+      const cnt = (counts[cfgName] && counts[cfgName][prim] != null) ? counts[cfgName][prim] : 0;
+      html += `<td class="count-col">${cnt}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  // Totals row
+  html += '<tr class="totals-row">';
+  html += '<td class="prim-col">Total</td>';
+  for (const cfgName of configs) {
+    let total = 0;
+    for (const prim of PRIMITIVES) {
+      total += (counts[cfgName] && counts[cfgName][prim] != null) ? counts[cfgName][prim] : 0;
+    }
+    html += `<td class="count-col">${total}</td>`;
+  }
+  html += '</tr>';
+
+  html += '</tbody></table>';
+  html += '</div>';
+
+  container.innerHTML = html;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -372,6 +629,7 @@ function createLWChart(container) {
 
 /**
  * Refresh chart: load candles for current day+tf, set candle data, markers, session bands.
+ * Also updates detection count summary and toggle controls.
  */
 async function refreshChart() {
   if (!app.chart || !app.candleSeries) return;
@@ -380,7 +638,10 @@ async function refreshChart() {
   const candleData = await loadCandles(app.day);
   if (!candleData || !candleData[app.tf]) {
     app.candleSeries.setData([]);
+    _allMarkers = [];
+    rebuildMarkers();
     if (_sessionPrimitive) _sessionPrimitive.setBands([]);
+    updateDetectionSummary();
     return;
   }
 
@@ -398,16 +659,14 @@ async function refreshChart() {
   app.candleSeries.setData(data);
 
   // Build candle time lookup sets
-  const candleTimeSet = new Set(data.map(c => c.time));
-  const candleTimesArr = data.map(c => c.time);
+  _candleTimeSet = new Set(data.map(c => c.time));
+  _candleTimesArr = data.map(c => c.time);
 
-  // Build and set markers
-  const markers = buildMarkers(candleTimeSet, candleTimesArr);
-  try {
-    app.candleSeries.setMarkers(markers);
-  } catch (e) {
-    console.warn('setMarkers error:', e);
-  }
+  // Build all markers (unfiltered) and store
+  _allMarkers = buildMarkers(_candleTimeSet, _candleTimesArr);
+
+  // Apply toggle filters
+  rebuildMarkers();
 
   // Session bands
   const bands = getSessionBandsForDay(app.day);
@@ -429,6 +688,19 @@ async function refreshChart() {
       }
     });
   });
+
+  // Update detection count summary
+  updateDetectionSummary();
+}
+
+/**
+ * Update the detection count summary panel (called after day/TF change).
+ */
+function updateDetectionSummary() {
+  const summaryEl = document.getElementById('chart-detection-summary');
+  if (summaryEl) {
+    renderDetectionSummary(summaryEl);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -442,17 +714,26 @@ function initChartTab() {
   const tabEl = document.getElementById('tab-chart');
   if (!tabEl) return;
 
-  // Build chart tab DOM structure
+  // Initialize toggle state
+  initToggles();
+
+  // Build chart tab DOM structure with sidebar for controls + summary
   tabEl.innerHTML = `
     <div class="chart-tab-layout">
       <div class="chart-controls-bar">
         <div class="chart-day-tabs" id="chart-day-tabs"></div>
         <div class="chart-tf-group" id="chart-tf-group"></div>
-        <div id="chart-config-legend"></div>
         <div id="chart-session-legend"></div>
       </div>
-      <div class="chart-main-area">
-        <div class="chart-container" id="lw-chart-container"></div>
+      <div class="chart-body">
+        <div class="chart-sidebar">
+          <div class="sidebar-section" id="chart-config-toggles"></div>
+          <div class="sidebar-section" id="chart-prim-toggles"></div>
+          <div class="sidebar-section" id="chart-detection-summary"></div>
+        </div>
+        <div class="chart-main-area">
+          <div class="chart-container" id="lw-chart-container"></div>
+        </div>
       </div>
     </div>
   `;
@@ -460,7 +741,8 @@ function initChartTab() {
   // Render controls
   renderDayTabs(document.getElementById('chart-day-tabs'));
   renderTFButtons(document.getElementById('chart-tf-group'));
-  renderConfigLegend(document.getElementById('chart-config-legend'));
+  renderConfigToggles(document.getElementById('chart-config-toggles'));
+  renderPrimitiveToggles(document.getElementById('chart-prim-toggles'));
   renderSessionLegend(document.getElementById('chart-session-legend'));
 
   // Create chart
