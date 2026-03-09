@@ -1,0 +1,386 @@
+{
+  "groupId": "chart",
+  "testedAt": "2026-03-09T12:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A (read-only UI)"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-CHART-001",
+      "title": "Candlestick chart renders with correct OHLC data",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to http://localhost:8100/compare.html", "expected": "Chart tab active by default with candlestick chart", "observed": "Chart tab active, candlestick chart rendered" },
+        { "action": "Verify candle colors", "expected": "Teal bullish, red bearish", "observed": "Teal (#26a69a) bullish and red (#ef5350) bearish candles visible" },
+        { "action": "Check price axis", "expected": "Reasonable FX prices", "observed": "Price axis shows ~1.09-1.10 (EURUSD)" },
+        { "action": "Count candles via eval", "expected": ">=50 candles", "observed": "288 candles on 5m default TF" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "GET /eval/evaluation_run.json -> 200, GET /candles_2024-01-09.json -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-002",
+      "title": "Multi-config overlay distinct color sets per config",
+      "status": "blocked",
+      "steps": [
+        { "action": "Check configs in evaluation data", "expected": "2 configs with distinct color sets", "observed": "Only 1 config ('current_locked') in fixture data" },
+        { "action": "Verify code supports multi-config colors", "expected": "CONFIG_COLORS has distinct palettes", "observed": "CONFIG_COLORS defined with teal (Config A), amber (Config B), purple (Config C)" },
+        { "action": "Check config toggle buttons", "expected": "Color swatches per config", "observed": "Single config toggle with teal swatch" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "Fixture data (evaluation_run.json) contains only 1 config ('current_locked'), not 2. Cannot visually verify distinct color sets for multiple configs. Task description says '2 configs' but actual data has 1. Code supports multi-config via CONFIG_COLORS array. renderConfigLegend function exists but is not called in initChartTab; config toggle buttons serve as the legend."
+    },
+    {
+      "id": "VAL-CHART-003",
+      "title": "Config toggle show/hide individual config markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify config toggle button exists", "expected": "Toggle for 'current_locked'", "observed": "Button 'current_locked' visible with color swatch" },
+        { "action": "Click config toggle to hide", "expected": "All markers disappear", "observed": "All detection markers removed from chart, only candles and session bands remain" },
+        { "action": "Click config toggle to re-enable", "expected": "All markers restored", "observed": "Detection markers restored on chart" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-all-on.png", "chart-config-hidden.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "Only 1 config in fixture, so 'both hidden simultaneously' scenario is equivalent to hiding the single config. With 1 config, toggling off shows only candles."
+    },
+    {
+      "id": "VAL-CHART-004",
+      "title": "Primitive layer toggle show/hide FVG markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify FVG toggle exists", "expected": "Toggle button for 'Fvg'", "observed": "Button 'Fvg' visible in Primitives section" },
+        { "action": "Click FVG toggle to disable", "expected": "FVG markers hidden, other primitives unaffected", "observed": "FVG markers removed; primitiveToggles.fvg = false confirmed via eval" },
+        { "action": "Click FVG toggle to re-enable", "expected": "FVG markers restored", "observed": "FVG markers restored; primitiveToggles.fvg = true" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-fvg-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-005",
+      "title": "Primitive layer toggle show/hide displacement markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify Displacement toggle exists", "expected": "Toggle button for 'Displacement'", "observed": "Button 'Displacement' visible" },
+        { "action": "Click Displacement toggle to disable", "expected": "Displacement markers hidden", "observed": "Displacement markers removed; primitiveToggles.displacement = false confirmed" },
+        { "action": "Click Displacement toggle to re-enable", "expected": "Displacement markers restored", "observed": "Displacement markers restored" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-disp-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-006",
+      "title": "Primitive layer toggle show/hide MSS markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify MSS toggle exists", "expected": "Toggle button for 'Mss'", "observed": "Button 'Mss' visible" },
+        { "action": "Click MSS toggle to disable", "expected": "MSS markers hidden", "observed": "MSS markers removed; primitiveToggles.mss = false confirmed" },
+        { "action": "Click MSS toggle to re-enable", "expected": "MSS markers restored", "observed": "MSS markers restored" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-mss-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-007",
+      "title": "Primitive layer toggle show/hide OB markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify Order Block toggle exists", "expected": "Toggle button for 'Order Block'", "observed": "Button 'Order Block' visible" },
+        { "action": "Click OB toggle to disable", "expected": "OB markers hidden", "observed": "OB markers removed; primitiveToggles.order_block = false confirmed" },
+        { "action": "Click OB toggle to re-enable", "expected": "OB markers restored", "observed": "OB markers restored" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-ob-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-008",
+      "title": "Primitive layer toggle show/hide sweep markers",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify Liquidity Sweep toggle exists", "expected": "Toggle button for 'Liquidity Sweep'", "observed": "Button 'Liquidity Sweep' visible" },
+        { "action": "Click sweep toggle to disable", "expected": "Sweep markers hidden", "observed": "Sweep markers removed; primitiveToggles.liquidity_sweep = false confirmed" },
+        { "action": "Click sweep toggle to re-enable", "expected": "Sweep markers restored", "observed": "Sweep markers restored" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-sweep-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-009",
+      "title": "TF switching 1m candles and detections",
+      "status": "pass",
+      "steps": [
+        { "action": "Click '1m' TF button", "expected": "1m candles loaded, ~5x of 5m count", "observed": "1433 candles loaded (vs 288 for 5m = 4.97x). '1m' button shows active state." },
+        { "action": "Check detection markers", "expected": "Markers aligned to 1m bars", "observed": "Detection markers visible on 1m chart. Count summary updated to 1388 total." }
+      ],
+      "evidence": {
+        "screenshots": ["chart-1m.png"],
+        "consoleErrors": "none",
+        "network": "GET /candles_2024-01-09.json -> 200 (contains 1m data)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-010",
+      "title": "TF switching 5m candles and detections (default)",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify 5m is default TF", "expected": "5m button active on load", "observed": "app.tf === '5m' confirmed; '5m' button has active styling" },
+        { "action": "Verify candle data", "expected": "5m candles displayed", "observed": "288 candles for 5m TF on Tue Jan 9" },
+        { "action": "Verify detection counts", "expected": "Counts match per_tf['5m'] data", "observed": "Displacement: 160, Fvg: 71, Mss: 13, OB: 10, LS: 7, Total: 261" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-5m-default.png", "chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-011",
+      "title": "TF switching 15m candles and detections",
+      "status": "pass",
+      "steps": [
+        { "action": "Click '15m' TF button", "expected": "15m candles loaded, ~1/3 of 5m count", "observed": "96 candles (vs 288 for 5m = 0.33x). '15m' button shows active state." },
+        { "action": "Check detection markers", "expected": "Markers aligned to 15m bars", "observed": "Detection markers visible. Count summary: Displacement 58, Fvg 24, Mss 8, OB 8, LS 9, Total 107." }
+      ],
+      "evidence": {
+        "screenshots": ["chart-15m.png (not captured separately, verified via eval)"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-012",
+      "title": "Day navigation 5 day tabs visible",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify day tabs", "expected": "5 tabs: Mon Jan 8 through Fri Jan 12", "observed": "5 buttons visible: 'Mon Jan 8', 'Tue Jan 9', 'Wed Jan 10', 'Thu Jan 11', 'Fri Jan 12'" },
+        { "action": "Verify default active tab", "expected": "One tab active by default", "observed": "Tue Jan 9 active (app.day === '2024-01-09')" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-013",
+      "title": "Day navigation clicking tab switches chart data",
+      "status": "pass",
+      "steps": [
+        { "action": "Click 'Mon Jan 8' tab", "expected": "Chart loads Mon Jan 8 data with different price levels", "observed": "Chart updated to Jan 8 data. Different price pattern visible. Mon Jan 8 tab highlighted as active." },
+        { "action": "Verify detection counts updated", "expected": "Counts change for new day", "observed": "Total changed from 261 (Tue Jan 9) to 283 (Mon Jan 8)" },
+        { "action": "Switch back to Tue Jan 9", "expected": "Original data restored", "observed": "Chart restored to Jan 9 data with original counts" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-mon-jan8.png", "chart-5m-default.png"],
+        "consoleErrors": "none",
+        "network": "GET /candles_2024-01-08.json -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-014",
+      "title": "Session boundary bands visible",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify session bands render behind candles", "expected": "Colored vertical bands for Asia, LOKZ, NYOKZ", "observed": "5 session bands visible for Tue Jan 9: Asia (19:00-00:00), LOKZ (02:00-05:00), NYOKZ (07:00-10:00), NY-A (08:00-09:00), NY-B (10:00-11:00). Bands rendered at zOrder 'bottom' behind candles." },
+        { "action": "Check band colors", "expected": "Distinct fill colors with transparency", "observed": "Each session uses distinct semi-transparent fill color with dashed borders" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png", "chart-sessions.png"],
+        "consoleErrors": "none",
+        "network": "GET /session_boundaries.json -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-015",
+      "title": "Session boundary colors match design system with legend",
+      "status": "pass",
+      "steps": [
+        { "action": "Check session legend", "expected": "Legend labels each session with name and time range", "observed": "Session legend visible in controls bar showing: 'Asia 19:00–00:00' (purple), 'LOKZ 02:00–05:00' (blue), 'NYOKZ 07:00–10:00' (teal)" },
+        { "action": "Verify colors match", "expected": "Colors from SESSION_META match design system", "observed": "Asia: rgba(156,39,176,0.5) purple, LOKZ: rgba(41,98,255,0.5) blue, NYOKZ: rgba(38,166,154,0.5) teal — all match design tokens" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-016",
+      "title": "Detection count summary updates per config per primitive",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify summary panel shows counts", "expected": "Per-config per-primitive detection counts", "observed": "Detection summary table shows: Displacement 160, Fvg 71, Mss 13, OB 10, LS 7, Total 261 for 'current_locked' on 5m/Tue Jan 9" },
+        { "action": "Switch TF and verify update", "expected": "Counts change when TF changes", "observed": "On 15m: Displacement 58, Fvg 24, Mss 8, OB 8, LS 9, Total 107 — counts correctly updated" },
+        { "action": "Switch day and verify update", "expected": "Counts change when day changes", "observed": "Mon Jan 8: Total 283, different primitive distribution — counts correctly updated" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-017",
+      "title": "Chart is scrollable (pan left/right)",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify handleScroll options enabled", "expected": "pressedMouseMove: true, mouseWheel: true", "observed": "Chart options confirm handleScroll.pressedMouseMove: true, mouseWheel: true, horzTouchDrag: true" },
+        { "action": "Programmatically scroll chart", "expected": "Visible range shifts", "observed": "scrollToPosition(-50) shifted visible logical range from [76.18, 337] to [27.51, 288.33] — chart panned ~49 bars left" },
+        { "action": "Take screenshot after scroll", "expected": "Different candle region visible", "observed": "Chart shows earlier time region after scrolling" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-after-scroll.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "Mouse drag panning via Playwright mouse events did not reliably trigger LWC scroll. Verified via programmatic scrollToPosition API. handleScroll options confirm drag-scroll is enabled."
+    },
+    {
+      "id": "VAL-CHART-018",
+      "title": "Chart is zoomable (mouse wheel)",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify handleScale options enabled", "expected": "mouseWheel: true", "observed": "Chart options confirm handleScale.mouseWheel: true, pinch: true" },
+        { "action": "Zoom in via mouse wheel", "expected": "Visible time range narrows (fewer candles with more detail)", "observed": "Visible range changed from span 86100s to 78600s after mouse wheel zoom — fewer candles shown with more detail" },
+        { "action": "Take screenshot after zoom", "expected": "Zoomed-in view showing fewer candles", "observed": "Chart shows zoomed-in view with fewer, wider candles" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-zoomed-in.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-019",
+      "title": "Marker positioning bullish below bar bearish above",
+      "status": "pass",
+      "steps": [
+        { "action": "Query marker positions via eval", "expected": "Bullish: belowBar/arrowUp, Bearish: aboveBar/arrowDown", "observed": "259 total markers: 126 bullish (belowBar, arrowUp, color #26a69a), 133 bearish (aboveBar, arrowDown, color #4db6ac). 0 wrong-positioned markers." }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-020",
+      "title": "Zero detections for a primitive renders gracefully",
+      "status": "pass",
+      "steps": [
+        { "action": "Check if any primitive has zero detections", "expected": "At least one scenario with zero detections", "observed": "No primitive has exactly 0 detections in any day/TF combination in current fixture" },
+        { "action": "Toggle all primitives off to simulate zero visible detections", "expected": "Chart renders without errors", "observed": "Chart renders with only candles and session bands. All toggle buttons remain visible in inactive state. No console errors." },
+        { "action": "Verify code handles empty arrays", "expected": "buildMarkers handles empty detection arrays", "observed": "Code checks for null/empty detections arrays and returns empty marker list. getDetectionCountsForDay returns 0 for missing data. renderDetectionSummary handles 0 counts without NaN/undefined." }
+      ],
+      "evidence": {
+        "screenshots": ["chart-all-off.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "No primitive has exactly 0 detections in the fixture data, so visual confirmation of '0' in summary column not directly observed. Code path verified via inspection: missing primitives/TFs show 0 counts."
+    },
+    {
+      "id": "VAL-CHART-021",
+      "title": "Single config mode renders correctly",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify fixture has 1 config", "expected": "configs.length === 1", "observed": "app.evalData.configs = ['current_locked'] — single config" },
+        { "action": "Verify chart renders all markers in single color set", "expected": "Markers use teal/green family", "observed": "All markers use teal (#26a69a) bullish and light teal (#4db6ac) bearish — single color set" },
+        { "action": "Verify config toggle adapts to one config", "expected": "Single toggle button visible, no broken UI", "observed": "Single 'current_locked' toggle button with teal swatch. No empty slots or broken layout." },
+        { "action": "Verify detection summary shows single column", "expected": "Single config column in table", "observed": "Summary table has 'Primitive' and 'current_locked' columns only — no empty second config column." },
+        { "action": "Check for console errors", "expected": "No errors with single config", "observed": "Zero console errors throughout session" }
+      ],
+      "evidence": {
+        "screenshots": ["chart-full-1920.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CHART-022",
+      "title": "Crosshair displays time and price",
+      "status": "pass",
+      "steps": [
+        { "action": "Move mouse over chart", "expected": "Crosshair visible with time and price labels", "observed": "Horizontal dashed line visible with price label (e.g. 1.10) on y-axis. Time label visible on x-axis. Crosshair configured with color #4a4e5a and dashed style (style: 2)." },
+        { "action": "Verify crosshair configuration", "expected": "Color #4a4e5a, dashed style", "observed": "Chart options: crosshair.vertLine.color=#4a4e5a, width=1, style=2; crosshair.horzLine.color=#4a4e5a, width=1, style=2. CrosshairMode.Normal." }
+      ],
+      "evidence": {
+        "screenshots": ["chart-crosshair.png", "chart-crosshair2.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Fixture data contains only 1 config ('current_locked'), but task description and validation contract assume 2 configs. This prevents full verification of VAL-CHART-002 (multi-config overlay).",
+      "resolved": false,
+      "resolution": "Marked VAL-CHART-002 as blocked. Code-level inspection confirms multi-config support via CONFIG_COLORS array.",
+      "affectedAssertions": ["VAL-CHART-002"]
+    },
+    {
+      "description": "Mouse drag panning via Playwright mouse events did not reliably trigger Lightweight Charts scroll. Verified via programmatic API instead.",
+      "resolved": true,
+      "resolution": "Used chart.timeScale().scrollToPosition() API to confirm scrollability. Chart options confirm handleScroll.pressedMouseMove is enabled.",
+      "affectedAssertions": ["VAL-CHART-017"]
+    },
+    {
+      "description": "No primitive has exactly 0 detections in any day/TF combination, preventing direct visual verification of '0' display in summary. Verified via code inspection and all-toggles-off test.",
+      "resolved": true,
+      "resolution": "Toggled all primitives off to verify graceful zero-marker rendering. Code handles empty arrays and missing data correctly.",
+      "affectedAssertions": ["VAL-CHART-020"]
+    }
+  ],
+  "blockers": [
+    {
+      "description": "evaluation_run.json fixture contains only 1 config ('current_locked'). Task description claims 2 configs but actual data has 1. This blocks full verification of multi-config assertions.",
+      "affectedAssertions": ["VAL-CHART-002"],
+      "quickFixAttempted": "Inspected code to confirm multi-config support: CONFIG_COLORS array defines teal (A), amber (B), purple (C) palettes. buildMarkers iterates configs[]. renderConfigToggles creates per-config buttons."
+    }
+  ],
+  "summary": "Tested 22 Chart Tab assertions: 21 passed, 1 blocked (VAL-CHART-002: fixture has only 1 config, cannot visually verify multi-config overlay). All interactive features work correctly: config/primitive toggles, TF switching (1m/5m/15m), day navigation (5 days), session bands, detection count summary, scroll/zoom, crosshair, marker positioning. Zero console errors throughout entire testing session."
+}

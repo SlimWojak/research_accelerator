@@ -1,0 +1,47 @@
+{
+  "milestone": "comparison-core",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 62,
+    "passed": 61,
+    "failed": 0,
+    "blocked": 1
+  },
+  "passedAssertions": [
+    "VAL-FOUND-001", "VAL-FOUND-002", "VAL-FOUND-003", "VAL-FOUND-004", "VAL-FOUND-005",
+    "VAL-FOUND-006", "VAL-FOUND-007", "VAL-FOUND-008", "VAL-FOUND-009", "VAL-FOUND-010",
+    "VAL-FOUND-011", "VAL-FOUND-012", "VAL-FOUND-013", "VAL-FOUND-014", "VAL-FOUND-015",
+    "VAL-FOUND-016", "VAL-FOUND-017", "VAL-FOUND-018",
+    "VAL-CHART-001", "VAL-CHART-003", "VAL-CHART-004", "VAL-CHART-005", "VAL-CHART-006",
+    "VAL-CHART-007", "VAL-CHART-008", "VAL-CHART-009", "VAL-CHART-010", "VAL-CHART-011",
+    "VAL-CHART-012", "VAL-CHART-013", "VAL-CHART-014", "VAL-CHART-015", "VAL-CHART-016",
+    "VAL-CHART-017", "VAL-CHART-018", "VAL-CHART-019", "VAL-CHART-020", "VAL-CHART-021",
+    "VAL-CHART-022",
+    "VAL-STATS-001", "VAL-STATS-002", "VAL-STATS-003", "VAL-STATS-004", "VAL-STATS-005",
+    "VAL-STATS-006", "VAL-STATS-007", "VAL-STATS-008", "VAL-STATS-009", "VAL-STATS-010",
+    "VAL-STATS-011", "VAL-STATS-012", "VAL-STATS-013", "VAL-STATS-014", "VAL-STATS-015",
+    "VAL-CROSS-P3-001", "VAL-CROSS-P3-003", "VAL-CROSS-P3-007", "VAL-CROSS-P3-009",
+    "VAL-CROSS-P3-010", "VAL-CROSS-P3-012", "VAL-CROSS-P3-013"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [
+    {
+      "id": "VAL-CHART-002",
+      "blockedBy": "Fixture data (evaluation_run.json) contains only 1 config ('current_locked'). Multi-config overlay with distinct color sets cannot be visually verified with a single config. Code inspection confirms CONFIG_COLORS defines teal (A), amber (B), purple (C) palettes and buildMarkers iterates all configs. The generate_eval_data.sh script produces a single-config comparison run."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance: agent-browser section with isolation rules, testing approach, and known data facts for verification",
+      "source": "setup"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Documented walk-forward 0-window quirk and sweep JSON filename",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}
