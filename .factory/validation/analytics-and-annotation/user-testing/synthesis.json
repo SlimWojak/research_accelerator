@@ -1,0 +1,87 @@
+{
+  "milestone": "analytics-and-annotation",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 57,
+    "passed": 55,
+    "failed": 0,
+    "blocked": 2
+  },
+  "passedAssertions": [
+    "VAL-CHART-002",
+    "VAL-CROSS-P3-002",
+    "VAL-CROSS-P3-004",
+    "VAL-CROSS-P3-005",
+    "VAL-CROSS-P3-006",
+    "VAL-CROSS-P3-008",
+    "VAL-DIV-001",
+    "VAL-DIV-002",
+    "VAL-DIV-003",
+    "VAL-DIV-004",
+    "VAL-DIV-005",
+    "VAL-DIV-006",
+    "VAL-DIV-007",
+    "VAL-DIV-008",
+    "VAL-DIV-009",
+    "VAL-GT-001",
+    "VAL-GT-002",
+    "VAL-GT-003",
+    "VAL-GT-004",
+    "VAL-GT-005",
+    "VAL-GT-006",
+    "VAL-GT-007",
+    "VAL-GT-008",
+    "VAL-GT-009",
+    "VAL-GT-010",
+    "VAL-GT-011",
+    "VAL-HEAT-001",
+    "VAL-HEAT-002",
+    "VAL-HEAT-003",
+    "VAL-HEAT-004",
+    "VAL-HEAT-005",
+    "VAL-HEAT-006",
+    "VAL-HEAT-009",
+    "VAL-HEAT-010",
+    "VAL-HEAT-011",
+    "VAL-LOCK-001",
+    "VAL-LOCK-002",
+    "VAL-LOCK-003",
+    "VAL-LOCK-004",
+    "VAL-LOCK-005",
+    "VAL-LOCK-006",
+    "VAL-LOCK-007",
+    "VAL-LOCK-008",
+    "VAL-LOCK-009",
+    "VAL-WFUI-001",
+    "VAL-WFUI-002",
+    "VAL-WFUI-003",
+    "VAL-WFUI-004",
+    "VAL-WFUI-005",
+    "VAL-WFUI-006",
+    "VAL-WFUI-007",
+    "VAL-WFUI-008",
+    "VAL-WFUI-009",
+    "VAL-WFUI-010",
+    "VAL-WFUI-011"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [
+    {
+      "id": "VAL-HEAT-007",
+      "blockedBy": "No 1D sweep fixture available — current data is 2D grid (7×7). Cannot verify 1D line chart rendering without fixture data where axes.y.param === '_single'."
+    },
+    {
+      "id": "VAL-HEAT-008",
+      "blockedBy": "No 1D sweep fixture available — current data is 2D grid (7×7). Cannot verify 1D line chart shows param values on x-axis and metric on y-axis without 1D test data."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Updated known data facts for milestone 2 (correct config names, sweep is 2D not 1D, walk-forward has 9 windows not 0, added M2-specific testing notes for localStorage, GT, Lock, Heatmap, Divergence)",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}

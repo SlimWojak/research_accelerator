@@ -77,8 +77,33 @@
 5. Report results in the flow JSON file
 
 **Known data facts for verification:**
-- Schema 4A has 2 configs: "locked_baseline" (or similar) — check configs[] array
+- Schema 4A has 2 configs: "candidate_relaxed" and "current_locked" — check configs[] array
 - Fixture has 5 days of data: 2024-01-08 (Mon) through 2024-01-12 (Fri)
-- Primitives with detections: displacement, fvg, mss, order_block, liquidity_sweep, swing_points
-- Walk-forward has 0 windows (expected — dataset too short)
-- Sweep has 7×7 grid (atr_multiplier × body_ratio)
+- Primitives with detections: displacement, fvg, mss, order_block, liquidity_sweep, swing_points, asia_range
+- Walk-forward has 9 windows, verdict "CONDITIONALLY_STABLE", degradation_flag true, 8 passed / 1 failed, worst_window at index 3.
+- Sweep has 7×7 2D grid: axes.x.param = "ltf.atr_multiplier" (values 1.0-3.0), axes.y.param = "ltf.body_ratio" (values 0.5-0.8). current_lock at x=1.5, y=0.6, metric_value=5247.0. plateau=null.
+- Divergence index has 9832 entries across multiple primitives.
+
+## Milestone 2 (analytics-and-annotation) Testing Notes
+
+**localStorage isolation for GT/Lock testing:**
+- Ground truth labels and lock records are stored in browser localStorage under keys like `gt_labels_{run_id}` and `lock_records_{run_id}`.
+- Subagents testing GT/Lock assertions MUST clear localStorage at the start of their session to ensure clean state.
+- To clear: execute `localStorage.clear()` via browser console at start.
+- GT label tests require clicking on detection markers in the chart — markers must be visible (Chart tab active, at least one config enabled).
+- Lock panel tests require walk-forward data to be loaded (for verdict display).
+
+**Walk-forward specifics:**
+- Walk-forward file: `site/eval/walk_forward_displacement.json`
+- Has 9 windows, 8 passed, 1 failed (index 3). Verdict: CONDITIONALLY_STABLE. degradation_flag: true.
+- Lock button should be enabled (verdict is CONDITIONALLY_STABLE, not UNSTABLE).
+
+**Heatmap specifics:**
+- Sweep file: `site/eval/sweep_displacement_ltf_atr_multiplier.json`
+- 7×7 2D grid: atr_multiplier (7 values) × body_ratio (7 values). Should render as 2D Plotly heatmap.
+- Lock marker at x=1.5, y=0.6. plateau=null (no outline expected).
+
+**Divergence specifics:**
+- Divergence data from Schema 4C pairwise section of evaluation_run.json.
+- Click-to-scroll should center the chart on the divergence timestamp.
+- Filter by primitive and session should update the displayed list and counts.

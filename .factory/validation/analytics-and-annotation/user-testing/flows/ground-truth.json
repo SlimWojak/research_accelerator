@@ -1,0 +1,202 @@
+{
+  "groupId": "ground-truth",
+  "testedAt": "2026-03-09T06:55:00.000Z",
+  "credentials": {
+    "account": "none (static web app)",
+    "namespace": "e2894a9956c8__gt"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-GT-001",
+      "title": "Click detection marker opens label popover",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to http://localhost:8100/compare.html", "expected": "Chart tab loads with detection markers visible", "observed": "Chart tab loaded with 509 markers visible across 2 configs" },
+        { "action": "Clear localStorage", "expected": "Clean state", "observed": "localStorage.clear() executed successfully" },
+        { "action": "Click detection marker at coordinates (420, 248)", "expected": "Popover opens near marker within 300ms", "observed": "Popover appeared with 'Label Detection' title and 3 options" },
+        { "action": "Click outside the popover on controls panel", "expected": "Popover closes", "observed": "Popover closed (element removed from DOM)" },
+        { "action": "Click another marker at different location", "expected": "Only one popover open at a time", "observed": "Only one popover element in DOM at any time" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-popover-open.png"],
+        "consoleErrors": "none",
+        "network": "N/A (static page, no API calls)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-002",
+      "title": "Popover shows three label options",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect popover options via DOM", "expected": "Three options: CORRECT green/checkmark, NOISE red/X, BORDERLINE amber/?", "observed": "3 buttons: CORRECT (icon ✓, color rgb(38,166,154) green), NOISE (icon ✗, color rgb(239,83,80) red), BORDERLINE (icon ?, color rgb(247,197,72) amber)" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-popover-open.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-003",
+      "title": "Selecting label closes popover and updates marker visual",
+      "status": "pass",
+      "steps": [
+        { "action": "Click CORRECT button in popover", "expected": "Popover closes and marker visual updates", "observed": "Popover removed from DOM, ring primitive updated with 2 rings (one per config marker at same time)" },
+        { "action": "Verify marker appearance without refresh", "expected": "Visual update visible immediately", "observed": "Ring count changed from 0 to 2, green ring color confirmed via _gtRingPrimitive._rawRings" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-after-correct-label.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-004",
+      "title": "Labeled markers show colored ring",
+      "status": "pass",
+      "steps": [
+        { "action": "Label marker as CORRECT", "expected": "Green ring", "observed": "Ring color rgba(38,166,154,0.85) — green" },
+        { "action": "Label another marker as NOISE", "expected": "Red ring", "observed": "Ring color rgba(239,83,80,0.85) — red" },
+        { "action": "Label third marker as BORDERLINE", "expected": "Amber ring", "observed": "Ring color rgba(247,197,72,0.85) — amber" },
+        { "action": "Verify unlabeled markers have no ring", "expected": "No ring on unlabeled", "observed": "Only 6 rings for 3 labeled markers (2 each, one per config), 509 total markers — unlabeled have no rings" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-three-ring-colors.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-005",
+      "title": "Labels persist via localStorage",
+      "status": "pass",
+      "steps": [
+        { "action": "Check localStorage for gt_labels_{run_id} key", "expected": "Key exists with label data", "observed": "Key 'gt_labels_eval_comparison_2config' contains 3 label records" },
+        { "action": "Verify record structure", "expected": "Record has detection_id, primitive, timeframe, label, labelled_date", "observed": "Sample record: {detection_id: 'displacement_5m_2024-01-08T23:55:00_bear', primitive: 'displacement', timeframe: '5m', label: 'CORRECT', labelled_date: '2026-03-09T06:46:57.088Z'} — all required fields present" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "localStorage": "gt_labels_eval_comparison_2config key verified with correct schema"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-006",
+      "title": "Labels load from localStorage on page refresh",
+      "status": "pass",
+      "steps": [
+        { "action": "Reload page after labeling 3 markers", "expected": "Labels loaded from localStorage, colored rings displayed", "observed": "After reload: _gtLabels has 3 entries, 6 rings rendered with correct colors (red, amber, green)" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-after-reload.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-007",
+      "title": "Previously labeled markers show correct labels on reload",
+      "status": "pass",
+      "steps": [
+        { "action": "Label 3 markers (CORRECT, NOISE, BORDERLINE)", "expected": "3 labels saved", "observed": "3 labels saved to localStorage" },
+        { "action": "Reload page", "expected": "All 3 rings display correct colors", "observed": "After reload: 6 rings total (2 per label), colors match: 2 green (CORRECT→later changed to NOISE), 2 red (NOISE), 2 amber (BORDERLINE)" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-after-reload.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-008",
+      "title": "Can change a label",
+      "status": "pass",
+      "steps": [
+        { "action": "Click previously CORRECT-labeled marker", "expected": "Popover opens with CORRECT highlighted", "observed": "Popover opened with CORRECT button having 'gt-popover-btn-active' class (isActive: true), other two inactive" },
+        { "action": "Select NOISE label", "expected": "Ring color changes to red", "observed": "Label changed to NOISE, ring count: 4 red, 2 amber, 0 green (previously was 2 green, 2 red, 2 amber)" },
+        { "action": "Reload page", "expected": "Changed label persists", "observed": "After reload, label for detection_id 'displacement_5m_2024-01-08T23:55:00_bear' is 'NOISE'" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-relabel-popover.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-009",
+      "title": "Labels scoped per primitive and per timeframe",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect detection_id format for all labels", "expected": "detection_id includes primitive and TF info", "observed": "All detection IDs follow format '{primitive}_{tf}_{timestamp}_{direction}', e.g., 'displacement_5m_2024-01-08T23:55:00_bear'" },
+        { "action": "Verify primitive and timeframe fields in label records", "expected": "Each record has explicit primitive and timeframe fields", "observed": "All 3 records have primitive='displacement' and timeframe='5m', detIdIncludesPrimitive=true, detIdIncludesTF=true" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "jsonInspection": "All detection_ids contain primitive name and timeframe as components"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-010",
+      "title": "Popover positioned within viewport bounds",
+      "status": "pass",
+      "steps": [
+        { "action": "Click marker near right edge of chart (screenX=963, screenY=462)", "expected": "Popover stays within viewport", "observed": "Popover rect: left=873, top=297, right=1053, bottom=450. Viewport: 1280x720. All bounds within viewport (withinBounds=true)" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-edge-popover.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-GT-011",
+      "title": "Export labels button downloads JSON",
+      "status": "pass",
+      "steps": [
+        { "action": "Open Lock Panel via Lock button", "expected": "Lock Panel visible with Export Labels button", "observed": "Lock Panel opened with 'Export Labels' button visible" },
+        { "action": "Click Export Labels button", "expected": "Download ground_truth_labels.json", "observed": "Export function executed successfully: generated Blob URL, created download link with filename 'ground_truth_labels.json'" },
+        { "action": "Verify export data format", "expected": "Valid JSON with all label records", "observed": "Valid JSON array with 3 entries, each containing detection_id, primitive, timeframe, label, labelled_date — all fields present" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-lock-panel-open.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-P3-005",
+      "title": "Ground truth annotation persists across reload",
+      "status": "pass",
+      "steps": [
+        { "action": "Label detection as CORRECT", "expected": "Visual indicator (green ring) appears", "observed": "Green ring rendered at marker position via GTRingPrimitive" },
+        { "action": "Take screenshot before reload", "expected": "Ring visible", "observed": "Screenshot captured showing labeled markers with rings" },
+        { "action": "Reload page", "expected": "Indicator persists after reload", "observed": "After reload: 4 labels present (3 original + 1 new CORRECT), 8 rings rendered, green ring confirmed (hasGreenRing=true)" },
+        { "action": "Verify label retrievable from persistence layer", "expected": "localStorage has label data", "observed": "localStorage.getItem('gt_labels_eval_comparison_2config') returns valid JSON with all labels" }
+      ],
+      "evidence": {
+        "screenshots": ["gt-cross-before-reload.png", "gt-cross-after-reload.png"],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 12 assertions: 12 passed, 0 failed. All ground truth annotation features working correctly — marker click opens popover, three label options with correct colors, labels persist via localStorage, survive page reload, can be changed, detection IDs scope by primitive+TF, popover respects viewport bounds, and export produces valid JSON."
+}

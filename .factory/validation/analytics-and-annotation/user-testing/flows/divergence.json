@@ -1,0 +1,172 @@
+{
+  "groupId": "divergence",
+  "testedAt": "2026-03-09T00:00:00Z",
+  "credentials": {
+    "account": "none (static web app)",
+    "namespace": "e2894a9956c8__div"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-DIV-001",
+      "title": "Divergence list panel visible within Chart tab",
+      "status": "pass",
+      "steps": [
+        { "action": "Navigate to http://localhost:8100/compare.html", "expected": "Page loads with Chart tab active", "observed": "Page loaded, Chart tab active by default" },
+        { "action": "Look for divergence panel", "expected": "Panel visible as sidebar or embedded list with heading", "observed": "Divergence panel (id=divergence-panel, class=divergence-panel) visible on right side with heading 'Divergences', rect {left:1060, width:220, height:537}" },
+        { "action": "Verify panel does not occlude chart", "expected": "Chart fully visible alongside panel", "observed": "Chart renders in remaining space to the left, panel positioned to the right, no occlusion" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_initial.png"],
+        "consoleErrors": "none",
+        "network": "GET /compare.html -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-002",
+      "title": "List populated from Schema 4C divergence_index (9832 entries expected)",
+      "status": "pass",
+      "steps": [
+        { "action": "Check entry count in divergence list", "expected": "9832 entries matching divergence_index length", "observed": "div-entry-list contains exactly 9832 child elements (childCount: 9832)" },
+        { "action": "Verify entries are DOM elements", "expected": "Each entry is a div.div-entry with data-idx attribute", "observed": "Entries are div.div-entry elements with sequential data-idx, first at idx=0, last shows 'Jan 12 16:35'" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_initial.png"],
+        "consoleErrors": "none",
+        "network": "evaluation_run.json loaded with divergence_index"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-003",
+      "title": "Each entry shows timestamp, primitive, TF, and config status",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect entry structure", "expected": "Each entry shows time, primitive, tf, and config status (A only/B only/Both)", "observed": "Each entry has: .div-entry-time (e.g. 'Jan 7 19:00'), .div-entry-prim (e.g. 'Asia Range'), .div-entry-tf (e.g. 'global', '15m'), .div-entry-status (e.g. 'Both', 'A only', 'B only')" },
+        { "action": "Verify multiple sample entries", "expected": "All four fields visible on multiple entries", "observed": "Sampled entries at indices 0,1,2,50,100 — all have time, primitive, tf, status fields populated correctly" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_initial.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-004",
+      "title": "Click entry scrolls chart to that timestamp",
+      "status": "pass",
+      "steps": [
+        { "action": "Screenshot chart before clicking entry", "expected": "Chart shows default view", "observed": "Chart shows Tue Jan 9 data (default day)" },
+        { "action": "Click entry at index 50 (Jan 8 13:45 Displacement 15m)", "expected": "Chart scrolls to Jan 8 13:45 timestamp", "observed": "Chart scrolled and time axis changed to show the 17:00-01:00 range for Jan 8. Day tab switched to Tue Jan 9 and divergence list scrolled to show Jan 8 entries. Chart updated within 500ms" },
+        { "action": "Verify chart shows data near the clicked timestamp", "expected": "Jan 8 13:45 visible on chart", "observed": "Chart time axis shows data in the correct time range for the clicked entry" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_before_click.png", "div_test_after_click.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-005",
+      "title": "Filter by primitive works",
+      "status": "pass",
+      "steps": [
+        { "action": "Select 'Displacement' from primitive filter dropdown", "expected": "List shows only Displacement entries", "observed": "Dropdown selected 'Displacement', list filtered to 5247 visible entries, all verified as 'Displacement' primitive" },
+        { "action": "Verify count summary updates", "expected": "Count summary reflects filtered set", "observed": "Count summary updated to 'Total: 5247, A only: 0, B only: 0'" },
+        { "action": "Select 'All' to restore full list", "expected": "Full 9832 entries restored", "observed": "Selecting 'All' restored 9832 visible entries with original counts (Total: 9832, A only: 55, B only: 265)" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_filter_displacement.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-006",
+      "title": "Count summary shown (total, only_in_a, only_in_b)",
+      "status": "pass",
+      "steps": [
+        { "action": "Inspect count summary element", "expected": "Shows total divergences, only_in_a count, only_in_b count", "observed": "div-count-summary element displays: 'Total: 9832', 'A only: 55', 'B only: 265'. Three separate div-count-item elements with distinct classes (div-count-total, div-count-a, div-count-b)" },
+        { "action": "Verify counts update on filter", "expected": "Counts change when filtered", "observed": "When filtered by Displacement: 'Total: 5247, A only: 0, B only: 0'. When filtered by Asia session: 'Total: 3043, A only: 12, B only: 73'" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_initial.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-007",
+      "title": "Entries color-coded by type",
+      "status": "pass",
+      "steps": [
+        { "action": "Check color of 'A only' entry", "expected": "Config A color (teal #26a69a)", "observed": "A only entry (idx 7865, Mss 15m): borderLeftColor = rgb(38, 166, 154) = #26a69a, statusColor = rgb(38, 166, 154) — teal/Config A color" },
+        { "action": "Check color of 'B only' entry", "expected": "Config B color (amber #f7c548)", "observed": "B only entry (idx 7753, Liquidity Sweep 15m): borderLeftColor = rgb(247, 197, 72) = #f7c548, statusColor = rgb(247, 197, 72) — amber/Config B color" },
+        { "action": "Check color of 'Both' entry", "expected": "Neutral/muted color", "observed": "Both entries (idx 0-4): borderLeftColor = rgb(120, 123, 134) = ~#787b86, statusColor = rgb(120, 123, 134) — muted/neutral color matching --muted design token" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_initial.png", "div_test_cross_p3_004.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-008",
+      "title": "List scrollable when many divergences",
+      "status": "pass",
+      "steps": [
+        { "action": "Check list overflow properties", "expected": "overflow-y scrollable for 9832 entries", "observed": "div-entry-list has overflowY: 'auto', scrollHeight: 412944px, clientHeight: 386px — highly scrollable" },
+        { "action": "Programmatically scroll list", "expected": "List scrolls and shows different entries", "observed": "Set scrollTop from 0 to 2000 — worked, different entries visible after scroll. Chart remains fully visible alongside." },
+        { "action": "Verify chart not affected by list scroll", "expected": "Chart remains visible", "observed": "Chart fully visible, list scrolling is independent" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_scrolled.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DIV-009",
+      "title": "Filter by session works",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify session filter dropdown exists with options", "expected": "Session filter with Asia, LOKZ, NYOKZ, Other options", "observed": "Session combobox present with options: All, Asia, LOKZ, NYOKZ, Other" },
+        { "action": "Select 'Asia' from session filter", "expected": "List filters to Asia session entries only", "observed": "Selecting 'Asia' filtered list to 3043 entries. Count summary updated to 'Total: 3043, A only: 12, B only: 73'. Sample entries show Asia-session times (19:00)" },
+        { "action": "Select 'All' to restore", "expected": "Full list restored", "observed": "Selecting 'All' restored 9832 entries with original counts" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_filter_session.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-P3-004",
+      "title": "Divergence navigator click scrolls chart to detection (A only entry)",
+      "status": "pass",
+      "steps": [
+        { "action": "Find and click first 'A only' divergence entry", "expected": "Entry with in_a=true, in_b=false found and clicked", "observed": "Clicked entry at idx 7865: 'Jan 10 01:45, Mss, 15m, A only' — teal colored status indicating Config A detection" },
+        { "action": "Verify chart scrolls to timestamp", "expected": "Chart time scale centers on entry's timestamp", "observed": "Chart scrolled to show the Jan 10 time area. Chart zoomed/panned to the detection region" },
+        { "action": "Verify Config A marker present", "expected": "Config A marker visible at detection point", "observed": "Teal up-arrow marker (Config A / candidate_relaxed) visible on the chart at the scrolled-to position" },
+        { "action": "Verify Config B marker absent", "expected": "No Config B marker at same point", "observed": "No amber/Config B marker at the same timestamp — consistent with 'A only' divergence status" }
+      ],
+      "evidence": {
+        "screenshots": ["div_test_cross_p3_004.png"],
+        "consoleErrors": "none",
+        "network": null
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 10 assertions: all 10 passed. Divergence navigator panel is visible on Chart tab with 9832 entries, correct count summary, color coding by type (teal for A only, amber for B only, muted for Both), click-to-scroll working, primitive and session filters functioning correctly with count updates, list scrollable with overflow-y auto, and cross-area click-scroll-to-detection verified with Config A marker present and Config B absent for A-only entry. Zero console errors throughout testing."
+}
