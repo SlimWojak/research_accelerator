@@ -11,13 +11,14 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 Use for features that create or modify the Phase 3 comparison interface: HTML pages, JavaScript modules, CSS styling, data loading logic, chart rendering, interactive controls, and fixture data generation. All work is in the `site/` directory.
 
-## Reference Documents (Read Before Starting)
+## Reference Documents (Read ONLY what you need)
 
-1. `.factory/library/output_schemas.md` — Schema 4A-4E structures (data the page consumes)
-2. `build_plan/CHART_PATTERNS_REFERENCE.md` — Existing chart code patterns (MUST follow)
-3. `site/BUILDSPEC.md` — Design system tokens and conventions
-4. `site/compare.html` — The main page (read current state before modifying)
-5. `site/js/shared.js` — Shared utilities and state (read before using)
+Read these ONLY when your feature requires them — do NOT read all of them:
+- `.factory/library/output_schemas.md` — Schema 4A-4E structures. Read ONLY the schema sections relevant to your feature's data.
+- `build_plan/CHART_PATTERNS_REFERENCE.md` — Chart code patterns. Read ONLY if your feature uses Lightweight Charts.
+- `site/BUILDSPEC.md` — Design system tokens. Read ONLY if creating new CSS (113 lines, quick).
+- `site/compare.html` — Read the current state. ALWAYS read this.
+- `site/js/shared.js` — Shared utilities. ALWAYS read this.
 
 ## Technology Stack
 
@@ -111,13 +112,11 @@ For each validation assertion your feature fulfills:
 lsof -ti :8100 | xargs kill 2>/dev/null || true
 ```
 
-### Step 7: Run Python Test Suite
+### Step 7: Verification Complete
 
-Verify no regressions:
-```bash
-cd /Users/echopeso/research_accelerator && python3 -m pytest tests/ -x -q --tb=short --no-header -p no:cacheprovider
-```
-All 631 tests must pass.
+The Python test suite (631 tests, 14 minutes) tests the evaluation engine, NOT the comparison UI.
+**Do NOT run it.** Your verification is complete after agent-browser visual testing in Step 5.
+Commit your work and proceed to handoff.
 
 ## Handoff Requirements
 
@@ -130,7 +129,6 @@ Specific files created/modified with what they contain.
 ### verification.commandsRun
 ```json
 [
-  {"command": "python3 -m pytest tests/ -x -q", "exitCode": 0, "observation": "631 passed"},
   {"command": "curl -sf http://localhost:8100/compare.html | head -5", "exitCode": 0, "observation": "Page served correctly"}
 ]
 ```
@@ -164,7 +162,6 @@ Any issues found during implementation (severity: low/medium/high).
   "whatWasLeftUndone": "",
   "verification": {
     "commandsRun": [
-      {"command": "python3 -m pytest tests/ -x -q --no-header", "exitCode": 0, "observation": "631 passed in 820s"},
       {"command": "curl -sf http://localhost:8100/compare.html | wc -c", "exitCode": 0, "observation": "12847 bytes"}
     ],
     "interactiveChecks": [
