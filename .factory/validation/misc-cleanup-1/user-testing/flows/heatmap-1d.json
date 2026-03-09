@@ -1,0 +1,26 @@
+{
+  "flowId": "heatmap-1d",
+  "milestone": "misc-cleanup-1",
+  "testedAt": "2026-03-09T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "read-only-ui"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": {
+    "VAL-HEAT-007": {
+      "status": "pass",
+      "evidence": "After injecting 1D sweep data (axes.y.param='_single') via JavaScript, the Heatmap tab rendered a line chart instead of a 2D heatmap grid. A single continuous teal/cyan line connects all 7 data points (at x values 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0). All points share the same y-value (5247), forming a flat line. No heatmap grid cells are shown. The subtitle reads 'Parameter Sweep (1D)' confirming 1D mode detection.",
+      "screenshots": ["1D-line-chart: Screenshot shows continuous teal line connecting 7 data points at y=5247, with diamond lock marker at x=1.5. Title shows 'Displacement — detection count' with 'Parameter Sweep (1D)' subtitle. Legend shows 'detection count' line and 'Current Lock' diamond. No heatmap grid visible."]
+    },
+    "VAL-HEAT-008": {
+      "status": "pass",
+      "evidence": "The 1D line chart x-axis displays 'ltf.atr_multiplier' label with tick values at 1, 1.5, 2, 2.5, 3 (Plotly auto-ticked from the 7 values: 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0). Y-axis displays 'detection count' label with metric values (5246 to 5248 range, centered on 5247). An amber/gold diamond-shaped lock marker is clearly visible at x=1.5 (matching current_lock.x=1.5). The legend identifies the diamond as 'Current Lock'.",
+      "screenshots": ["1D-axes-and-lock: Screenshot shows x-axis labeled 'ltf.atr_multiplier' with numeric tick values, y-axis labeled 'detection count' with metric values. Gold diamond marker at x=1.5 represents current lock position. Legend confirms 'detection count' trace and 'Current Lock' marker."]
+    }
+  },
+  "consoleErrors": [],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 2 assertions: 2 passed, 0 failed. Both VAL-HEAT-007 (1D renders as line chart) and VAL-HEAT-008 (correct axes and lock marker) pass. The 1D sweep data was loaded via JavaScript injection, and the Heatmap tab correctly detected the degenerate 1D grid (axes.y.param='_single') and rendered a line chart with proper axis labels, data points, and lock marker."
+}
