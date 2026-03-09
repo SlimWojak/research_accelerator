@@ -17,3 +17,6 @@ Thumbs.db
 
 # Generated evaluation data (regenerate with: bash site/generate_eval_data.sh)
 site/eval/
+
+# Generated validation data (regenerate with: python3 site/detect.py ...)
+site/data/
