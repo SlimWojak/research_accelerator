@@ -468,6 +468,13 @@
     overflow: hidden;
   }
 
+  /* ── Stats tab override: no padding (layout handles its own) ─────────── */
+
+  #tab-stats {
+    padding: 0;
+    overflow: hidden;
+  }
+
   /* ── Chart Sidebar (config/primitive toggles + detection summary) ──── */
 
   .chart-body {
@@ -627,6 +634,230 @@
     padding-top: 4px;
   }
 
+  /* ── Stats Tab ─────────────────────────────────────────────────────── */
+
+  .stats-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+  }
+
+  .stats-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+
+  .stats-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stats-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stats-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .stats-select {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .stats-select:focus {
+    border-color: var(--blue);
+  }
+
+  .stats-tf-indicator {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--blue);
+    background: rgba(41,98,255,0.12);
+    border: 1px solid rgba(41,98,255,0.3);
+    border-radius: 3px;
+    padding: 3px 10px;
+  }
+
+  .stats-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  .stats-section {
+    margin-bottom: 24px;
+  }
+
+  .stats-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stats-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .stats-tables-grid.single {
+    grid-template-columns: 1fr;
+    max-width: 500px;
+  }
+
+  .stats-config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .stats-config-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stats-config-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stats-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .stats-kv-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(42,46,57,0.4);
+  }
+
+  .stats-kv-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .stats-kv-label {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .stats-kv-value {
+    text-align: right;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .stats-subsection-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    padding: 8px 12px 4px;
+  }
+
+  .stats-chart-container {
+    width: 100%;
+    height: 300px;
+    min-height: 260px;
+  }
+
+  .stats-chart-tall {
+    height: 420px;
+    min-height: 360px;
+  }
+
+  .stats-empty {
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ── Direction Split ─────────────────────────────────────────────────── */
+
+  .direction-split {
+    padding: 12px;
+  }
+
+  .direction-bar-wrapper {
+    margin-bottom: 8px;
+  }
+
+  .direction-bar {
+    display: flex;
+    height: 20px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .direction-bar-fill.bullish {
+    background: var(--teal);
+    transition: width 0.3s ease;
+  }
+
+  .direction-bar-fill.bearish {
+    background: var(--red);
+    transition: width 0.3s ease;
+  }
+
+  .direction-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .direction-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bullish-label {
+    color: var(--teal);
+  }
+
+  .bearish-label {
+    color: var(--red);
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -685,13 +916,7 @@
     </div>
 
     <!-- Stats Tab -->
-    <div id="tab-stats" class="tab-content hidden">
-      <div class="tab-placeholder">
-        <div class="ph-icon">📊</div>
-        <div class="ph-title">Stats Tab</div>
-        <div class="ph-desc">Side-by-side comparison tables, session distribution bar charts, cascade funnel, and pairwise statistics. Coming in the next feature.</div>
-      </div>
-    </div>
+    <div id="tab-stats" class="tab-content hidden"></div>
 
     <!-- Heatmap Tab -->
     <div id="tab-heatmap" class="tab-content hidden">
@@ -730,6 +955,7 @@
 <!-- Scripts -->
 <script src="js/shared.js"></script>
 <script src="js/chart-tab.js"></script>
+<script src="js/stats-tab.js"></script>
 <script>
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
