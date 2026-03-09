@@ -734,6 +734,7 @@ function initChartTab() {
         <div class="chart-main-area">
           <div class="chart-container" id="lw-chart-container"></div>
         </div>
+        <div class="divergence-panel" id="divergence-panel"></div>
       </div>
     </div>
   `;
@@ -754,4 +755,9 @@ function initChartTab() {
 
   // Initial data render
   refreshChart();
+
+  // Initialize divergence navigator panel
+  if (typeof initDivergencePanel === 'function') {
+    initDivergencePanel();
+  }
 }

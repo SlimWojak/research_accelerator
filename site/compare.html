@@ -1176,6 +1176,166 @@
     line-height: 1.5;
   }
 
+  /* ── Divergence Navigator Panel ───────────────────────────────────────── */
+
+  .divergence-panel {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .div-panel-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .div-panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .div-count-summary {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .div-count-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .div-count-item strong {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .div-count-total strong {
+    color: var(--text);
+  }
+
+  .div-filters {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .div-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .div-filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .div-filter-select {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 6px;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+  }
+
+  .div-filter-select:focus {
+    border-color: var(--blue);
+  }
+
+  .div-entry-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .div-empty {
+    padding: 24px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .div-entry {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(42, 46, 57, 0.4);
+    border-left: 3px solid var(--muted);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .div-entry:hover {
+    background: var(--surface2) !important;
+  }
+
+  .div-entry-active {
+    background: var(--surface2) !important;
+    border-left-width: 3px;
+  }
+
+  .div-entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+  }
+
+  .div-entry-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .div-entry-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .div-entry-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .div-entry-prim {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .div-entry-tf {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--faint);
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -1187,6 +1347,7 @@
     .chart-controls-bar { padding: 6px 10px; gap: 10px; }
     .chart-day-tab { padding: 5px 8px; font-size: 10px; }
     .chart-sidebar { width: 180px; }
+    .divergence-panel { width: 220px; }
   }
 </style>
 </head>
@@ -1273,6 +1434,7 @@
 <!-- Scripts -->
 <script src="js/shared.js"></script>
 <script src="js/chart-tab.js"></script>
+<script src="js/divergence.js"></script>
 <script src="js/stats-tab.js"></script>
 <script src="js/heatmap-tab.js"></script>
 <script src="js/walkforward-tab.js"></script>
