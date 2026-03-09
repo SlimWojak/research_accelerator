@@ -40,6 +40,144 @@ logger = logging.getLogger(__name__)
 
 NY_TZ = ZoneInfo("America/New_York")
 
+
+# ─── Locked threshold extraction & detection filtering ────────────────────
+
+
+def _extract_locked_thresholds(config) -> dict:
+    """Extract locked threshold values from config for detection filtering.
+
+    Returns dict with keys: displacement, fvg, swing_points — each containing
+    the locked values needed for filtering.
+    """
+    thresholds = {}
+
+    # --- Displacement ---
+    disp_params = config.primitives.displacement.params
+    combo_mode = disp_params.combination_mode.locked  # "AND"
+    atr_mult = disp_params.ltf.atr_multiplier["locked"]
+    body_ratio = disp_params.ltf.body_ratio["locked"]
+    thresholds["displacement"] = {
+        "combination_mode": combo_mode,
+        "atr_multiplier": float(atr_mult),
+        "body_ratio": float(body_ratio),
+    }
+
+    # --- FVG ---
+    fvg_floor = config.primitives.fvg.params.floor_threshold_pips.locked
+    thresholds["fvg"] = {
+        "floor_threshold_pips": float(fvg_floor),
+    }
+
+    # --- Swing Points ---
+    sp_height = config.primitives.swing_points.params.height_filter_pips
+    per_tf = sp_height["per_tf"]
+    height_by_tf = {}
+    for tf_key, tf_val in per_tf.items():
+        if isinstance(tf_val, dict) and "locked" in tf_val:
+            height_by_tf[tf_key] = float(tf_val["locked"])
+        else:
+            height_by_tf[tf_key] = float(tf_val)
+    thresholds["swing_points"] = {
+        "height_filter_pips": height_by_tf,
+    }
+
+    return thresholds
+
+
+def _passes_locked_displacement(det, locked_atr: float, locked_body: float) -> bool:
+    """Check if a displacement detection passes locked AND-mode thresholds.
+
+    Checks the qualifies grid first (most reliable), then falls back to
+    raw property values.  Also honours decisive overrides.
+    """
+    props = det.properties
+
+    # 1. Check qualifies grid (computed by the displacement detector)
+    qualifies = props.get("qualifies", {})
+    key = f"atr{locked_atr}_br{locked_body}"
+    if key in qualifies:
+        q = qualifies[key]
+        return q.get("and", False) or q.get("override", False)
+
+    # 2. Fallback: raw property comparison (AND mode)
+    atr = props.get("atr_multiple", 0)
+    body = props.get("body_ratio", 0)
+    if atr >= locked_atr and body >= locked_body:
+        return True
+
+    # 3. Decisive override: strong body + close location pass
+    if body >= 0.75 and props.get("close_location_pass", False):
+        return True
+
+    return False
+
+
+def _passes_locked_fvg(det, floor_pips: float) -> bool:
+    """Check if an FVG detection meets the locked floor_threshold_pips."""
+    return det.properties.get("gap_pips", 0) >= floor_pips
+
+
+def _passes_locked_swing(det, height_by_tf: dict, tf: str) -> bool:
+    """Check if a swing_points detection meets the locked height_filter_pips."""
+    min_height = height_by_tf.get(tf)
+    if min_height is None:
+        return True  # no filter defined for this TF — keep
+    return det.properties.get("height_pips", 0) >= min_height
+
+
+def _filter_locked_detections(
+    results: dict, thresholds: dict
+) -> dict:
+    """Filter raw engine results to only detections passing locked thresholds.
+
+    Mutates nothing — returns a new results dict with the same structure
+    (primitive -> tf -> DetectionResult) but with filtered detection lists.
+    Logs per-primitive/tf raw → locked counts.
+    """
+    disp_th = thresholds.get("displacement", {})
+    fvg_th = thresholds.get("fvg", {})
+    swing_th = thresholds.get("swing_points", {})
+
+    for prim_name, by_tf in results.items():
+        for tf, det_result in by_tf.items():
+            raw_count = len(det_result.detections)
+            filtered = None
+
+            if prim_name == "displacement":
+                filtered = [
+                    d for d in det_result.detections
+                    if _passes_locked_displacement(
+                        d,
+                        disp_th.get("atr_multiplier", 1.5),
+                        disp_th.get("body_ratio", 0.6),
+                    )
+                ]
+            elif prim_name == "fvg":
+                filtered = [
+                    d for d in det_result.detections
+                    if _passes_locked_fvg(
+                        d, fvg_th.get("floor_threshold_pips", 0.5)
+                    )
+                ]
+            elif prim_name == "swing_points":
+                filtered = [
+                    d for d in det_result.detections
+                    if _passes_locked_swing(
+                        d, swing_th.get("height_filter_pips", {}), tf
+                    )
+                ]
+
+            if filtered is not None:
+                dropped = raw_count - len(filtered)
+                if dropped > 0:
+                    print(f"  {prim_name}/{tf}: {raw_count} raw → "
+                          f"{len(filtered)} locked (filtered {dropped})")
+                det_result.detections = filtered
+
+    return results
+
+
 # Session band definitions (NY time) — matches site/session_boundaries.json format
 SESSION_DEFS = [
     {
@@ -322,6 +460,10 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
 
     # Run cascade at locked params
     results = runner.run_locked(bars_by_tf)
+
+    # Filter detections to only those passing locked thresholds
+    locked_thresholds = _extract_locked_thresholds(config)
+    results = _filter_locked_detections(results, locked_thresholds)
 
     # Build slim detections organized by primitive and timeframe
     detections_by_primitive = {}
