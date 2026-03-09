@@ -1,0 +1,98 @@
+{
+  "milestone": "comparison-core",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd /Users/echopeso/research_accelerator && python3 -m pytest tests/test_config.py tests/test_data_layer.py tests/test_engine_base.py tests/test_fvg.py tests/test_swing_points.py tests/test_displacement.py tests/test_session_liquidity.py tests/test_asia_range.py tests/test_reference_levels.py tests/test_mss.py tests/test_order_block.py tests/test_htf_liquidity.py tests/test_ote.py tests/test_liquidity_sweep.py tests/test_cascade.py tests/test_regression.py -v --tb=short -x -q --no-header -p no:cacheprovider",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "note": "Not configured in services.yaml"
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "note": "Not configured in services.yaml"
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "comparison-page-foundation",
+      "severity": "non_blocking",
+      "description": "Hardcoded sweep/walk-forward filenames in shared.js data loaders. If generate_eval_data.sh changes filenames, loaders would silently fail."
+    },
+    {
+      "featureId": "comparison-page-foundation",
+      "severity": "non_blocking",
+      "description": "plotlyLayout() merge is one-level deep; deeply nested overrides replace entire sub-objects rather than merging."
+    },
+    {
+      "featureId": "chart-core-rendering",
+      "severity": "non_blocking",
+      "description": "Dead code: unused MARKER_COLORS constant, orphaned renderConfigLegend() function, unused getDetectionCounts() function, unused isSingle variable."
+    },
+    {
+      "featureId": "chart-controls-and-toggles",
+      "severity": "non_blocking",
+      "description": "Same dead code items as chart-core-rendering (isSingle, getDetectionCounts, renderConfigLegend) — artifacts of incremental development across two commits."
+    },
+    {
+      "featureId": "stats-dashboard-and-funnel",
+      "severity": "non_blocking",
+      "description": "Dead _statsInitialized variable never read. Missing Plotly.purge() before re-creating charts on primitive selector change (potential memory leak). Cascade funnel shows only first config."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add --faint (#4a4e59) to the CSS custom properties list in the Coding Conventions section. It is defined in compare.html :root and used by chart toggle controls.",
+      "evidence": "chart-core-rendering review: compare.html line 36 defines --faint: #4a4e59, used in chart-tab.js toggle-btn hover state and swatch background. AGENTS.md omits it from design tokens list.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add Plotly lifecycle convention: 'Call Plotly.purge(containerId) before re-creating charts in the same container to prevent memory leaks.' Add to the Plotly.js section.",
+      "evidence": "stats-dashboard-and-funnel review: stats-tab.js sets innerHTML then calls Plotly.newPlot() without purging prior instances. Future heatmap and walk-forward tabs will also use Plotly. Pattern needs documentation.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add cleanup convention: 'When replacing a function or code pattern in incremental commits, remove the old dead code (functions, CSS classes, constants) that are no longer called.'",
+      "evidence": "chart-core-rendering and chart-controls-and-toggles reviews both flagged dead code (renderConfigLegend, MARKER_COLORS, getDetectionCounts, unused CSS classes) left behind when chart-controls-and-toggles replaced original legend with toggle controls.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Worker ran pytest subset despite 'do not run' guidance in AGENTS.md",
+      "reason": "The AGENTS.md testing guidance has since been clarified with the test_phase1_only command in services.yaml. Workers can now run the subset via the defined command. The original concern about test suite taking 14 minutes is addressed by the subset approach. No change needed."
+    },
+    {
+      "observation": "Skill procedure compliance confirmed for comparison-page-foundation worker",
+      "reason": "Informational only — no action needed. Worker followed procedure correctly."
+    },
+    {
+      "observation": "Chart sidebar layout pattern (220px) introduced as narrower variant of CHART_PATTERNS_REFERENCE.md Section E pattern",
+      "reason": "This is implementation detail specific to compare.html's chart tab. The pattern is visible in the code and doesn't need formal documentation since future chart tab workers will see it directly in compare.html CSS."
+    },
+    {
+      "observation": "Missing handoff for chart-controls-and-toggles worker session 16340c66",
+      "reason": "Process gap but not actionable for AGENTS.md or skills. The code itself passes review. Worker session metadata is an orchestrator concern."
+    }
+  ],
+  "previousRound": null
+}

@@ -1,0 +1,51 @@
+{
+  "featureId": "chart-core-rendering",
+  "reviewedAt": "2026-03-09T13:30:00Z",
+  "commitId": "e7ab873",
+  "transcriptSkeletonReviewed": false,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation covers all 12 requirements from the feature description. chart-tab.js (770 lines across 2 commits) correctly implements: initChartTab() called by shared.js, candle loading from candles_{date}.json, LWC chart with exact dark theme options from CHART_PATTERNS_REFERENCE.md Section B, candlestick series with correct colors, detection marker loading from Schema 4B path, markers with correct bullish/bearish positioning and per-config color families, config color legend (via toggle controls with swatches), 5-day navigation tabs, TF switching (1m/5m/15m default 5m), SessionBandsPrimitive with correct 3-class ISeriesPrimitive pattern at zOrder 'bottom', autoSize:true for responsive chart, and fitContent() after data load. The code follows established patterns from CHART_PATTERNS_REFERENCE.md faithfully. Beyond the core scope, the second commit added config/primitive toggle controls and a detection count summary table — useful extras that don't break the core requirements. Four minor dead code items exist but are non-blocking.",
+    "issues": [
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 17,
+        "severity": "non_blocking",
+        "description": "Dead code: MARKER_COLORS constant is defined but never referenced anywhere. The marker building logic at line 184 uses CONFIG_COLORS directly instead. Should be removed."
+      },
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 508,
+        "severity": "non_blocking",
+        "description": "Dead code: renderConfigLegend() function is defined but never called. It was replaced by renderConfigToggles() in the second commit but the original function was not cleaned up."
+      },
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 340,
+        "severity": "non_blocking",
+        "description": "Dead code: getDetectionCounts() function (uses detection_count from Schema 4B) is defined but never called. Only getDetectionCountsForDay() (line 377) which filters by current day is actually used."
+      },
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 418,
+        "severity": "non_blocking",
+        "description": "Unused variable: 'isSingle' is computed (configs.length === 1) in renderDetectionSummary() but never referenced in the function body."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The --faint CSS variable (#4a4e59) is used in chart-tab.js toggle controls and is defined in compare.html :root, but it is NOT listed in the AGENTS.md design tokens section or CHART_PATTERNS_REFERENCE.md Section E. AGENTS.md lists --bg, --surface, --surface2, --border, --text, --muted, --teal, --red, --blue, --yellow, --purple, --font, --mono but omits --faint. Future workers may not know this variable exists.",
+      "evidence": "compare.html line 36 defines --faint: #4a4e59. chart-tab.js uses var(--faint) in toggle-btn hover state and swatch background. AGENTS.md 'CSS custom properties' section omits it."
+    },
+    {
+      "area": "conventions",
+      "observation": "Worker introduced a chart sidebar layout pattern (220px width, flex column, .sidebar-section with padding/border-bottom) specific to the chart tab. This is a narrower variant of the 236-248px sidebar pattern documented in CHART_PATTERNS_REFERENCE.md Section E. Future chart tab workers should know this sidebar exists.",
+      "evidence": "compare.html CSS: .chart-sidebar { width: 220px } with responsive override to 180px at 1280px breakpoint."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "chart-core-rendering PASSES review. All 12 requirements from the feature description are fully implemented: initChartTab() entry point, candle loading, LWC dark theme chart, candlestick series, Schema 4B detection markers with per-config colors and correct bullish/bearish positioning, config color legend (via toggle controls), 5-day tabs, TF switching, SessionBandsPrimitive at zOrder bottom, autoSize responsive chart, and fitContent(). The implementation faithfully follows CHART_PATTERNS_REFERENCE.md patterns. Four non-blocking dead code items exist (unused MARKER_COLORS constant, orphaned renderConfigLegend function, unused getDetectionCounts function, unused isSingle variable) — these are artifacts of the two-commit development where the second commit replaced some first-commit code without full cleanup. No transcript or handoff was available for this worker session (6029e20d), likely because the worker session is still in progress or handoff hasn't been filed yet."
+}

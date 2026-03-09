@@ -1,0 +1,45 @@
+{
+  "featureId": "chart-controls-and-toggles",
+  "reviewedAt": "2026-03-09T12:30:00Z",
+  "commitId": "e7ab87332d4f40d0053d2693b3315e28a1f855a6",
+  "transcriptSkeletonReviewed": false,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation covers all 5 scope items from the feature description. Config toggles, primitive toggles, detection count summary panel, zero-detection edge case handling, and single-config mode all work correctly. The code follows existing conventions (global app state, vanilla JS, CSS custom properties, no frameworks). rebuildMarkers() correctly filters _allMarkers by both config and primitive toggle state, re-sorts by time, and calls setMarkers(). Detection summary updates on TF/day changes via refreshChart() → updateDetectionSummary(). Three minor dead-code issues found, none blocking.",
+    "issues": [
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 418,
+        "severity": "non_blocking",
+        "description": "Unused variable: `const isSingle = configs.length === 1` is declared in renderDetectionSummary() but never referenced. Likely intended for single-config UI adaptation that was unnecessary since the table naturally renders one column. Should be removed to avoid confusion."
+      },
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 340,
+        "severity": "non_blocking",
+        "description": "Dead code: getDetectionCounts() function reads Schema 4B detection_count values but is never called anywhere. Only getDetectionCountsForDay() is used (by renderDetectionSummary). The feature description says to use Schema 4B detection_count, but the actual implementation correctly counts by filtering detections for the current day, which is more accurate for the per-day view. getDetectionCounts() should be removed or used for an 'all days' mode."
+      },
+      {
+        "file": "site/js/chart-tab.js",
+        "line": 508,
+        "severity": "non_blocking",
+        "description": "Dead code: renderConfigLegend() function is still defined but no longer called after initChartTab() was updated to use renderConfigToggles() instead. The corresponding CSS classes (.config-legend, .config-legend-item, .config-swatch, .config-legend-name) in compare.html are also now unused. Should be cleaned up."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Worker session 16340c66-3434-4114-9696-510fbc92cf34 has no handoff file in the handoffs/ directory and no entry in worker-transcripts.jsonl. The feature status is 'completed' with this session in workerSessionIds but completedWorkerSessionId is null. This suggests the handoff was not properly recorded, making it impossible to verify what verification steps the worker performed.",
+      "evidence": "features.json shows status=completed, workerSessionIds=['16340c66-...'], completedWorkerSessionId=null. No matching handoff file in handoffs/ dir. No matching entry in worker-transcripts.jsonl."
+    },
+    {
+      "area": "conventions",
+      "observation": "Dead code left behind when replacing renderConfigLegend with renderConfigToggles. The old function and its CSS remain in the codebase. AGENTS.md doesn't mention cleanup expectations for replaced code.",
+      "evidence": "site/js/chart-tab.js:508 — renderConfigLegend() defined but never called. CSS classes .config-legend, .config-legend-item, .config-swatch, .config-legend-name in compare.html are unreachable."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The chart-controls-and-toggles feature passes review. All 5 scope items are correctly implemented: (1) config toggles hide/show markers per config via rebuildMarkers(), (2) 5 primitive toggles work independently, (3) detection count summary table shows per-config per-primitive counts with totals row, (4) zero-detection shows '0' via null-coalescing guards throughout, (5) single-config mode renders a single-column table without breakage. The sidebar layout with 3 sections (configs, primitives, summary) is clean and responsive. Three non-blocking issues found: an unused variable (isSingle), an unused function (getDetectionCounts), and dead code from the replaced renderConfigLegend. No handoff or transcript was available for this worker session, so verification completeness could not be confirmed, but the code itself is correct and follows project conventions."
+}

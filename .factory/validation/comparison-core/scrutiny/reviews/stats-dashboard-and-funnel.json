@@ -1,0 +1,40 @@
+{
+  "featureId": "stats-dashboard-and-funnel",
+  "reviewedAt": "2026-03-09T06:15:00.000Z",
+  "commitId": "9c377c3",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of the Stats tab at 475 lines. All required components are present: side-by-side detection stats tables, Plotly grouped session bar chart, direction split with teal/red coloring, cascade funnel chart with conversion rate annotations, pairwise comparison stats, primitive selector, and TF indicator. Data loading uses well-structured helper functions with thorough null checks throughout. The code correctly leverages shared.js utilities (plotlyLayout, PLOTLY_CONFIG, CONFIG_COLORS, PRIMITIVES, fmtNum, fmtPct, fmtMeanStd, primLabel) maintaining consistency with the codebase conventions. Dark theme is applied via plotlyLayout() helper. Edge cases for zero-detection (fallback to 0) and single-config (clean single-column layout + pairwise informational message) are handled. Two non-blocking issues identified.",
+    "issues": [
+      {
+        "file": "site/js/stats-tab.js",
+        "line": 8,
+        "severity": "non_blocking",
+        "description": "Dead code: `_statsInitialized` is set to true on line 62 but never read anywhere. The flag serves no purpose since initStatsTab() always rebuilds the tab from scratch. Should be removed or used as a guard to avoid redundant re-initialization."
+      },
+      {
+        "file": "site/js/stats-tab.js",
+        "line": 97,
+        "severity": "non_blocking",
+        "description": "Potential memory leak: renderStatsContent() creates new Plotly charts on every primitive selector change by setting innerHTML then calling Plotly.newPlot(). The previous Plotly chart instances are never explicitly destroyed with Plotly.purge() before being overwritten. Over many primitive switches, this could accumulate detached DOM nodes and event listeners. Should call Plotly.purge('stats-session-chart') and Plotly.purge('stats-funnel-chart') at the start of renderStatsContent(), or before setting innerHTML."
+      },
+      {
+        "file": "site/js/stats-tab.js",
+        "line": 286,
+        "severity": "non_blocking",
+        "description": "Cascade funnel only shows first config's data (configs[0]). In a multi-config comparison, the user cannot see the second config's funnel. This is architecturally correct since cascade_funnel is at the per_config level in Schema 4B (not per-primitive), but a side-by-side or config selector for the funnel could enhance the comparison experience. The funnel title does indicate which config is shown."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "No Plotly.purge() convention documented. The stats-tab creates and re-creates Plotly charts on primitive selector change without calling Plotly.purge(). If future features (heatmap, walk-forward) also use Plotly, a convention around proper chart lifecycle management (create, update, destroy) would prevent memory leaks. AGENTS.md documents Plotly creation patterns but not cleanup.",
+      "evidence": "site/js/stats-tab.js:97 — renderStatsContent() sets innerHTML then calls Plotly.newPlot() without purging prior instances. AGENTS.md Plotly section only covers creation, not cleanup."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The stats-dashboard-and-funnel feature passes review. The implementation fully covers all required components: side-by-side config tables (detection_count, mean ± std/day), Plotly grouped session bar chart (4 sessions × N configs), direction split with teal/red coloring, cascade funnel with leaf→composite→terminal ordering and conversion rate annotations, primitive selector dropdown, pairwise comparison stats (agreement_rate, only_in_a/b, per-session agreement), TF indicator, zero-detection handling, single-config layout, and dark-themed Plotly charts. Three non-blocking issues found: dead _statsInitialized variable, missing Plotly.purge() calls (potential memory leak on repeated primitive switching), and funnel showing only first config. Worker followed the skill procedure correctly, verified visually via agent-browser with zero console errors."
+}
