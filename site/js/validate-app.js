@@ -212,6 +212,11 @@ async function onWeekSelect() {
 
   // Create or refresh chart
   initOrRefreshChart();
+
+  // Load labels from disk and rebuild rings for the new week
+  if (typeof onVGTWeekChange === 'function') {
+    await onVGTWeekChange();
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -417,4 +422,26 @@ function filterValidateDetectionsByDay(detections, dayKey) {
   populateWeekPicker();
   renderSessionLegend();
   initPrimitiveToggles();
+
+  // Wire up GT action bar buttons
+  var exportBtn = document.getElementById('btn-export-labels-bar');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      if (typeof exportVGTLabels === 'function') exportVGTLabels();
+    });
+  }
+
+  var lockBtn = document.getElementById('btn-lock-panel');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', function() {
+      if (typeof toggleLockPanel === 'function') toggleLockPanel();
+    });
+  }
+
+  var lockCloseBtn = document.getElementById('lock-panel-close-btn');
+  if (lockCloseBtn) {
+    lockCloseBtn.addEventListener('click', function() {
+      if (typeof toggleLockPanel === 'function') toggleLockPanel();
+    });
+  }
 })();

@@ -180,6 +180,10 @@ function createValidateChart() {
 function initOrRefreshChart() {
   if (!_vChartCreated) {
     createValidateChart();
+    // Initialize ground truth system after chart is created
+    if (typeof initValidateGT === 'function') {
+      initValidateGT();
+    }
   }
   refreshValidateChart();
 }
@@ -348,6 +352,11 @@ function rebuildValidateMarkers() {
     vApp.candleSeries.setMarkers(filtered);
   } catch (e) {
     console.warn('setMarkers error:', e);
+  }
+
+  // Rebuild GT rings after markers are updated
+  if (typeof rebuildVGTRings === 'function') {
+    rebuildVGTRings();
   }
 }
 

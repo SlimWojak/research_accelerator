@@ -379,6 +379,228 @@
   }
 
   .empty-state-icon { font-size: 32px; opacity: 0.5; }
+
+  /* ── GT Popover ──────────────────────────────────────────────────────── */
+
+  .vgt-popover {
+    position: fixed;
+    z-index: 200;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    min-width: 160px;
+  }
+
+  .vgt-popover-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .vgt-popover-options { display: flex; gap: 6px; }
+
+  .vgt-popover-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .vgt-popover-btn:hover {
+    border-color: var(--btn-color, var(--faint));
+    background: rgba(255,255,255,0.04);
+  }
+  .vgt-popover-btn-active {
+    border-color: var(--btn-color, var(--teal));
+    background: rgba(255,255,255,0.08);
+  }
+
+  .vgt-popover-icon { font-size: 14px; font-weight: 700; }
+  .vgt-popover-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* ── GT Label Action Bar ─────────────────────────────────────────────── */
+
+  .gt-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+    height: 32px;
+    min-height: 32px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  .gt-action-bar .gt-bar-title {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+  }
+
+  .label-count-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    margin-right: 6px;
+  }
+
+  .gt-bar-btn {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+  .gt-bar-btn:hover { color: var(--text); border-color: var(--faint); }
+  .gt-bar-btn + .gt-bar-btn { margin-left: 4px; }
+
+  /* ── Lock Panel (slide-in) ───────────────────────────────────────────── */
+
+  #lock-panel {
+    position: fixed;
+    top: 0;
+    right: -320px;
+    width: 320px;
+    height: 100vh;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 150;
+    transition: right 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  #lock-panel.visible { right: 0; }
+
+  .lock-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .lock-panel-header-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .lock-panel-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+  }
+  .lock-panel-close:hover { color: var(--text); }
+
+  #lock-panel-content { padding: 12px 16px; flex: 1; }
+
+  .vlock-section { margin-bottom: 16px; }
+
+  .vlock-section-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+
+  .vlock-empty { font-size: 12px; color: var(--faint); font-style: italic; }
+
+  .vlock-params-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .vlock-param-group {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-top: 8px;
+    margin-bottom: 2px;
+    text-transform: capitalize;
+  }
+
+  .vlock-param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+    font-size: 11px;
+  }
+
+  .vlock-param-key {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .vlock-param-val {
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vlock-notes-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px;
+    resize: vertical;
+    outline: none;
+  }
+  .vlock-notes-input:focus { border-color: var(--blue); }
+
+  .vlock-buttons { display: flex; flex-direction: column; gap: 6px; }
+
+  .vlock-btn {
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+
+  .vlock-btn-primary {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .vlock-btn-primary:hover { opacity: 0.85; }
+
+  .vlock-btn-secondary {
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .vlock-btn-secondary:hover { color: var(--text); border-color: var(--faint); }
 </style>
 </head>
 <body>
@@ -409,6 +631,14 @@
     <div class="session-legend" id="session-legend"></div>
   </div>
 
+  <!-- GT Action Bar -->
+  <div class="gt-action-bar">
+    <span class="gt-bar-title">Labels</span>
+    <span id="label-counts"></span>
+    <button class="gt-bar-btn" id="btn-export-labels-bar" title="Export labels JSON">📥 Export</button>
+    <button class="gt-bar-btn" id="btn-lock-panel" title="Open lock panel">🔒 Lock</button>
+  </div>
+
   <!-- Main Area -->
   <div class="main-area">
     <div class="chart-wrapper">
@@ -420,6 +650,15 @@
       </div>
       <div class="loading-overlay hidden" id="loading-overlay">Loading chart data…</div>
     </div>
+  </div>
+
+  <!-- Lock Panel (slide-in from right) -->
+  <div id="lock-panel">
+    <div class="lock-panel-header">
+      <span class="lock-panel-header-title">🔒 Lock Panel</span>
+      <button class="lock-panel-close" id="lock-panel-close-btn">✕</button>
+    </div>
+    <div id="lock-panel-content"></div>
   </div>
 
   <!-- Metadata Bar -->
@@ -447,5 +686,6 @@
 
 <script src="js/validate-app.js"></script>
 <script src="js/validate-chart.js"></script>
+<script src="js/validate-gt.js"></script>
 </body>
 </html>
