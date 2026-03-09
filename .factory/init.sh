@@ -50,4 +50,24 @@ else
     echo "Phase 3 fixture data: present in site/eval/"
 fi
 
+# Phase 3.5: Check validation mode infrastructure
+if [ -f "site/detect.py" ]; then
+    echo "Phase 3.5 detect.py: present"
+else
+    echo "NOTE: site/detect.py not yet created (Phase 3.5 CLI generator)"
+fi
+
+if [ -f "site/serve.py" ]; then
+    echo "Phase 3.5 serve.py: present"
+else
+    echo "NOTE: site/serve.py not yet created (Phase 3.5 write server)"
+fi
+
+if [ -d "site/data/detections" ]; then
+    WEEK_COUNT=$(ls -1 site/data/detections/*.json 2>/dev/null | wc -l | tr -d ' ')
+    echo "Phase 3.5 validation data: ${WEEK_COUNT} weeks generated"
+else
+    echo "NOTE: No validation data generated yet. Run: python3 site/detect.py --start 2025-09-01 --end 2026-02-28 --config configs/locked_baseline.yaml --output site/data/"
+fi
+
 echo "Environment ready."

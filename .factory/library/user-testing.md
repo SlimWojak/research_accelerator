@@ -1,4 +1,30 @@
-# User Testing — Phase 3 Comparison Interface
+# User Testing
+
+## Phase 3.5 Validation Interface
+
+**Primary URL:** http://localhost:8200/validate.html
+**Write server:** http://localhost:8200 (supports GET static files + POST for labels/lock-records)
+
+### Setup Steps (Phase 3.5)
+1. Generate validation data (if not done):
+   `python3 site/detect.py --start 2025-09-01 --end 2026-02-28 --config configs/locked_baseline.yaml --output site/data/`
+2. Start write server:
+   `cd /Users/echopeso/research_accelerator && python3 site/serve.py &`
+3. Verify: `curl -sf http://localhost:8200/validate.html | head -5`
+4. Stop: `lsof -ti :8200 | xargs kill 2>/dev/null || true`
+
+### Data Persistence (Phase 3.5)
+- Labels: saved to disk at `site/data/labels/{week}.json` via POST to write server
+- Lock records: saved to disk at `site/data/lock-records/{week}.json` via POST
+- NOT localStorage — files on disk, grep-able, machine-readable
+
+### CLI Smoke Tests
+- POST label: `curl -X POST -H 'Content-Type: application/json' -d '[{"detection_id":"test","label":"CORRECT"}]' http://localhost:8200/api/labels/test-week`
+- Verify: `cat site/data/labels/test-week.json`
+
+---
+
+## Phase 3 Calibration Interface (Mode 1) — Phase 3 Comparison Interface
 
 **What belongs here:** Testing surface, tools, URLs, setup steps, isolation notes, known quirks.
 

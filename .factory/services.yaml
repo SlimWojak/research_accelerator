@@ -1,8 +1,9 @@
 commands:
   install: cd /Users/echopeso/research_accelerator && python3 -m pip install -e ".[dev]" --quiet
-  test: echo "Phase 3 UI features: visual verification via agent-browser only. Python pytest (14 min) deferred to milestone scrutiny."
+  test: echo "Phase 3.5 UI features: visual verification via agent-browser + curl. Python pytest (14 min) deferred to milestone scrutiny."
   test_phase1_only: cd /Users/echopeso/research_accelerator && python3 -m pytest tests/test_config.py tests/test_data_layer.py tests/test_engine_base.py tests/test_fvg.py tests/test_swing_points.py tests/test_displacement.py tests/test_session_liquidity.py tests/test_asia_range.py tests/test_reference_levels.py tests/test_mss.py tests/test_order_block.py tests/test_htf_liquidity.py tests/test_ote.py tests/test_liquidity_sweep.py tests/test_cascade.py tests/test_regression.py -v --tb=short -x -q --no-header -p no:cacheprovider
   generate_fixtures: cd /Users/echopeso/research_accelerator && bash site/generate_eval_data.sh
+  generate_validation_data: cd /Users/echopeso/research_accelerator && python3 site/detect.py --start 2025-09-01 --end 2026-02-28 --config configs/locked_baseline.yaml --output site/data/
   typecheck: ""
   lint: ""
   build: ""
@@ -13,4 +14,11 @@ services:
     stop: lsof -ti :8100 | xargs kill 2>/dev/null || true
     healthcheck: curl -sf http://localhost:8100/ > /dev/null
     port: 8100
+    depends_on: []
+
+  validate:
+    start: cd /Users/echopeso/research_accelerator && python3 site/serve.py &
+    stop: lsof -ti :8200 | xargs kill 2>/dev/null || true
+    healthcheck: curl -sf http://localhost:8200/ > /dev/null
+    port: 8200
     depends_on: []
