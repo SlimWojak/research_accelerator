@@ -1,0 +1,29 @@
+{
+  "featureId": "misc-cleanup-m1",
+  "milestone": "misc-cleanup-1",
+  "reviewedAt": "2026-03-09T07:30:00.000Z",
+  "commitId": "e18851d3a1d4dfabc94541d96cdfc3ab77cbc439",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "verdict": "pass",
+  "codeReview": {
+    "summary": "All 7 cleanup items were addressed correctly. Dead code removal in chart-tab.js (-66 lines) is clean with no dangling references. Plotly.purge() calls in stats-tab.js are properly placed before chart re-creation with null-safe element checks. Stats scrolling fix (min-height:0 on .stats-content) is correct for flex overflow. M2 code quality items (unused imports, dead ternary, dead getSessionFromTime branch, divergence DOM limit) all properly implemented. Event listener leak fix in ground-truth.js correctly tracks the outside-click handler in a module-level variable and removes it in closeGTPopover(). Misleading guard in rebuildGTRings() was simplified by removing the unnecessary _candleTimesArr/_candleTimeSet check and going straight to candleData. 1D sweep fixture generated with axes.y.param='_single' and heatmap-tab.js has proper 1D line chart rendering path.",
+    "issues": [
+      {
+        "file": "site/js/heatmap-tab.js",
+        "line": 374,
+        "severity": "non_blocking",
+        "description": "gridHasNulls() function is now dead code — its only caller was the removed `const hasNulls = gridHasNulls(grid)` line. The function definition at line 374 should be removed for consistency with the cleanup goals. Not blocking because it has no runtime impact."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "target": "AGENTS.md",
+      "description": "AGENTS.md now documents the Plotly.purge() lifecycle convention (line ~76: 'Call Plotly.purge(containerId) before re-creating charts'). This was added during a prior milestone validation pass, which is good — the worker followed it correctly.",
+      "confidence": "low"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass. All 7 cleanup items (dead code removal, Plotly memory leak fix, stats scrolling, M2 code quality, event listener leak, guard fix, 1D fixture) were implemented correctly. One minor leftover: gridHasNulls() in heatmap-tab.js is now dead code after removing its sole caller (hasNulls variable). This is non-blocking — no runtime impact, just a small missed cleanup."
+}
