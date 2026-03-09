@@ -23,8 +23,9 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # OLYA REVIEW REQUIRED — Calibration Session Agenda
 # Date proposed: 2026-03-05
-# Method: Open calibration tool (http://localhost:8787/), review each item
-#         visually. One at a time. Confirm or adjust each proposal.
+# Method: Open validation mode (http://localhost:8200/validate.html) or
+#         calibration comparison mode (http://localhost:8100/).
+#         Review each item visually. One at a time. Confirm or adjust each proposal.
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # [x] 1. SWING POINTS — LOCKED
@@ -74,7 +75,7 @@
 metadata:
   version: "0.5"
   date: "2026-03-05"
-  status: DRAFT — all L15 proposals complete, pending Olya review
+  status: "ACTIVE — L1.5 parameters locked for core primitives (displacement, FVG, swings, MSS, OB, liquidity sweep, HTF liquidity). Validation mode deployed at slimwojak.github.io/ra-tools/"
   supersedes: "v0.4"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"

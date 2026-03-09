@@ -163,14 +163,14 @@ Week-by-week detection browsing on 6 months of real data — validate what the e
 
 ```bash
 # 1. Generate detection data (runs cascade engine over River data)
-python3 detect.py --config configs/locked_baseline.yaml \
-                  --river EURUSD --start 2024-01-01 --end 2024-06-30 \
-                  --output site/eval/
+python3 site/detect.py --start 2025-09-01 --end 2026-02-28 \
+                       --config configs/locked_baseline.yaml \
+                       --output site/data/
 
 # 2. Serve the site
-python3 serve.py
+python3 site/serve.py
 
-# 3. Open http://localhost:8100/validate.html
+# 3. Open http://localhost:8200/validate.html
 ```
 
 ### Key Features
@@ -182,15 +182,23 @@ python3 serve.py
 | **Ground Truth Labeling** | Click markers to label `CORRECT` / `NOISE` / `BORDERLINE` — persisted to disk as JSON. |
 | **Lock Panel** | Record parameter lock decisions with provenance, saved alongside labels. |
 
+### Locked Threshold Filtering
+
+`detect.py` applies post-cascade locked threshold filters: displacement AND gate (atr≥1.5 AND body≥0.6), FVG floor (gap≥0.5 pip), swing height (per-TF). This reduced total detections from 222,266 to 97,834 across 25 weeks.
+
 ### Architecture
 
 Files-first: CLI produces files, HTML renders files, labels are files.
 
-- **`detect.py`** — CLI that drives the cascade engine over River data, writes per-week detection JSON to `site/eval/`.
-- **`serve.py`** — Local HTTP server with POST endpoint for saving ground truth labels to disk.
+- **`site/detect.py`** — CLI that drives the cascade engine over River data, writes per-week detection JSON to `site/data/`.
+- **`site/serve.py`** — Local HTTP server (port 8200) with POST endpoint for saving ground truth labels to disk.
 - **`validate.html`** — Single-page app that reads detection JSON, renders charts, and sends labels back to `serve.py`.
 
 No database, no build step. Everything is a file on disk — detections, labels, lock decisions.
+
+### Deployment
+
+Public deployment: https://slimwojak.github.io/ra-tools/ (read-only, no label persistence)
 
 ---
 
@@ -230,14 +238,14 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 │
 ├── run.py                         # CLI entry point for cascade pipeline (Phase 1)
 ├── eval.py                        # CLI entry point for evaluation engine (Phase 2)
-├── detect.py                      # CLI entry point for validation data generation (Phase 3.5)
-├── serve.py                       # HTTP server with label persistence (Phase 3.5)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
 ├── site/                          # Static calibration charts + comparison + validation
 │   ├── index.html                 # Landing page → 6 chart pages
 │   ├── compare.html               # Phase 3 comparison interface
 │   ├── validate.html              # Phase 3.5 validation mode
+│   ├── detect.py                  # CLI entry point for validation data generation (Phase 3.5)
+│   ├── serve.py                   # HTTP server with label persistence (Phase 3.5, port 8200)
 │   ├── generate_eval_data.sh      # Generate single-config evaluation fixture
 │   ├── generate_comparison_fixture.py  # Generate 2-config comparison fixture
 │   └── *.html / *.json            # Chart pages + data

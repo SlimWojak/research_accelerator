@@ -1,258 +1,220 @@
-# PROJECT_STATE.md — a8ra ICT Primitives Codification
-## Checkpoint: 2026-03-04 ~15:30 NY (Session 10)
+# PROJECT_STATE.md — a8ra Research Accelerator
+## Checkpoint: 2026-03-09 ~21:00 NY
 
-> **Purpose**: Immediate orientation for any future session. Read this FIRST.
-
----
-
-## 1. WHAT IS THIS PROJECT
-
-Codification of Olya's ICT (Inner Circle Trader) methodology into production-quality algorithmic detection code. The primitives (FVG, Swing Points, Displacement, Order Blocks, Session Windows, PDH/PDL) must be detected on price data with configurable thresholds, validated visually against Olya's expert eye, then locked for production.
-
-**End state**: A calibrated, tested detection engine that faithfully reproduces what Olya sees on her charts — no invention, no novel approaches. Research what EXISTS in production algo trading.
+> **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
 ---
 
-## 2. TEAM & ROLES
+## 1. Project Identity
 
-| Name | Role | Trust Level |
-|------|------|-------------|
-| **Craig** | Sovereign Operator, project owner | Final authority on all decisions |
-| **Olya** | Strategist, ICT methodology source-of-truth | **INV-OLYA-ABSOLUTE** — her word overrides all advisors |
-| **Claude Opus** | CTO — architecture, briefs, synthesis | Senior advisor |
-| **Gemini** | Wise Owl — second opinion | Advisor |
-| **Grok** | BOAR — stress testing | Advisor |
-| **GPT** | Architecture/Lint validation | Advisor |
-| **Perplexity Computer** | Naive-eyes pressure tester, builder | Execution agent (this tool) |
+**a8ra Research Accelerator** — Institutional-grade calibration and validation platform for ICT primitive detection.
 
-**Communication protocol**: Craig relays between advisors. Perplexity Computer does NOT contact other advisors directly. Craig + Olya do detailed review of all outputs.
+- **Repo (local)**: `/Users/echopeso/research_accelerator`
+- **Repo (GitHub)**: `SlimWojak/ra-tools` (deployment target)
+- **Public URL**: https://slimwojak.github.io/ra-tools/validate.html (read-only, no label persistence)
+- **Python**: ≥3.12 — pandas, duckdb, pyarrow, pydantic v2, pyyaml
+- **Spec source**: `SYNTHETIC_OLYA_METHOD_v0.5.yaml`
 
 ---
 
-## 3. THREE-LAYER ARCHITECTURE
+## 2. Phase Status
+
+| Phase | Status | Key Output |
+|---|---|---|
+| **Phase 1: Detection Engine** | ✅ COMPLETE | 12 PrimitiveDetector modules, CascadeEngine with topological sort, 378 tests |
+| **Phase 2: Evaluation Runner** | ✅ COMPLETE | Comparison, sweep, walk-forward, cascade stats, JSON schemas 4A–4E, 253 tests |
+| **Phase 3: Comparison Interface** | ✅ COMPLETE | `compare.html` — 4 tabs (Chart, Stats, Heatmap, Walk-Forward), ground truth, lock panel, divergence navigator |
+| **Phase 3.5: Validation Mode** | ✅ COMPLETE | `validate.html` — week-by-week detection browser, 25 weeks EURUSD (Sep 2025–Feb 2026), disk-persisted ground truth |
+| **Phase 4: External Algo Integration** | ⬜ NOT STARTED | PineScript transpilation, external variant benchmarking |
+| **Phase 5: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
+
+**Total: 631 tests across 25 test files.**
+
+---
+
+## 3. Architecture Summary
+
+| Layer | Description |
+|---|---|
+| **Data Layer** | Phoenix River (IBKR parquet via DuckDB), TF aggregation (1m→5m/15m/1H/4H/1D), session tagging (Asia/LOKZ/NYOKZ/KZ/NY windows/forex day) |
+| **Detection Engine** | 12 detectors implementing `PrimitiveDetector` ABC, `CascadeEngine` with 14-node dependency graph (topological sort) |
+| **Evaluation Runner** | Statistical comparison, parameter sweep (1D/2D grid), walk-forward validation, cascade funnel — all emit JSON schemas 4A–4E |
+| **Comparison Interface** | Static HTML/JS + Plotly 2.35.2 + Lightweight Charts v4.1.3, served on port 8100 |
+| **Validation Mode** | CLI batch generator (`detect.py`) + minimal write server (`serve.py` on port 8200) |
+
+**Key interfaces:**
+- `PrimitiveDetector.detect(bars, params, upstream, context) → DetectionResult`
+- Each detector declares `required_upstream()` for automatic dependency resolution
+- Deterministic detection IDs: `{primitive}_{tf}_{timestamp_ny}_{direction}`
+
+---
+
+## 4. Detector Module Inventory
+
+| # | Module | File | Status | Key Locked Params |
+|---|--------|------|--------|-------------------|
+| 1 | **FVG** (+ IFVG, BPR) | `fvg.py` | LOCKED | `floor_threshold_pips: 0.5` |
+| 2 | **SwingPoints** | `swing_points.py` | LOCKED | `N: {1m:5, 5m:3, 15m:2}`, `height_filter_pips: {1m:0.5, 5m:3.0, 15m:3.0}` |
+| 3 | **Displacement** | `displacement.py` | LOCKED | `atr_multiplier: 1.50`, `body_ratio: 0.60`, `close_gate: 0.25`, `combination_mode: AND` |
+| 4 | **SessionLiquidity** | `session_liquidity.py` | PROPOSED | `efficiency_threshold: 0.60`, `mid_cross_min: 2`, `balance_score_min: 0.30` |
+| 5 | **AsiaRange** | `asia_range.py` | PROPOSED | `tight_below_pips: 10`, `max_cap_pips: 30` |
+| 6 | **ReferenceLevels** | `reference_levels.py` | LOCKED | PDH/PDL (forex day boundary), midnight open, equilibrium midpoint |
+| 7 | **EqualHL** | `equal_hl.py` | DEFERRED | `tolerance_pips: 2.0`, `atr_factor: 0.1` |
+| 8 | **MSS** | `mss.py` | LOCKED | `displacement_required: true`, `close_beyond_swing: true`, `fvg_tag_only: true` |
+| 9 | **OrderBlock** | `order_block.py` | LOCKED | `trigger: displacement_plus_mss`, `zone_type: body`, `min_displacement_grade: VALID` |
+| 10 | **HTFLiquidity** | `htf_liquidity.py` | LOCKED | `min_touches: 2`, per-TF tolerance/rotation/lookback |
+| 11 | **OTE** | `ote.py` | PROPOSED | `fib: [0.618, 0.705, 0.79]`, `kill_zone_gate: true` |
+| 12 | **LiquiditySweep** | `liquidity_sweep.py` | LOCKED | `rejection_wick_pct: 0.40`, `return_window_bars: 1`, multi-source level pooling |
+
+**Dependency graph** (14 nodes including virtual IFVG/BPR):
+- Roots (no upstream): FVG, SwingPoints, Displacement, SessionLiquidity, AsiaRange, ReferenceLevels
+- Mid-tier: IFVG←FVG, BPR←FVG, EqualHL←SwingPoints, HTFLiquidity←SwingPoints
+- Composite: MSS←{SwingPoints, Displacement, FVG}, OrderBlock←{Displacement, MSS}, OTE←MSS
+- Terminal: LiquiditySweep←{SessionLiquidity, ReferenceLevels, HTFLiquidity, SwingPoints, Displacement}
+
+---
+
+## 5. Locked Threshold Filtering (Recent Fix)
+
+`detect.py` applies post-cascade filtering for validation mode to eliminate noise below locked thresholds:
+
+| Primitive | Filter | Gate Logic |
+|---|---|---|
+| **Displacement** | `atr_multiple >= 1.5` AND `body_ratio >= 0.6` | Locked AND gate |
+| **FVG** | `gap_pips >= 0.5` | Floor threshold |
+| **Swing Points** | `height_pips >= per-TF threshold` | 1m=0.5, 5m=3.0, 15m=3.0 |
+
+**Impact**: Reduced total detections from **222,266 → 97,834** across 25 weeks of EURUSD data.
+
+Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
+
+---
+
+## 6. Deployment
+
+| Mode | Command | Port | Purpose |
+|---|---|---|---|
+| Comparison | `python3 -m http.server 8100 -d site` | 8100 | Static serving of `compare.html` + calibration charts |
+| Validation | `python3 site/serve.py` | 8200 | `validate.html` with POST endpoint for label/lock persistence |
+| Detection gen | `python3 detect.py --config configs/locked_baseline.yaml --river EURUSD --start ... --end ... --output site/eval/` | — | Batch cascade run, outputs per-week JSON |
+| Public | https://slimwojak.github.io/ra-tools/validate.html | — | Read-only GitHub Pages deployment (no label persistence) |
+
+---
+
+## 7. File Manifest (Key Files Only)
+
+### `src/ra/` — Detection Engine Package
+
+| Path | Description |
+|---|---|
+| `config/schema.py`, `config/loader.py` | Pydantic v2 config schema + YAML loader (`extra='forbid'`) |
+| `data/csv_loader.py` | Legacy CSV data loader |
+| `data/river_adapter.py` | DuckDB-backed Phoenix River parquet reader (BKK→UTC→NY tz) |
+| `data/tf_aggregator.py` | 1m→5m/15m/1H/4H/1D aggregation (4H forex-day-aligned) |
+| `data/session_tagger.py` | Session, kill zone, NY window, forex day tagging |
+| `detectors/*.py` | 12 PrimitiveDetector modules (see §4) |
+| `detectors/_common.py` | Shared detection utilities |
+| `engine/base.py` | `PrimitiveDetector` ABC, `DetectionResult`, `make_detection_id()` |
+| `engine/cascade.py` | `CascadeEngine` — topological sort, upstream injection |
+| `engine/registry.py` | Auto-discovery of detector modules |
+| `evaluation/runner.py` | `EvaluationRunner` — sweep (1D/2D grid), locked replay |
+| `evaluation/comparison.py` | Pairwise/multi-config comparison stats |
+| `evaluation/cascade_stats.py` | Cascade funnel, completion rates |
+| `evaluation/walk_forward.py` | `WalkForwardRunner` — sliding-window train/test validation |
+| `evaluation/param_extraction.py` | Config → param combos resolver |
+| `output/json_export.py` | JSON export (schemas 4A–4E) |
+
+### `site/` — Frontend
+
+| Path | Description |
+|---|---|
+| `index.html` | Landing page → 6 calibration charts + compare + validate |
+| `compare.html` | Phase 3 comparison interface (4 tabs) |
+| `validate.html` | Phase 3.5 validation mode (week picker + chart + labels) |
+| `detect.py` | CLI batch generator — cascade over River data → per-week JSON |
+| `serve.py` | HTTP server with POST for label/lock persistence |
+| `generate_eval_data.sh` | Generate single-config evaluation fixture |
+| `generate_comparison_fixture.py` | Generate 2-config comparison fixture |
+| `js/chart-tab.js` | LC candlestick chart with multi-config overlay |
+| `js/stats-tab.js` | Plotly bar charts, funnel, session distribution |
+| `js/heatmap-tab.js` | Plotly 2D/1D parameter sweep heatmap |
+| `js/walkforward-tab.js` | Walk-forward time series + verdict badges |
+| `js/divergence.js` | A-only/B-only detection navigator |
+| `js/ground-truth.js` | Compare-mode ground truth annotation |
+| `js/validate-app.js` | Validation mode app controller |
+| `js/validate-chart.js` | Validation mode chart rendering |
+| `js/validate-gt.js` | Validation mode ground truth + lock panel |
+| `js/shared.js` | Shared utilities (color maps, TF helpers) |
+
+### `configs/`
+
+| Path | Description |
+|---|---|
+| `locked_baseline.yaml` | Single source of truth — all locked params, sweep ranges, dependency graph, per-TF overrides |
+
+### `tests/` — 631 Tests
+
+| Path | Coverage |
+|---|---|
+| `test_fvg.py`, `test_swing_points.py`, `test_displacement.py`, `test_mss.py`, `test_order_block.py`, `test_ote.py`, `test_liquidity_sweep.py`, `test_htf_liquidity.py`, `test_asia_range.py`, `test_session_liquidity.py`, `test_reference_levels.py` | Per-detector unit tests |
+| `test_engine_base.py`, `test_cascade.py` | Engine ABC + cascade orchestration |
+| `test_config.py`, `test_data_layer.py`, `test_river_adapter.py` | Config validation, data layer, River adapter |
+| `test_evaluation_runner.py`, `test_evaluation_comparison.py`, `test_evaluation_cascade_stats.py`, `test_evaluation_walk_forward.py`, `test_evaluation_param_extraction.py` | Evaluation engine modules |
+| `test_output.py`, `test_cli_eval.py` | JSON export, CLI integration |
+| `test_regression.py` | Master regression suite — replays locked baseline against 32 fixture files for bit-exact reproduction |
+| `test_integration.py` | End-to-end integration |
+
+### Root
+
+| Path | Description |
+|---|---|
+| `run.py` | CLI entry point for cascade pipeline (Phase 1) |
+| `eval.py` | CLI entry point for evaluation engine — `sweep`, `compare`, `walk-forward` (Phase 2) |
+| `detect.py` | CLI entry point for validation data generation (Phase 3.5) |
+| `serve.py` | HTTP server with label persistence (Phase 3.5) |
+| `pyproject.toml` | Package metadata (Python ≥3.12, deps) |
+| `configs/locked_baseline.yaml` | Production config |
+
+---
+
+## 8. Operating Rules (Carried Forward)
+
+| Rule | Detail |
+|---|---|
+| **QUALITY > SPEED** | Take time, do it properly. No shortcuts. |
+| **INV-OLYA-ABSOLUTE** | Olya's visual judgment is the final gate on all methodology decisions. Her word overrides all advisors. |
+| **NY TIME everywhere** | EST (UTC−5). Never UTC in user-facing output. Forex day boundary: 17:00 NY. |
+| **L1/L1.5/L2 separation** | L1=geometric detection (locked), L1.5=parameter thresholds (calibrating), L2=strategy interpretation (Olya's domain). |
+| **Native per-TF detection** | All detection runs natively on each TF's aggregated bars. Never project 1m detections to higher timeframes. |
+| **Config-over-code** | All params in YAML. `extra='forbid'` catches typos instantly. |
+| **Deterministic IDs** | `{primitive}_{tf}_{timestamp_ny}_{direction}` — reproducible across runs. |
+| **32-fixture regression** | Any engine change must pass the locked baseline regression suite. |
+
+---
+
+## 9. What's Next
+
+- **Olya explores validation tool** independently via deployed GitHub Pages
+- **Algo tuning** via validation mode + TradingView cross-reference — threshold refinement based on real-market visual review
+- **Future**: External algo integration (Phase 4), regime tagging, forensic case runner
+
+---
+
+## 10. Recent Git History
 
 ```
-┌─────────────────────────────────────────────┐
-│  L1 — Geometric Detection (LOCKED)          │
-│  Pure math: candle[A].high < candle[C].low  │
-│  No tuning. Either a gap exists or it doesn't│
-└────────────────────┬────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────┐
-│  L1.5 — Parameter Thresholds (CALIBRATING)  │
-│  min_gap_pips, swing N, displacement ATR_k  │
-│  This is what the Visual Bible calibrates   │
-└────────────────────┬────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────┐
-│  L2 — Strategy Interpretation (OLYA DOMAIN) │
-│  "This FVG matters because of session       │
-│   context + displacement + OB confluence"   │
-│  NOT our job to codify — Olya decides       │
-└─────────────────────────────────────────────┘
-```
-
-**Current focus**: L1.5 calibration via the Visual Bible tool.
-
----
-
-## 4. LOCKED DECISIONS (DO NOT REVISIT)
-
-These were resolved in Phase 2 brief + Craig's green-light answers:
-
-| Decision | Resolution | Source |
-|----------|-----------|--------|
-| VI (Volume Imbalance) standalone | **KILLED** — retained only as FVG attribute | Phase 2 brief |
-| MMXM (Market Maker Model) | **RETROSPECTIVE ONLY** — not real-time detection | Phase 2 brief |
-| FVG geometry | `low[C] > high[A]` (bullish), `high[C] < low[A]` (bearish) | Phase 1 research, confirmed |
-| Swing equality | `>=` left side, `>` right side | Phase 2 brief |
-| Threshold model | **HYBRID**: `max(floor_pips, ATR_fraction)` | Craig Q2 answer |
-| FVG invalidation | Track BOTH `ce_touched` and `boundary_closed_through` (zone color states) | Phase 2 brief |
-| Swing strength | Cap at 20 additional bars beyond N=5 base | Phase 2 brief |
-| OB retest | Wick-into-zone: `price.low <= ob.high` for bullish | Phase 2 brief |
-| TF detection | **NATIVE per-TF** — NOT projected from 1m | Olya review (Session 9) |
-| Timestamps | **NY time** throughout (Olya always works in NY time) | Olya review (Session 9) |
-| Session markers | Visual session bands on ALL charts | Olya review (Session 9) |
-
----
-
-## 5. WHAT HAS BEEN BUILT
-
-### 5a. Data Pipeline
-
-**Source data**: `eurusd_1m_2024-01-07_to_2024-01-12.csv` — 7,177 bars of real EURUSD 1-minute data.
-
-**Pipeline script**: `preprocess_data_v2.py` (42.7 KB)
-- Reads 1m CSV, aggregates to 5m and 15m candles natively
-- Runs ALL detections independently on each timeframe's bars
-- FVG, Swing, Displacement, OB, Sessions, NY Windows, PDH/PDL
-- Outputs per-TF JSON files + candle JSON + session boundaries
-- All timestamps in NY time (EST = UTC-5 for Jan 2024)
-
-**YAML export**: `generate_advisor_export_v3.py` → produces `calibration_data_export.yaml` (294 KB, 2,882 lines)
-- Structured data for CTO + Advisor panel review
-- Full event lists at default thresholds, summary counts at all thresholds
-- Multi-TF: 1m, 5m (primary), 15m
-
-### 5b. Calibration Visual Bible (Deployed Website)
-
-**Live URL**: https://www.perplexity.ai/computer/a/a8ra-calibration-visual-bible-RWDlyN.bTaOYst5ta40gJQ
-
-**6 interactive chart pages** using TradingView Lightweight Charts v4:
-1. **FVG** (`fvg.html`) — Fair Value Gaps with threshold slider, CE/boundary markers
-2. **Swings** (`swings.html`) — Swing highs/lows with N-parameter slider
-3. **Displacement** (`displacement.html`) — Displacement candles with ATR multiplier slider
-4. **Order Blocks** (`ob-staleness.html`) — OB zones with staleness/retest tracking
-5. **NY Windows** (`ny-windows.html`) — NY reversal windows A (08:00-09:00) and B (10:00-11:00)
-6. **Asia Range** (`asia.html`) — Asia session high/low/midline with deviation tracking
-
-**All charts feature**:
-- Timeframe toggle: 1m / 5m / 15m (native detection per TF)
-- Day-by-day navigation (forex days: Jan 8-12, 2024)
-- Session boundary bands (Asia=teal, LOKZ=purple, NYOKZ=orange)
-- NY timestamps throughout
-- Threshold sliders where applicable
-- Summary statistics panel
-
-### 5c. Key Detection Counts (Native, Default Thresholds)
-
-| Primitive | 1m | 5m | 15m |
-|-----------|-----|-----|------|
-| FVG | 2,017 | 345 | ~90 |
-| Swings | 833 | 163 | ~45 |
-| Displacement | 4,569 | 875 | ~250 |
-| Order Blocks | 601 | 106 | ~30 |
-
----
-
-## 6. FILE MANIFEST
-
-### Root workspace (`/home/user/workspace/`)
-
-| File | Description | Status |
-|------|-------------|--------|
-| `PROJECT_STATE.md` | **THIS FILE** — orientation checkpoint | Current |
-| `SYNTHETIC_OLYA_METHOD_v0.4.yaml` | Full v0.4 methodology (806 lines) | Reference input |
-| `eurusd_1m_2024-01-07_to_2024-01-12.csv` | Source 1m candle data (7,177 bars) | Source data |
-| `PERPLEXITY_BRIEF_ICT_PRIMITIVES.md` | CTO's original research brief | Reference |
-| `PERPLEXITY_PHASE2_BRIEF.md` | Phase 2 brief from CTO+Advisors | Reference |
-| `ICT_PRIMITIVES_RESEARCH_PACK.md` | Phase 1 master synthesis (813 lines) | Completed research |
-| `research_fvg_vi.md` | Phase 1: FVG + VI deep dive | Completed |
-| `research_swing_points.md` | Phase 1: Swing point variants | Completed |
-| `research_sessions_pdh_asia.md` | Phase 1: Sessions + PDH + Asia | Completed |
-| `research_tier2_primitives.md` | Phase 1: OB, Displacement, Breaker, Mitigation | Completed |
-| `sanity_band_results.md` | Sanity band analysis results | Completed |
-| `sanity_band_analysis.py` | Initial sanity check script | Superseded |
-| `sanity_band_analysis_v2.py` | Revised sanity check | Superseded |
-| `preprocess_data.py` | Original pipeline (1m projection) | **SUPERSEDED by v2** |
-| `preprocess_data_v2.py` | **CURRENT** pipeline (native multi-TF) | Active |
-| `generate_advisor_export.py` | Original YAML exporter | Superseded |
-| `generate_advisor_export_v2.py` | v2 YAML exporter | Superseded |
-| `generate_advisor_export_v3.py` | **CURRENT** multi-TF YAML exporter | Active |
-| `CHART_REBUILD_SPEC.md` | Spec used by subagents for chart rebuilds | Reference |
-
-### Deployed site (`/home/user/workspace/calibration-bible/`)
-
-| File | Description |
-|------|-------------|
-| `index.html` | Landing page with links to all 6 charts |
-| `fvg.html` | Fair Value Gap chart |
-| `swings.html` | Swing Points chart |
-| `displacement.html` | Displacement chart |
-| `ob-staleness.html` | Order Block chart |
-| `ny-windows.html` | NY Reversal Windows chart |
-| `asia.html` | Asia Range chart |
-| `BUILDSPEC.md` | Design tokens, color system, technical spec |
-| `metadata.json` | Pipeline metadata (thresholds, counts per TF) |
-| `session_boundaries.json` | Session band coordinates for chart markers |
-| `calibration_data_export.yaml` | Advisor YAML v3 (294 KB, 2,882 lines) |
-| `candles_2024-01-{08-12}.json` | Per-day candle data (NY timestamps, full field names) |
-| `{primitive}_data_{1m,5m,15m}.json` | Per-TF detection results (FVG, swing, displacement, OB, ny_windows) |
-| `asia_data.json`, `levels_data.json` | Asia range + PDH/PDL (not TF-dependent) |
-| `{primitive}_data.json` | Backward-compat copies (= 1m versions) |
-
----
-
-## 7. TECHNICAL CONSTANTS
-
-```
-EURUSD pip value:     0.0001 (5-decimal pricing)
-Forex day boundary:   17:00 NY
-Data period:          2024-01-07 to 2024-01-12 (forex days Jan 8-12)
-Timezone:             NY (EST in January = UTC-5, no DST)
-
-Sessions (NY time):
-  Asia:    19:00 — 00:00
-  LOKZ:    02:00 — 05:00
-  NYOKZ:   07:00 — 10:00
-
-NY Reversal Windows (NY time):
-  Window A: 08:00 — 09:00
-  Window B: 10:00 — 11:00
-
-Threshold sweep ranges:
-  1m  FVG: [0.5, 1, 1.5, 2, 3, 5] pip
-  5m  FVG: [1, 2, 3, 4, 5, 7, 10] pip
-  15m FVG: [2, 3, 5, 7, 10, 15] pip
-  Swing N: [3, 4, 5, 6, 7, 8, 10] (all TFs)
-  Displacement ATR_k: [1.0, 1.5, 2.0, 2.5, 3.0] (all TFs)
+4822d6e Filter detections to locked thresholds in detect.py
+46e35c5 Update README with Phase 3.5 validation mode documentation
+afac7bf Add user testing validation for validation-mode milestone — all 47 assertions pass
+a75a9de Add scrutiny validation for validation-mode milestone — all 5 features pass, 378 tests pass
+9d1a3d0 Add Validation Mode card to index.html
+379faa4 Add validate-gt.js — ground truth labeling system with disk persistence
+8ad4045 Add validate.html, validate-app.js, validate-chart.js — Phase 3.5 validation mode
+3276bb1 Add serve.py — minimal write server for Phase 3.5 validation mode
+8279a00 Add detect.py CLI batch generator for Phase 3.5 validation mode
+3368e43 Add Phase 3.5 mission infrastructure
 ```
 
 ---
 
-## 8. CRITICAL PIVOT LOG
-
-**Session 9 (Olya's review)** revealed three issues that required full rebuild:
-
-1. **Native TF detection**: Original pipeline detected everything on 1m bars then "projected" to 5m/15m. Olya/CTO said this is wrong — "A genuine 5m FVG requires the gap to exist across 3 consecutive 5m candles." Detection must run independently on each TF's aggregated bars.
-
-2. **NY time**: All timestamps were in UTC. Olya always works in NY time. Converted everything.
-
-3. **Session markers**: Charts needed visual session boundary bands so Olya can see where Asia/LOKZ/NYOKZ start and end.
-
-**Resolution (this session)**: Complete rewrite of pipeline (`preprocess_data_v2.py`), regeneration of all JSON data, rebuild of all 6 chart HTML files + index, new YAML export v3. Deployed and QA'd — all verified working.
-
----
-
-## 9. CURRENT STATUS
-
-| Item | Status |
-|------|--------|
-| Phase 1 research | ✅ COMPLETE |
-| Phase 2 brief orientation | ✅ COMPLETE |
-| L1 geometric detection | ✅ LOCKED |
-| Native multi-TF pipeline | ✅ COMPLETE |
-| Visual Bible v2 (6 charts) | ✅ DEPLOYED |
-| Advisor YAML export v3 | ✅ COMPLETE |
-| L1.5 threshold calibration | ⏳ NEXT — awaiting Olya's review |
-| L2 strategy layer | 🔮 FUTURE — Olya's domain |
-
----
-
-## 10. WHAT HAPPENS NEXT
-
-1. **Olya reviews the Visual Bible** at the deployed URL, toggling thresholds and timeframes
-2. **Craig + Olya report back** with calibration findings:
-   - Which threshold values look right for each primitive on 5m and 15m
-   - Any detection bugs (false positives, missed events)
-   - Any visual/UX issues in the charts
-3. **We iterate** on L1.5 thresholds based on their feedback
-4. **Lock L1.5** once Olya approves threshold values
-5. **L2 strategy interpretation** is Olya's domain — we provide tools, she provides meaning
-
----
-
-## 11. OPERATING RULES FOR FUTURE SESSIONS
-
-- **QUALITY > SPEED** — take time, do it properly
-- **DO NOT INVENT** — research what EXISTS in production algo trading
-- **CITE EVERYTHING** — no unsourced claims about "standard"
-- **INV-OLYA-ABSOLUTE** — Olya's word overrides all advisors on methodology
-- **NY TIME** everywhere — never UTC in user-facing output
-- **Native per-TF** — never project 1m detections to higher timeframes
-- **If no consensus exists** on a definition, label as VARIANT and list all variants with tradeoffs
-- Craig's email: craig@imoon.ai
-
----
-
-*Last updated: 2026-03-04 ~15:30 NY by Perplexity Computer*
+*Last updated: 2026-03-09 ~21:00 NY*

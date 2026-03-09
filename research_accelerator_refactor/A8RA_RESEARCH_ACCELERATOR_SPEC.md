@@ -1,15 +1,19 @@
 # a8ra RESEARCH ACCELERATOR
 ## Architecture Specification — Calibration as Core Capability
 
-**Version:** 0.1 PROPOSAL  
-**Date:** 2026-03-08  
+**Version:** 0.2 IMPLEMENTED  
+**Date:** 2026-03-09  
 **Author:** CTO (Craig) + Claude (Architecture Synthesis)  
-**Status:** PROPOSAL — For review by CTO Claude (Opus) and Olya's Advisor  
+**Status:** IMPLEMENTED (Phases 1–3.5) — Phases 4-5 remain proposed  
 **Classification:** a8ra Core Infrastructure  
+
+> **Post-build update (2026-03-09):** Updated post-build to reflect implemented state. Original proposal architecture validated. Phases 1–3.5 are fully built with 631 tests across 26 test files. Addenda B and C remain proposals for future implementation.
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
+
+> **[IMPLEMENTED]** The Research Accelerator described below has been built and deployed. Phases 1–3.5 are complete with 631 tests across 26 test files. The problem framing below remains valid as historical context for the design decisions made.
 
 ### The Problem
 
@@ -21,11 +25,11 @@ This is not an isolated incident. Every calibration session has the same structu
 
 ### The Proposal
 
-Elevate calibration from a disposable tool to a **core a8ra capability** — a Research Accelerator that treats algorithm variants and parameter configurations as data, not code.
+The proposal was to elevate calibration from a disposable tool to a **core a8ra capability** — a Research Accelerator that treats algorithm variants and parameter configurations as data, not code. This has been implemented as described below.
 
 ### Why This Is Strategic
 
-The algo design underpinning a8ra's detection layer is the system's primary moat. The moat is not any particular set of locked parameters — it is the **capacity to rigorously derive, validate, and evolve parameters** for any strategy Olya conceives, on any instrument, in any market regime. A Research Accelerator makes that capacity institutional rather than ad-hoc.
+The algo design underpinning a8ra's detection layer is the system's primary moat. The moat is not any particular set of locked parameters — it is the **capacity to rigorously derive, validate, and evolve parameters** for any strategy Olya conceives, on any instrument, in any market regime. The Research Accelerator has made that capacity institutional rather than ad-hoc.
 
 **Implications:**
 - New strategy onboarding becomes systematic (weeks → days)
@@ -109,28 +113,22 @@ These are non-negotiable architectural constraints. They carry forward from the 
 
 **Purpose:** Ingest, store, and serve OHLCV data across multiple instruments, timeframes, and date ranges, with regime and session tagging.
 
+> **[IMPLEMENTED]** Data layer is fully built. Primary data source is Phoenix River (IBKR parquet via DuckDB), not Dukascopy as originally proposed. `RiverAdapter` (`src/ra/data/river_adapter.py`) is the primary data interface, with CSV fallback via `csv_loader.py` for legacy data.
+
 **Data Sources:**
-- Primary: Dukascopy 1m tick data (already used for current dataset)
-- Expansion: 6-12 months minimum per instrument for statistical validity
-- Initial instruments: EURUSD (primary), expand post-calibration
+- Primary: Phoenix River parquet files (from IBKR via phoenix-river pipeline, stored at `~/phoenix-river/{pair}/{year}/{mm}/{dd}.parquet`) **[IMPLEMENTED]**
+- ~~Dukascopy 1m tick data~~ — replaced by Phoenix River
+- Initial instruments: EURUSD (primary) — 25 weeks (Sep 2025–Feb 2026)
 
 **Storage Format:**
 ```yaml
 dataset:
   instrument: EURUSD
-  source: dukascopy
+  source: phoenix_river  # IBKR via DuckDB
   resolution: 1m  # base resolution — higher TFs aggregated on demand
-  range: 2024-01-01 to 2024-12-31
-  bars: ~370,000
+  range: 2025-09-01 to 2026-02-28
   
-  # Regime tags (computed or manual)
-  regime_tags:
-    - { start: "2024-01-02", end: "2024-01-19", regime: "ranging", vol: "low" }
-    - { start: "2024-01-22", end: "2024-02-09", regime: "trending_up", vol: "medium" }
-    - { start: "2024-03-06", end: "2024-03-08", regime: "nfp_week", vol: "high" }
-    # ... auto-generated + manually curated
-  
-  # Session boundaries (computed from timezone rules)
+  # Session boundaries (computed from timezone rules) — IMPLEMENTED
   sessions:
     asia: { start: "19:00 NY", end: "00:00 NY" }
     lokz: { start: "02:00 NY", end: "05:00 NY" }
@@ -138,26 +136,32 @@ dataset:
     forex_day: "17:00 NY"
 ```
 
-**Regime Tagging Approach:**
+> **[NOT BUILT]** Regime tagging (ATR/ADX-based volatility/trend classification as proposed below) is NOT YET IMPLEMENTED — only session-level tagging exists via `session_tagger.py` (6 categories: asia, pre_london, lokz, pre_ny, nyokz, other; kill zones: lokz, nyokz; NY windows: a (08-09), b (10-11); forex day boundary: 17:00 NY).
+
+**Regime Tagging Approach (proposed — not yet built):**
 - Phase 1 (automated): ATR-based volatility classification, ADX-based trend/range classification, session-based slicing
 - Phase 2 (curated): Manual tags for key event types — NFP, FOMC, CPI, low-liquidity holiday periods
 - Regime tags are metadata on the dataset, not part of detection logic
 - Evaluation runner slices by regime for per-regime statistics
 
-**TF Aggregation:**
+**TF Aggregation:** **[IMPLEMENTED]**
 - 1m data stored as base resolution
-- 5m, 15m, 1H, 4H, Daily aggregated on demand (same logic as current pipeline)
+- 5m, 15m, 1H, 4H, Daily aggregated on demand via `tf_aggregator.py` + 4H forex-day-aligned aggregation in `RiverAdapter`
 - Native TF detection principle preserved — 5m primitives run on 5m bars
 
-**Key Design Decision:** Data layer is a local file store (Parquet or HDF5), not a database. Keeps infrastructure simple. A year of 1m EURUSD is ~50MB in Parquet — trivially fits in memory.
+**Key Design Decision:** Data layer is Parquet via DuckDB (`RiverAdapter`), not HDF5. DuckDB-backed reader with Bangkok→UTC→NY timezone normalization. Read-only invariant (`INV-RA-RIVER-READONLY`). Keeps infrastructure simple — no separate database server.
 
 ### 3.3 Component 2: Detection Engine
 
 **Purpose:** Run any combination of primitive detection algorithms with any parameter configuration, producing standardised output.
 
+> **[IMPLEMENTED]** Detection engine is fully built with 12 modules (9 from original spec + 3 new). All detectors implement the `PrimitiveDetector` ABC. IFVG and BPR are virtual nodes handled by `FVGDetector`, not separate classes. Cascade engine resolves dependency graph automatically.
+
 #### 3.3.1 Primitive Module Interface
 
 Every primitive — native a8ra or external — implements the same interface:
+
+> **[IMPLEMENTED]** Actual interface closely matches spec with additions noted below. `source` and `source_reference` fields were not implemented (not needed with only native variants). `required_upstream()` abstract method was added for self-declared upstream dependencies.
 
 ```python
 class PrimitiveDetector:
@@ -166,8 +170,8 @@ class PrimitiveDetector:
     primitive_name: str          # e.g. "displacement"
     variant_name: str            # e.g. "a8ra_v1", "tradingfinder_port", "luxalgo_port"
     version: str                 # semver
-    source: str                  # "native" | "ported_pinescript" | "ported_academic" | "ported_mt5"
-    source_reference: str        # URL or citation
+    # source: str               # NOT IMPLEMENTED — only native variants exist
+    # source_reference: str     # NOT IMPLEMENTED
     
     def detect(
         self,
@@ -181,15 +185,24 @@ class PrimitiveDetector:
         Must be deterministic: same inputs → same outputs.
         """
         ...
+    
+    def required_upstream(self) -> list[str]:   # [ADDITION] Self-declared upstream deps
+        """Detectors declare their upstream dependencies."""
+        ...
 
 class DetectionResult:
+    primitive: str                # [ADDITION] Primitive name
+    variant: str                  # [ADDITION] Variant name
+    timeframe: str                # [ADDITION] Timeframe
     detections: list[Detection]   # Individual detection events
     metadata: dict                # Algo-specific metadata (counts, distributions, etc.)
     params_used: dict             # Echo of params for provenance
     
 class Detection:
+    id: str                       # [ADDITION] Deterministic ID: {primitive}_{tf}_{timestamp_ny}_{direction}
     time: datetime                # Detection timestamp
-    type: str                     # Primitive-specific type (e.g., "bullish", "bearish")
+    direction: str                # [ADDITION] Separate from type (e.g., "bullish", "bearish")
+    type: str                     # Primitive-specific type
     price: float                  # Reference price
     properties: dict              # Primitive-specific properties
     tags: dict                    # Context tags (session, regime, quality markers)
@@ -198,40 +211,53 @@ class Detection:
 
 #### 3.3.2 Native a8ra Primitives (Migrated from Current Pipeline)
 
-Each existing primitive in `preprocess_data_v2.py` becomes a module:
+> **[IMPLEMENTED]** Migration complete — all primitives now in standalone `PrimitiveDetector` modules under `src/ra/detectors/`. Total: 12 modules (9 original + 3 new). IFVG and BPR are virtual nodes handled by FVGDetector, not separate classes.
 
-| Module | Current Status | Migration Complexity |
-|--------|---------------|---------------------|
-| `SwingPointDetector` | Algorithm locked, L1.5 locked per TF | Low — extract function, parameterise N and height thresholds |
-| `EqualHLDetector` | Algorithm defined, L1.5 proposed | Low — extract, parameterise tolerance + min_separation |
-| `FVGDetector` | Fully locked (L1 + L1.5) | Low — extract, params already defined |
-| `DisplacementDetector` | L1 locked, L1.5 locked | Low — extract, parameterise ATR mult, body ratio, combine mode |
-| `MSSDetector` | Composite — consumes swings + displacement | Medium — wire upstream consumption |
-| `OrderBlockDetector` | Fully locked | Medium — consumes displacement + MSS |
-| `LiquiditySweepDetector` | Architecture locked, sources pending | Medium — separate detection logic from level pool config |
-| `AsiaRangeDetector` | L1 locked, L1.5 proposed | Low |
-| `OTEDetector` | Fib levels locked, anchor rule proposed | Low |
-| `IFVGDetector` | L1 locked, inherits FVG | Low |
-| `BPRDetector` | L1 locked | Low |
+| Module | Build Status | Notes |
+|--------|-------------|-------|
+| `SwingPointDetector` (`swing_points.py`) | **[IMPLEMENTED]** | Parameterised N and height thresholds |
+| `EqualHLDetector` (`equal_hl.py`) | **[IMPLEMENTED]** | Built but DEFERRED status in config |
+| `FVGDetector` (`fvg.py`) | **[IMPLEMENTED]** | Handles FVG + IFVG + BPR as virtual sub-nodes; state machine (ACTIVE→CE_TOUCHED→BOUNDARY_CLOSED→IFVG) |
+| `DisplacementDetector` (`displacement.py`) | **[IMPLEMENTED]** | Significantly richer than spec: clusters, decisive override, quality grades (STRONG/VALID/WEAK) |
+| `MSSDetector` (`mss.py`) | **[IMPLEMENTED]** | Composite — consumes swings + displacement |
+| `OrderBlockDetector` (`order_block.py`) | **[IMPLEMENTED]** | State machine (ACTIVE→MITIGATED→INVALIDATED→EXPIRED) with fallback scan |
+| `LiquiditySweepDetector` (`liquidity_sweep.py`) | **[IMPLEMENTED]** | Complex multi-source level pooling |
+| `AsiaRangeDetector` (`asia_range.py`) | **[IMPLEMENTED]** | |
+| `OTEDetector` (`ote.py`) | **[IMPLEMENTED]** | |
+| ~~`IFVGDetector`~~ | Virtual node | Not a separate class — state transition on FVG handled by `FVGDetector` |
+| ~~`BPRDetector`~~ | Virtual node | Not a separate class — geometric overlap computed by `FVGDetector` |
+| `SessionLiquidityDetector` (`session_liquidity.py`) | **[IMPLEMENTED — NEW]** | 4-gate efficiency model for session boxes (asia, pre-london, pre-ny) |
+| `ReferenceLevelDetector` (`reference_levels.py`) | **[IMPLEMENTED — NEW]** | PDH/PDL, midnight open, equilibrium |
+| `HTFLiquidityDetector` (`htf_liquidity.py`) | **[IMPLEMENTED — NEW]** | Higher-TF liquidity levels (EQH/EQL on 1H/4H/1D) |
 
 **Cascade Dependency Graph (enforced by engine):**
+
+> **[IMPLEMENTED]** The actual `dependency_graph` in `locked_baseline.yaml` is significantly more detailed than spec with 14 nodes including session_liquidity, reference_levels, htf_liquidity, and the virtual ifvg/bpr nodes. The engine resolves this graph automatically via the `CascadeEngine`.
+
 ```
 SwingPoints ──┬──▶ MSS ──┬──▶ OrderBlock
               │          │
 Displacement ─┘          └──▶ OTE
               
-FVG ──────────────▶ MSS (tag: fvg_created)
+FVG ──┬───────────▶ MSS (tag: fvg_created)
+      ├───────────▶ IFVG (virtual node — state transition)
+      └───────────▶ BPR (virtual node — geometric overlap)
               
 SwingPoints ──┬──▶ EqualHL ──▶ LiquiditySweep (level source)
               │
               └──▶ LiquiditySweep (level source: swing)
 
 AsiaRange ────────▶ LiquiditySweep (level source: session H/L)
+SessionLiquidity ─▶ LiquiditySweep (level source: session boxes)
+ReferenceLevels ──▶ LiquiditySweep (level source: PDH/PDL, midnight, EQ)
+HTFLiquidity ─────▶ LiquiditySweep (level source: HTF EQH/EQL)
 ```
 
 The engine resolves this graph automatically. When you change a displacement parameter, MSS and OB re-run. No manual cascade management.
 
 #### 3.3.3 External Algo Integration
+
+> **[NOT BUILT]** This section remains a proposal for Phase 4. All detectors are `a8ra_v1` variant only. No PineScript transpilation infrastructure exists. No external variants have been ported.
 
 **Ingestion workflow:**
 ```
@@ -280,6 +306,8 @@ PineScript v5 maps to Python/pandas cleanly for most ICT indicators:
 
 #### 3.3.4 Parameter Configuration Schema
 
+> **[IMPLEMENTED]** Configurations are YAML, not code. The actual `locked_baseline.yaml` is far more detailed than the spec examples below — it includes sweep ranges, per-TF overrides, state machines, quality grades, evaluation order, and dependency graph. Pydantic-based config validation via `RAConfig` model (`src/ra/config/schema.py`).
+
 Configurations are YAML, not code:
 
 ```yaml
@@ -322,6 +350,10 @@ configs:
 
 **Purpose:** Run detection configs across datasets and produce statistical comparison output.
 
+> **[IMPLEMENTED]** Core evaluation runner is fully built. Output format is **JSON (Schemas 4A-4E)** via `json_export.py`, not YAML + CSV as originally proposed. Cascade evaluation, walk-forward validation, and parameter sweeps are all built. CLI entry point: `eval.py` with subcommands: `sweep`, `compare`, `walk-forward`. Also `run.py` for basic cascade execution.
+>
+> **[NOT BUILT]** Regime-sliced evaluation is not yet implemented (blocked by no regime tagging — `regime_slicing.enabled: false` in config). Ground truth labels are collected but NOT YET fed into evaluation metrics (precision/recall scoring not integrated).
+
 #### 3.4.1 Evaluation Output Schema
 
 ```yaml
@@ -362,6 +394,8 @@ evaluation:
 
 #### 3.4.2 Cascade Evaluation (Critical Differentiator)
 
+> **[IMPLEMENTED]** Cascade evaluation is fully built via `cascade_stats.py`: `cascade_funnel()`, `cascade_completion()`. Multi-level funnel (leaf→composite→terminal), conversion rates, chain tracking.
+
 The current tool evaluates primitives in isolation. The Research Accelerator evaluates the **full cascade**:
 
 ```
@@ -396,29 +430,39 @@ cascade_report:
 
 **Purpose:** Visual layer for Olya to validate candidates surfaced by the evaluation runner.
 
-#### 3.5.1 Chart Layer
+> **[IMPLEMENTED]** The comparison interface is fully built but with a **significantly different tech stack** than proposed. Instead of FastAPI + WebSocket, the implementation uses:
+> - **Static HTML/JS** served via Python stdlib `http.server` (`serve.py`)
+> - **Plotly.js 2.35.2** for stats/heatmap/walk-forward visualizations
+> - **Lightweight Charts v4.1.3** for candlestick charts
+> - **No backend computation** — all data pre-computed via `eval.py` CLI
+> - 4 tabs fully built: Chart, Stats, Heatmap, Walk-Forward (in `compare.html`)
 
-- Full-stack primitive overlay on a single chart (toggleable per primitive)
+#### 3.5.1 Chart Layer **[IMPLEMENTED]**
+
+- Full-stack primitive overlay on a single chart (toggleable per primitive) — via `chart-tab.js` with Lightweight Charts v4.1.3
 - Multi-config rendering: Config A markers in colour set 1, Config B in colour set 2
 - TF switching: same chart, switch between 1m/5m/15m/1H
-- Date range navigation: jump to specific regime slices, specific sessions, specific dates
+- Date range navigation: day navigation, session bands
+- Detection markers with full overlay support
 - Carries forward the rendering approach from current tool (Lightweight Charts + custom overlays)
 
-#### 3.5.2 Configuration Panel
+#### 3.5.2 Configuration Panel **[PARTIALLY BUILT]**
 
-- Per-primitive parameter controls (sliders, dropdowns, toggles)
-- Variant selector per primitive (a8ra_v1, tradingfinder_v1, etc.)
 - Preset configs: "current locked", "candidate A", "candidate B"
-- **Instant re-computation** — change a param, chart updates. No pipeline run.
+- **~~Instant re-computation~~** — **[NOT BUILT]** Charts load pre-computed JSON; no real-time param change → re-run. Requires a `eval.py` CLI pipeline run to regenerate data.
+- ~~Per-primitive parameter controls (sliders, dropdowns, toggles)~~ — not built as real-time controls
+- ~~Variant selector per primitive~~ — not built (only a8ra_v1 variants exist)
 
-#### 3.5.3 Statistics Dashboard
+#### 3.5.3 Statistics Dashboard **[IMPLEMENTED]**
 
-- Side-by-side stats for compared configs
-- Per-regime breakdown
-- Cascade conversion funnel
-- Divergence highlighter: "click to jump to a detection where configs disagree"
+- Side-by-side stats for compared configs — via `stats-tab.js`
+- Per-session distribution (per-regime breakdown not built — blocked by no regime tagging)
+- Cascade conversion funnel visualization via Plotly
+- Divergence highlighter: "click to jump to a detection where configs disagree" — via `divergence.js`
 
-#### 3.5.4 Lock + Provenance Panel
+#### 3.5.4 Lock + Provenance Panel **[IMPLEMENTED]**
+
+> Built via `ground-truth.js`. Shows locked params, walk-forward verdict, notes input, Record Lock button.
 
 When Olya is ready to lock:
 ```yaml
@@ -436,9 +480,35 @@ lock_record:
   olya_notes: "Current feels right — relaxed catches noise in Asia, TF benchmark confirms we're in line"
 ```
 
+#### 3.5.5 Phase 3.5: Validation Mode **[IMPLEMENTED — NEW]**
+
+> This entire feature was built after the original spec and is not covered in the original proposal. It represents a complete week-by-week detection browser for visual validation of the detection engine output.
+
+**Components:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Validation Browser | `site/validate.html` | Week-by-week detection browser UI |
+| Batch Detection Generator | `site/detect.py` | CLI tool: reads Phoenix River data via `RiverAdapter`, runs `CascadeEngine`, outputs per-week JSON. Filters detections to locked thresholds (displacement AND gate, FVG floor, swing height). |
+| Write Server | `site/serve.py` | Minimal HTTP server (port 8200) with `POST /api/labels/{week}` and `POST /api/lock-records/{week}` for disk persistence of ground truth labels and lock records |
+| Frontend JS | `site/js/validate-app.js`, `validate-chart.js`, `validate-gt.js` | Full validation mode frontend with week navigation, detection filtering, ground truth labeling |
+
+**Coverage:**
+- 25 weeks EURUSD (Sep 2025–Feb 2026)
+- ~97,834 total detections across all weeks
+- Ground truth labeling with disk persistence (CORRECT / NOISE / BORDERLINE)
+- Deployed to GitHub Pages: `slimwojak.github.io/ra-tools/validate.html`
+
+**Ground Truth Labeling:**
+- Click any detection marker → label popover (CORRECT / NOISE / BORDERLINE)
+- Labels persist to disk via `serve.py` POST endpoints (validation mode) or localStorage (compare mode)
+- Colored rings: green = correct, red = noise, amber = borderline
+
 ---
 
 ## 4. LIQUIDITY SWEEP: CASE STUDY OF NEW SYSTEM
+
+> **[NOTE]** This case study describes the aspirational instant-recomputation workflow. Current implementation uses pre-computed data; the analytical capabilities exist but require a CLI pipeline run (`eval.py` or `detect.py`) to regenerate. The vision described below remains a valid target for future Phase 4+ work.
 
 To make this concrete, here's how the 6-hour sweep session would have gone with the Research Accelerator:
 
@@ -466,50 +536,69 @@ Toggle sources on/off. Chart updates instantly. Count panel shows: "Config A (al
 
 ## 5. BUILD PLAN
 
-### Phase 1: Detection Engine + Data Layer (2-3 days)
+> **Total: 631 tests across 26 test files.** Phases 1–3.5 are fully built and validated.
 
-**Deliverables:**
-- Parameterised primitive modules migrated from current pipeline
-- Cascade dependency resolver (auto-runs downstream when upstream changes)
-- Dataset loader supporting multi-month 1m data with TF aggregation
-- YAML-based configuration loading
-- CLI runner: `python run.py --config config_a.yaml --dataset eurusd_2024 --output results/`
+### Phase 1: Detection Engine + Data Layer — **[COMPLETE]**
 
-**Data acquisition:** Download 6-12 months EURUSD 1m from Dukascopy (same source as current dataset). Tag with automated regime classification.
+**Deliverables (all built):**
+- 12 parameterised primitive detector modules under `src/ra/detectors/`
+- Cascade dependency resolver (`CascadeEngine`) — auto-runs downstream when upstream changes
+- Data layer with River adapter (`RiverAdapter` — DuckDB-backed Phoenix River parquet reader), CSV loader, TF aggregator, session tagger
+- YAML-based configuration loading with Pydantic validation (`RAConfig`)
+- CLI runner: `python run.py --config config.yaml`
 
-**Validation:** Run locked configs on current 5-day dataset, verify output matches existing tool exactly. This is the regression gate.
+**Data source:** Phoenix River (IBKR parquet files), not Dukascopy as originally proposed.
 
-### Phase 2: Evaluation Runner + Comparison Stats (1-2 days)
+### Phase 2: Evaluation Runner + Comparison Stats — **[COMPLETE]**
 
-**Deliverables:**
-- Statistical comparison engine: per-config stats, pairwise comparison, regime-sliced
-- Cascade evaluation: full dependency graph stats
-- Output format: YAML + CSV for dashboard consumption
-- Divergence indexing: list of timestamps where configs disagree (for visual review)
+**Deliverables (all built):**
+- Statistical comparison engine: per-config stats, pairwise comparison (`comparison.py`)
+- Cascade evaluation: full dependency graph stats (`cascade_stats.py`)
+- Walk-forward validation: `WalkForwardRunner` with calendar-month windows, verdicts (STABLE/CONDITIONALLY_STABLE/UNSTABLE)
+- Parameter stability sweep: `run_sweep()`, `run_grid()` with cache-aware incremental re-runs
+- Parameter extraction system: `extract_params()`, `extract_sweep_combos()`
+- Output format: **JSON (Schemas 4A-4E)** via `json_export.py` (not YAML + CSV as originally proposed)
+- Divergence indexing: per-detection diff list in `compare_pairwise()`
 
-### Phase 3: Comparison Interface (2-3 days)
+### Phase 3: Comparison Interface — **[COMPLETE]**
 
-**Deliverables:**
-- Full-stack chart with toggleable primitive layers
+**Deliverables (all built):**
+- 4-tab interface (`compare.html`): Chart, Stats, Heatmap, Walk-Forward
+- Full-stack chart with toggleable primitive layers (`chart-tab.js` + Lightweight Charts v4.1.3)
 - Multi-config overlay (colour-coded by config)
-- Parameter control panel (real-time re-computation)
-- Statistics dashboard (side-by-side)
-- Lock + provenance recording
+- Statistics dashboard with Plotly.js (`stats-tab.js`)
+- Parameter heatmap from sweep data (`heatmap-tab.js`)
+- Walk-forward visualization (`walkforward-tab.js`)
+- Ground truth annotation (`ground-truth.js`) — click-to-label, 3 labels, colored rings, persistence
+- Lock + provenance panel with notes input and Record Lock button
+- Divergence navigator (`divergence.js`)
 
-**Tech stack:** Python backend (FastAPI) + existing Lightweight Charts frontend, connected via WebSocket or REST for instant re-computation feedback.
+**Tech stack (differs from spec):** Static HTML/JS served via Python stdlib `http.server` (`serve.py`). Plotly.js 2.35.2 for stats/heatmap/walk-forward. Lightweight Charts v4.1.3 for candlestick charts. No FastAPI, no WebSocket — all data pre-computed via `eval.py` CLI.
 
-### Phase 4: External Algo Integration (Ongoing)
+### Phase 3.5: Validation Mode — **[COMPLETE — NEW]**
 
-**Deliverables:**
+> This phase was not in the original proposal but was built as a critical addition.
+
+**Deliverables (all built):**
+- `site/validate.html` — week-by-week detection browser
+- `site/detect.py` — CLI batch generator reading River data, running cascade, outputting per-week JSON with locked threshold filtering
+- `site/serve.py` — minimal write server (port 8200) with POST endpoints for label/lock-record persistence
+- Frontend JS: `validate-app.js`, `validate-chart.js`, `validate-gt.js`
+- 25 weeks EURUSD (Sep 2025–Feb 2026), ~97,834 total detections
+- Deployed to GitHub Pages: `slimwojak.github.io/ra-tools/validate.html`
+
+### Phase 4: External Algo Integration — **[NOT STARTED]**
+
+**Deliverables (proposed):**
 - First 3 external indicators ported (displacement, swings, MSS)
 - Benchmark comparison against a8ra locked configs
 - Transpilation guide + template for future ports
 
 **Ongoing:** Each time Perplexity or research surfaces a promising external implementation, it gets ported and benchmarked. Library grows over time.
 
-### Phase 5: Production Monitoring (Future)
+### Phase 5: Production Monitoring — **[NOT STARTED]**
 
-**Deliverables:**
+**Deliverables (proposed):**
 - Live data ingestion (from IBKR or broker feed)
 - Regime drift detection: alert when detection rates deviate from calibration baseline
 - Parameter re-evaluation triggers: "displacement cascade rate dropped 30% this month — review recommended"
@@ -518,18 +607,20 @@ Toggle sources on/off. Chart updates instantly. Count panel shows: "Config A (al
 
 ## 6. WHAT CARRIES FORWARD
 
-| Existing Asset | Role in Research Accelerator |
-|---|---|
-| `SYNTHETIC_OLYA_METHOD_v0.5.yaml` | Becomes the **runtime configuration schema** — engine reads it directly |
-| `preprocess_data_v2.py` primitive algos | Refactored into **detection modules** with PrimitiveDetector interface |
-| `calibration_data_export.yaml` | Becomes the **reference dataset** for regression testing |
-| Chart rendering code (Lightweight Charts + overlays) | Foundation for **comparison interface** |
-| L1/L1.5/L2 architecture | **Core organising principle** — elevated from documentation to enforcement |
-| Cascade dependency map (from facilitator briefs) | Encoded in **engine dependency resolver** |
-| Research Pack (ICT_PRIMITIVES_RESEARCH_PACK.md) | Becomes the **external algo sourcing reference** |
-| All locked parameter decisions + provenance | **Baseline configs** that the new system validates or improves |
+> **[IMPLEMENTED]** Migration complete — all primitives now in standalone `PrimitiveDetector` modules under `src/ra/detectors/`. `preprocess_data_v2.py` is still referenced in detector docstrings as the legacy source but is not imported or used by the RA.
 
-**Nothing is thrown away.** The current system's intellectual output becomes the seed for an institutional-grade capability.
+| Existing Asset | Role in Research Accelerator | Status |
+|---|---|---|
+| `SYNTHETIC_OLYA_METHOD_v0.5.yaml` | Runtime configuration schema — engine reads it directly | **Migrated** to `locked_baseline.yaml` |
+| `preprocess_data_v2.py` primitive algos | Refactored into detection modules with PrimitiveDetector interface | **Migration complete** — all primitives in standalone modules under `src/ra/detectors/` |
+| `calibration_data_export.yaml` | Reference dataset for regression testing | **Carried forward** |
+| Chart rendering code (Lightweight Charts + overlays) | Foundation for comparison interface | **Carried forward** — `chart-tab.js` |
+| L1/L1.5/L2 architecture | Core organising principle — elevated from documentation to enforcement | **Enforced** in engine architecture |
+| Cascade dependency map (from facilitator briefs) | Encoded in engine dependency resolver | **Built** — `CascadeEngine` |
+| Research Pack (ICT_PRIMITIVES_RESEARCH_PACK.md) | External algo sourcing reference | **Carried forward** — Phase 4 |
+| All locked parameter decisions + provenance | Baseline configs that the new system validates or improves | **Active** in `locked_baseline.yaml` |
+
+**Nothing was thrown away.** The current system's intellectual output became the seed for an institutional-grade capability.
 
 ---
 
@@ -551,41 +642,44 @@ When ICT methodology evolves, when academic research surfaces better detection a
 
 ## 8. DECISION REQUESTED
 
-### For CTO Claude (Opus):
-- Review the module interface design (§3.3.1). Does the PrimitiveDetector interface support all current primitive patterns, including composites with upstream consumption?
-- Review the cascade dependency graph (§3.3.2). Confirm the engine can resolve this automatically from YAML config.
-- Flag any migration risks in extracting current pipeline code into modules.
+> **[RESOLVED]** — Decisions made, build complete for Phases 1-3.5. The original questions below have been answered through implementation:
 
-### For Olya's Advisor:
-- Review the Olya experience described in §4 (Liquidity Sweep case study) and §3.5 (Comparison Interface). Does this match how Olya would want to work?
-- Review the provenance model (§3.5.4). Is this sufficient to build confidence in locked parameters?
-- Input on which external algo sources would be highest value to port first.
+### For CTO Claude (Opus): ✅ RESOLVED
+- ~~Review the module interface design (§3.3.1).~~ → PrimitiveDetector interface supports all primitive patterns including composites. `required_upstream()` method added for self-declared dependencies.
+- ~~Review the cascade dependency graph (§3.3.2).~~ → Engine resolves 14-node dependency graph automatically from YAML config via `CascadeEngine`.
+- ~~Flag any migration risks.~~ → Migration from `preprocess_data_v2.py` completed without issues. All primitives are standalone modules.
 
-### For Craig (CTO / Builder):
-- Confirm build commitment: ~7-10 days for Phases 1-3, with Phase 4 ongoing.
-- Confirm data acquisition: 6-12 months EURUSD 1m from Dukascopy.
-- Tech stack decision: FastAPI + Lightweight Charts (recommended) vs alternatives.
-- Repo decision: Fresh repo (recommended) vs extend existing.
+### For Olya's Advisor: ✅ RESOLVED
+- ~~Review the Olya experience.~~ → Comparison interface and validation mode built. Instant re-computation deferred; pre-computed data approach validated.
+- ~~Review the provenance model.~~ → Lock panel with provenance, walk-forward verdict, and notes built.
+- ~~Input on external algo sources.~~ → Deferred to Phase 4.
+
+### For Craig (CTO / Builder): ✅ RESOLVED
+- ~~Build commitment~~ → Phases 1-3.5 complete.
+- ~~Data acquisition~~ → Phoenix River (IBKR parquet), not Dukascopy. 25 weeks EURUSD.
+- ~~Tech stack decision~~ → Static HTML/JS + Python stdlib `http.server`, not FastAPI. Simpler, sufficient.
+- ~~Repo decision~~ → Extended existing repo.
 
 ---
 
 ## 9. RELATIONSHIP TO EXISTING CALIBRATION AGENDA
 
-The following items remain from the current calibration pass. Recommendation: complete these with the existing tool (they are fast locks or preference questions), then build the Research Accelerator for validation and future work.
+> **[MOSTLY RESOLVED]** Most items from the original calibration agenda are now LOCKED via the Research Accelerator. The RA was built and used for parameter locking, as envisioned.
 
-| Item | Estimated Lock Effort | Recommendation |
+| Item | Status | Notes |
 |---|---|---|
-| Liquidity Sweep — Level Sources | 1 session with clean Opus brief | Lock with current tool, re-validate with RA |
-| OTE — 70.5% vs band, kill zone gate | Fast lock (fib levels already locked) | Lock with current tool |
-| NY Windows — A vs B preference | Preference question, not parameter | Lock with current tool |
-| Asia Range — three-tier thresholds | Fast classification lock | Lock with current tool |
-| HTF Visual Session | DEFERRED — needs longer TF data | **Do with Research Accelerator** (needs multi-month data anyway) |
+| Liquidity Sweep — Level Sources | **LOCKED** | Locked via RA with multi-source level pooling |
+| OTE — 70.5% vs band, kill zone gate | **LOCKED** | Fib levels locked in `locked_baseline.yaml` |
+| NY Windows — A vs B preference | **LOCKED** | Implemented in session tagger (a: 08-09, b: 10-11) |
+| Asia Range — three-tier thresholds | **LOCKED** | Built as `AsiaRangeDetector` |
+| HTF Visual Session | **NOT YET BUILT** — remains future work | Needs longer TF data + `HTFLiquidityDetector` extension |
+| Regime-adaptive params | **NOT YET BUILT** | Blocked by no regime tagging infrastructure |
 
 ---
 
-*This specification is a proposal for elevating a8ra's calibration capability from a disposable tool to a core institutional competence. The moat is not the parameters — it is the rigorous, repeatable, evidence-based process for deriving them.*
+*This specification documents the architecture and implementation of the a8ra Research Accelerator — a core institutional competence for calibration. The moat is not the parameters — it is the rigorous, repeatable, evidence-based process for deriving them. Phases 1–3.5 are built and validated. Phases 4-5 and Addenda B-C remain as the forward roadmap.*
 
-*a8ra project — Research Accelerator — 2026-03-08 — PROPOSAL*
+*a8ra project — Research Accelerator — 2026-03-09 — IMPLEMENTED (Phases 1–3.5)*
 
 ADDENDUM by OPUS
 
@@ -601,19 +695,21 @@ ADDENDUM by OPUS
 
 ## FILTER SUMMARY
 
-| Capability | Verdict | Integrates Into | Build Phase |
-|---|---|---|---|
-| Ground Truth Annotation | **IN — highest value** | Phase 3: Comparison Interface (§3.5) | P3 |
-| Parameter Stability Surface | **IN — critical** | Phase 2: Evaluation Runner (§3.4) | P2 |
-| Walk-Forward Validation | **IN — required lock gate** | Phase 2: Evaluation Runner (§3.4) | P2 |
-| Signal Decay / Half-Life | Deferred — valuable refinement | Phase 5+ (§7 Long-Term) | Future |
-| Event Concordance Matrix | Deferred — L2 territory | Phase 5+ (§7 Long-Term) | Future |
-| Monte Carlo Permutation | Not built — available ad-hoc | Engine supports it, no UI | — |
-| Deflated Detection Rate | Not built — design mitigates need | Provenance covers it | — |
+| Capability | Verdict | Integrates Into | Build Phase | **Implementation Status** |
+|---|---|---|---|---|
+| Ground Truth Annotation | **IN — highest value** | Phase 3: Comparison Interface (§3.5) | P3 | **[BUILT]** |
+| Parameter Stability Surface | **IN — critical** | Phase 2: Evaluation Runner (§3.4) | P2 | **[BUILT]** |
+| Walk-Forward Validation | **IN — required lock gate** | Phase 2: Evaluation Runner (§3.4) | P2 | **[BUILT]** |
+| Signal Decay / Half-Life | Deferred — valuable refinement | Phase 5+ (§7 Long-Term) | Future | **[NOT BUILT]** |
+| Event Concordance Matrix | Deferred — L2 territory | Phase 5+ (§7 Long-Term) | Future | **[NOT BUILT]** |
+| Monte Carlo Permutation | Not built — available ad-hoc | Engine supports it, no UI | — | **[NOT BUILT]** |
+| Deflated Detection Rate | Not built — design mitigates need | Provenance covers it | — | **[NOT BUILT]** |
 
 ---
 
 ## A1. GROUND TRUTH ANNOTATION LAYER
+
+> **[BUILT]** — `ground-truth.js` (compare mode) + `validate-gt.js` (validation mode). Click-to-label (CORRECT/NOISE/BORDERLINE), colored rings, persistence (localStorage in compare mode, disk via `serve.py` POST endpoints in validation mode). Labels are collected. **Precision/recall/F1 scoring is NOT YET integrated into the evaluation runner** — the scoring pipeline described below remains to be built.
 
 ### Integration Point
 Base spec §3.5 (Comparison Interface) — new subsection §3.5.5.
@@ -712,6 +808,8 @@ The label dataset is Olya's expertise made permanent and quantifiable. It doesn'
 
 ## A2. PARAMETER STABILITY SURFACE
 
+> **[BUILT]** — `runner.run_grid()` for 2D parameter sweeps, `heatmap-tab.js` for Plotly-based visualization in the comparison interface. 1D degenerate support included. **Automated plateau detection is NOT BUILT** — the heatmap renders and allows visual inspection but there is no algorithmic plateau/cliff-edge identification as described below.
+
 ### Integration Point
 Base spec §3.4 (Evaluation Runner) — new subsection §3.4.3.
 
@@ -806,6 +904,8 @@ This replaces the question "does 1.5x look right?" with "1.5x is in the middle o
 ---
 
 ## A3. WALK-FORWARD VALIDATION
+
+> **[BUILT]** — `WalkForwardRunner` (`src/ra/evaluation/walk_forward.py`) with `generate_windows()`, calendar-month windows, configurable train/test/step, multiple metrics, verdicts (STABLE/CONDITIONALLY_STABLE/UNSTABLE). `walkforward-tab.js` provides visualization (train vs test chart, verdict badge, summary stats, window detail panel). **Regime diagnosis (cross-reference weak windows with regime tags) is NOT BUILT** — blocked by no regime tagging infrastructure.
 
 ### Integration Point
 Base spec §3.4 (Evaluation Runner) — new subsection §3.4.4.
@@ -964,30 +1064,33 @@ The provenance model (§3.5.4) already records how many configs were compared be
 
 ## A6. UPDATED BUILD PHASES (Revised from Base Spec §5)
 
-Changes from base spec are marked with **[+NEW]**.
+> **[POST-BUILD UPDATE]** See §5 in the base spec for the definitive build status. All phases below through Phase 3 (plus Phase 3.5) are **COMPLETE** with 631 tests across 26 test files.
 
-### Phase 1: Detection Engine + Data Layer (2-3 days)
+### Phase 1: Detection Engine + Data Layer — **[COMPLETE]**
+*See §5 for details.*
+
+### Phase 2: Evaluation Runner + Comparison Stats — **[COMPLETE]**
+- Statistical comparison engine ✅
+- Cascade evaluation ✅
+- **[+NEW] Parameter Stability Sweep mode** — `run_grid()` ✅ (automated plateau detection NOT BUILT)
+- **[+NEW] Walk-Forward Validation mode** — `WalkForwardRunner` ✅ (regime cross-reference NOT BUILT)
+- Output formats: **JSON (Schemas 4A-4E)**, not YAML + CSV
+
+### Phase 3: Comparison Interface — **[COMPLETE]**
+- Full-stack chart with toggleable layers ✅
+- Multi-config overlay ✅
+- ~~Parameter control panel (real-time)~~ — NOT BUILT (pre-computed data only)
+- Statistics dashboard ✅
+- Lock + provenance **(+walk_forward_validation field)** ✅
+- **[+NEW] Ground Truth Annotation** — click-to-label ✅ (precision/recall/F1 integration in evaluation output NOT BUILT)
+
+### Phase 3.5: Validation Mode — **[COMPLETE — NEW]**
+*Not in original addendum. See §3.5.5 and §5 for details.*
+
+### Phase 4: External Algo Integration — **[NOT STARTED]**
 *No changes from base spec.*
 
-### Phase 2: Evaluation Runner + Comparison Stats (2-3 days) — was 1-2 days
-- Statistical comparison engine (base spec)
-- Cascade evaluation (base spec)
-- **[+NEW] Parameter Stability Sweep mode** — grid sweep with heatmap output and automated plateau detection
-- **[+NEW] Walk-Forward Validation mode** — rolling train/test protocol with regime cross-reference
-- Output formats: YAML + CSV
-
-### Phase 3: Comparison Interface (2-3 days)
-- Full-stack chart with toggleable layers (base spec)
-- Multi-config overlay (base spec)
-- Parameter control panel (base spec)
-- Statistics dashboard (base spec)
-- Lock + provenance **(+walk_forward_validation required field)** [+NEW]
-- **[+NEW] Ground Truth Annotation** — click-to-label on chart markers, label persistence, precision/recall/F1 integration in evaluation output
-
-### Phase 4: External Algo Integration (Ongoing)
-*No changes from base spec.*
-
-### Phase 5: Production Monitoring + Advanced Analytics (Future)
+### Phase 5: Production Monitoring + Advanced Analytics — **[NOT STARTED]**
 - Live data ingestion (base spec)
 - Regime drift detection (base spec)
 - **[+NEW] Signal Decay / Half-Life analysis**
@@ -995,7 +1098,7 @@ Changes from base spec are marked with **[+NEW]**.
 
 ### Revised Total Estimate
 Base spec: 7-10 days for Phases 1-3.
-With addendum: **8-12 days for Phases 1-3.** The additions are analytically significant but build on infrastructure that already exists in the base spec. The stability sweep is an evaluation runner mode. Walk-forward is an evaluation runner mode. Ground truth is a UI feature + a join in the evaluation output. None of them require new architectural components.
+~~With addendum: **8-12 days for Phases 1-3.**~~ **Actual: Phases 1-3.5 complete.** The addendum additions (stability sweep, walk-forward, ground truth) were integrated into the core build. 631 tests validate the implementation.
 
 ---
 
@@ -1017,14 +1120,16 @@ If build time is constrained, items 3 and 4 can ship as CLI-only tools initially
 
 ---
 
-*Addendum A to A8RA_RESEARCH_ACCELERATOR_SPEC.md — 2026-03-08*  
-*Read together with base spec. This document does not supersede the base spec — it extends §3.4, §3.5, §5, and §7.*
+*Addendum A to A8RA_RESEARCH_ACCELERATOR_SPEC.md — 2026-03-08 (updated 2026-03-09)*  
+*Read together with base spec. This document does not supersede the base spec — it extends §3.4, §3.5, §5, and §7. A1 (Ground Truth), A2 (Parameter Stability), and A3 (Walk-Forward) are all BUILT.*
 
 Below is a drop-in Addendum B written in the same spec-style language as your current document so it can sit directly in the canonical repo.
 
 ⸻
 
 ADDENDUM B — FORENSIC CASE RUNNER / EVENT BACKSOLVE MODE
+
+> **STATUS: NOT BUILT — This addendum remains a proposal for future implementation.** No `cases/` directory, no event case files, no case replay engine, no cascade failure diagnostics, no near-miss analysis. Zero code related to this feature exists in the codebase.
 
 document: A8RA_RESEARCH_ACCELERATOR_SPEC
 addendum: B
@@ -1428,6 +1533,8 @@ Below is a spec-style Addendum C that fits directly after Addendum B and aligns 
 ⸻
 
 ADDENDUM C — SEARCH ORCHESTRATOR / PARAMETER DISCOVERY ENGINE
+
+> **STATUS: NOT BUILT — This addendum remains a proposal for future implementation.** No search orchestrator, no multi-objective optimization, no Pareto frontier computation, no source pool exploration, no micro-search. Zero code related to this feature exists in the codebase.
 
 document: A8RA_RESEARCH_ACCELERATOR_SPEC
 addendum: C
