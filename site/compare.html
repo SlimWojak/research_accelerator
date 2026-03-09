@@ -1336,6 +1336,250 @@
     color: var(--faint);
   }
 
+  /* ── Ground Truth Popover ────────────────────────────────────────────── */
+
+  .gt-popover {
+    position: fixed;
+    z-index: 2000;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 180px;
+  }
+
+  .gt-popover-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .gt-popover-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .gt-popover-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  .gt-popover-btn:hover {
+    background: var(--surface2);
+    border-color: var(--btn-color, var(--faint));
+  }
+
+  .gt-popover-btn-active {
+    border-color: var(--btn-color, var(--blue));
+    background: var(--surface2);
+  }
+
+  .gt-popover-icon {
+    font-size: 14px;
+    font-weight: 700;
+    width: 18px;
+    text-align: center;
+  }
+
+  .gt-popover-label {
+    flex: 1;
+  }
+
+  /* ── Lock Panel ────────────────────────────────────────────────────────── */
+
+  .lock-panel-container {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .lock-panel-container.visible {
+    display: flex;
+  }
+
+  .lock-panel-toggle {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 100;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .lock-panel-toggle:hover {
+    color: var(--text);
+    border-color: var(--faint);
+  }
+
+  .lock-panel-toggle.active {
+    color: var(--blue);
+    border-color: var(--blue);
+  }
+
+  .lock-section {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lock-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .lock-empty {
+    font-size: 11px;
+    color: var(--faint);
+    font-style: italic;
+  }
+
+  .lock-params-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lock-param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 0;
+  }
+
+  .lock-param-key {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 55%;
+  }
+
+  .lock-param-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .lock-verdict-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+    background: var(--bg);
+    letter-spacing: 0.03em;
+  }
+
+  .lock-notes-input {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    resize: vertical;
+    outline: none;
+    min-height: 40px;
+    line-height: 1.4;
+  }
+
+  .lock-notes-input:focus {
+    border-color: var(--blue);
+  }
+
+  .lock-notes-input::placeholder {
+    color: var(--faint);
+  }
+
+  .lock-buttons {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .lock-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .lock-btn-primary {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  .lock-btn-primary:hover:not(:disabled) {
+    background: #1a4fd6;
+  }
+
+  .lock-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--faint);
+    border-color: var(--faint);
+    color: var(--muted);
+  }
+
+  .lock-btn-secondary {
+    background: var(--bg);
+    color: var(--muted);
+    border-color: var(--border);
+  }
+
+  .lock-btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--faint);
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -1348,6 +1592,7 @@
     .chart-day-tab { padding: 5px 8px; font-size: 10px; }
     .chart-sidebar { width: 180px; }
     .divergence-panel { width: 220px; }
+    .lock-panel-container { width: 200px; }
   }
 </style>
 </head>
@@ -1438,6 +1683,7 @@
 <script src="js/stats-tab.js"></script>
 <script src="js/heatmap-tab.js"></script>
 <script src="js/walkforward-tab.js"></script>
+<script src="js/ground-truth.js"></script>
 <script>
   // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {

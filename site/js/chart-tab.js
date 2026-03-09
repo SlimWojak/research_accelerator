@@ -691,6 +691,11 @@ async function refreshChart() {
 
   // Update detection count summary
   updateDetectionSummary();
+
+  // Rebuild ground truth rings after markers rebuild
+  if (typeof rebuildGTRings === 'function') {
+    setTimeout(() => rebuildGTRings(), 100);
+  }
 }
 
 /**
@@ -733,7 +738,9 @@ function initChartTab() {
         </div>
         <div class="chart-main-area">
           <div class="chart-container" id="lw-chart-container"></div>
+          <button class="lock-panel-toggle" id="lock-panel-toggle" title="Toggle Lock & Provenance panel">🔒 Lock</button>
         </div>
+        <div class="lock-panel-container" id="lock-panel"></div>
         <div class="divergence-panel" id="divergence-panel"></div>
       </div>
     </div>
@@ -759,5 +766,36 @@ function initChartTab() {
   // Initialize divergence navigator panel
   if (typeof initDivergencePanel === 'function') {
     initDivergencePanel();
+  }
+
+  // Initialize ground truth annotation system
+  if (typeof initGroundTruth === 'function') {
+    initGroundTruth();
+  }
+
+  // Initialize lock panel
+  if (typeof initLockPanel === 'function') {
+    initLockPanel();
+  }
+
+  // Lock panel toggle button
+  const lockToggleBtn = document.getElementById('lock-panel-toggle');
+  const lockPanelEl = document.getElementById('lock-panel');
+  if (lockToggleBtn && lockPanelEl) {
+    lockToggleBtn.addEventListener('click', () => {
+      const isVisible = lockPanelEl.classList.contains('visible');
+      lockPanelEl.classList.toggle('visible', !isVisible);
+      lockToggleBtn.classList.toggle('active', !isVisible);
+      // Resize chart when panel toggles
+      if (app.chart) {
+        requestAnimationFrame(() => app.chart.resize(0, 0));
+        requestAnimationFrame(() => {
+          const container = document.getElementById('lw-chart-container');
+          if (container && app.chart) {
+            app.chart.applyOptions({ autoSize: true });
+          }
+        });
+      }
+    });
   }
 }
