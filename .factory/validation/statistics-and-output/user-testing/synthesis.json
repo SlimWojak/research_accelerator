@@ -1,0 +1,29 @@
+{
+  "milestone": "statistics-and-output",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 51,
+    "passed": 51,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-COMP-001", "VAL-COMP-002", "VAL-COMP-003", "VAL-COMP-004", "VAL-COMP-005",
+    "VAL-COMP-006", "VAL-COMP-007", "VAL-COMP-008", "VAL-COMP-009", "VAL-COMP-010",
+    "VAL-COMP-011", "VAL-COMP-012",
+    "VAL-WF-001", "VAL-WF-002", "VAL-WF-003", "VAL-WF-004", "VAL-WF-005",
+    "VAL-WF-006", "VAL-WF-007", "VAL-WF-008", "VAL-WF-009", "VAL-WF-010", "VAL-WF-011",
+    "VAL-SO-001", "VAL-SO-002", "VAL-SO-003", "VAL-SO-004", "VAL-SO-005",
+    "VAL-SO-006", "VAL-SO-007", "VAL-SO-008", "VAL-SO-009", "VAL-SO-010",
+    "VAL-SO-011", "VAL-SO-012", "VAL-SO-013",
+    "VAL-CLI-001", "VAL-CLI-002", "VAL-CLI-003", "VAL-CLI-004", "VAL-CLI-005",
+    "VAL-CLI-006", "VAL-CLI-007", "VAL-CLI-008",
+    "VAL-XA-001", "VAL-XA-002", "VAL-XA-003", "VAL-XA-004", "VAL-XA-005",
+    "VAL-XA-006", "VAL-XA-007"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null
+}

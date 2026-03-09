@@ -1,0 +1,338 @@
+{
+  "groupId": "structured-output-cli",
+  "testedAt": "2026-03-09T07:15:39Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "none"
+  },
+  "toolsUsed": ["python3 -c inline", "python3 -m pytest", "CLI (eval.py, run.py)"],
+  "assertions": [
+    {
+      "id": "VAL-SO-001",
+      "title": "Evaluation run JSON matches Schema 4A",
+      "status": "pass",
+      "steps": [
+        { "action": "Create sample DetectionResult and call serialize_evaluation_run()", "expected": "Output dict with all Schema 4A fields", "observed": "All 7 required fields present: schema_version, run_id, dataset, configs, timestamp, per_config, pairwise" },
+        { "action": "Verify dataset sub-fields (name, bars_1m, range)", "expected": "All present with correct types", "observed": "dataset.name='test', dataset.bars_1m=7200, dataset.range=['2024-01-08','2024-01-12']" },
+        { "action": "Verify field types", "expected": "run_id=str, configs=list, timestamp=str, per_config=dict, pairwise=dict", "observed": "All types match" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A (pure Python library)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-002",
+      "title": "Per-config result matches Schema 4B",
+      "status": "pass",
+      "steps": [
+        { "action": "Call serialize_per_config_result() with 3-detection sample", "expected": "Schema 4B structure with config_name, params, per_primitive, cascade_funnel", "observed": "All top-level 4B fields present" },
+        { "action": "Check per_primitive.per_tf nested fields", "expected": "detection_count, detections_per_day, by_session, by_direction, detections", "observed": "All 5 nested fields present in displacement/5m" },
+        { "action": "Check detections array item fields", "expected": "id, time, direction, type, price, properties, tags, upstream_refs", "observed": "All 8 detection fields present" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-003",
+      "title": "Pairwise comparison matches Schema 4C",
+      "status": "pass",
+      "steps": [
+        { "action": "Call serialize_pairwise_comparison() with sample data", "expected": "Schema 4C with config_a, config_b, per_primitive, divergence_index", "observed": "All 4 top-level fields present" },
+        { "action": "Check per_primitive nested fields", "expected": "count_a, count_b, agreement_rate, only_in_a, only_in_b, by_session_agreement", "observed": "All 6 fields present in displacement/5m" },
+        { "action": "Check divergence_index entry fields", "expected": "time, primitive, tf, in_a, in_b, detection_id_a, detection_id_b", "observed": "All 7 fields present" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-004",
+      "title": "Grid sweep matches Schema 4D",
+      "status": "pass",
+      "steps": [
+        { "action": "Call serialize_grid_sweep() with 4x3 grid", "expected": "Schema 4D with all fields, grid dimensions matching axes", "observed": "All fields present: schema_version, sweep_id, primitive, metric, axes, grid, current_lock, plateau, cliff_edges" },
+        { "action": "Verify len(grid)==len(axes.x.values) and len(grid[0])==len(axes.y.values)", "expected": "grid=4x3 matching x_values=4, y_values=3", "observed": "Grid 4 rows × 3 cols, matches axes" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-005",
+      "title": "Walk-forward matches Schema 4E",
+      "status": "pass",
+      "steps": [
+        { "action": "Call serialize_walk_forward() with 2-window sample", "expected": "Schema 4E with schema_version, config, primitive, metric, window_config, windows, summary", "observed": "All 7 top-level fields present" },
+        { "action": "Check window fields", "expected": "window_index, train_period, test_period, train_metric, test_metric, delta, delta_pct, regime_tags, passed", "observed": "All 9 window fields present" },
+        { "action": "Check summary fields including verdict", "expected": "windows_total, windows_passed, windows_failed, mean_test_metric, std_test_metric, mean_delta, worst_window, degradation_flag, pass_threshold_pct, verdict", "observed": "All 10 summary fields present, verdict='STABLE'" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-006",
+      "title": "schema_version field in all outputs",
+      "status": "pass",
+      "steps": [
+        { "action": "Check serialize_evaluation_run() output", "expected": "schema_version present, non-empty string", "observed": "schema_version='1.0'" },
+        { "action": "Check serialize_grid_sweep() output", "expected": "schema_version present, non-empty string", "observed": "schema_version='1.0'" },
+        { "action": "Check serialize_walk_forward() output", "expected": "schema_version present, non-empty string", "observed": "schema_version='1.0'" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-007",
+      "title": "Round-trip JSON fidelity",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize evaluation run → write_json → read_json → compare", "expected": "All keys and values preserved", "observed": "Key sets match, schema_version and dataset identical" },
+        { "action": "Serialize grid sweep → write → read → compare", "expected": "Grid and axes preserved", "observed": "grid and axes match exactly" },
+        { "action": "Serialize walk-forward → write → read → compare", "expected": "Windows and summary preserved", "observed": "windows and summary match exactly" },
+        { "action": "Round-trip with numpy types (int64, float64, NaN)", "expected": "int64→42, float64→0.75, NaN→null", "observed": "count=42, rate≈0.75, missing=None" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-008",
+      "title": "by_session percentages sum to 100",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize 6-detection sample across 4 sessions", "expected": "by_session pct values sum to 100.0 ±0.1", "observed": "displacement/5m: sessions=[asia, lokz, nyokz, other], pct_sum=100.0" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-009",
+      "title": "Cascade funnel level ordering",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize cascade with fvg, swing_points, displacement (leaf) + mss, order_block (composite)", "expected": "Leaf types precede composite types in levels array", "observed": "Order: displacement(leaf), fvg(leaf), swing_points(leaf), mss(composite), order_block(composite)" },
+        { "action": "Verify type_indices are non-decreasing", "expected": "No composite before leaf", "observed": "type_indices=[0,0,0,1,1] — monotonically non-decreasing" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-010",
+      "title": "Detection arrays sorted by time",
+      "status": "pass",
+      "steps": [
+        { "action": "Create detections in reverse chronological order (d3, d1, d2)", "expected": "After serialization, detections sorted ascending by time", "observed": "Times: [2024-01-08T09:00, 2024-01-08T15:00, 2024-01-09T08:00] — sorted ascending" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-011",
+      "title": "numpy/pandas type serialization",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize dict with int64, float64, NaN, pd.Timestamp, pd.NaT, np.bool_, np.array", "expected": "Valid JSON without TypeError", "observed": "json.dumps succeeds, json.loads parses correctly" },
+        { "action": "Verify type conversions", "expected": "int64→int, float64→float, NaN→null, Timestamp→ISO, NaT→null, bool_→bool, array→list", "observed": "All conversions correct: 42(int), 3.14(float), None, ISO string, None, True, [1,2,3]" },
+        { "action": "Write/read round-trip with numpy types", "expected": "Values preserved", "observed": "count=42, rate=0.75, missing=None after round-trip" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-012",
+      "title": "by_direction distribution validation",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize 6 detections (4 bullish, 2 bearish)", "expected": "by_direction has bullish/bearish with count+pct, counts sum to detection_count, pct sum to 100", "observed": "bullish:{count:4,pct:66.7}, bearish:{count:2,pct:33.3}, total_count=6=detection_count, pct_sum=100.0" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-013",
+      "title": "1D grid sweep (single-param) format",
+      "status": "pass",
+      "steps": [
+        { "action": "Serialize 1D grid sweep with axes.y={param:'_single', values:[0]}", "expected": "Grid is 1×5 (N×1 wrapped in 2D), valid JSON", "observed": "grid=[[345,345,340,330,300]], 1 row × 5 cols" },
+        { "action": "Test with axes.y=null", "expected": "Degenerate y-axis accepted", "observed": "axes.y=None in output, valid JSON" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-001",
+      "title": "eval.py sweep produces valid output",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py sweep --config configs/locked_baseline.yaml --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv --primitive fvg --x-param floor_threshold_pips --output /tmp/flow_so_cli_test/sweep/", "expected": "Exit code 0, JSON output", "observed": "Exit code 0, sweep_fvg_floor_threshold_pips.json produced" },
+        { "action": "Validate JSON conforms to Schema 4D", "expected": "sweep_id, axes, grid fields present", "observed": "All Schema 4D fields present, sweep_id=sweep_fvg_floor_threshold_pips_20260309_071310, x_values=[0.0,0.5,1.0,1.5,2.0]" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-002",
+      "title": "eval.py compare produces valid output",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py compare --config configs/locked_baseline.yaml --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv --output /tmp/flow_so_cli_test/compare/", "expected": "Exit code 0, JSON output conforming to Schema 4A/4C", "observed": "Exit code 0, evaluation_run.json produced" },
+        { "action": "Validate JSON structure", "expected": "Schema 4A fields: schema_version, run_id, dataset, configs, timestamp, per_config, pairwise", "observed": "All fields present. Single config 'current_locked', 0 pairwise entries (expected for single config)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-003",
+      "title": "eval.py walk-forward with River data",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py walk-forward --config configs/locked_baseline.yaml --river EURUSD --start 2024-01-01 --end 2024-03-31 --train-months 1 --test-months 1 --step-months 1 --output /tmp/flow_so_cli_test/wf_river/", "expected": "Exit code 0, Schema 4E JSON with ≥2 windows", "observed": "Exit code 0, walk_forward_displacement.json with 2 windows" },
+        { "action": "Validate window count and structure", "expected": "≥2 windows, each with train/test periods", "observed": "Window 0: train=Jan, test=Feb (train_metric=25067, test_metric=22192). Window 1: train=Feb, test=Mar (train_metric=22192, test_metric=22021). verdict=STABLE" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-004",
+      "title": "eval.py walk-forward with CSV fallback",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py walk-forward --config configs/locked_baseline.yaml --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv --output /tmp/flow_so_cli_test/wf_csv/", "expected": "Exit code 0, valid Schema 4E JSON", "observed": "Exit code 0, walk_forward_displacement.json produced with Schema 4E fields" },
+        { "action": "Validate Schema 4E structure", "expected": "schema_version, config, primitive, metric, window_config, windows, summary present", "observed": "All fields present. 0 windows (5-day CSV too short for 3-month train window), verdict=STABLE" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-005",
+      "title": "--help for all subcommands",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py --help", "expected": "Lists subcommands, exit 0", "observed": "Exit 0, lists sweep/compare/walk-forward" },
+        { "action": "Run: python3 eval.py sweep --help", "expected": "Shows usage with --config, exit 0", "observed": "Exit 0, shows all options including --config, --primitive, --x-param" },
+        { "action": "Run: python3 eval.py compare --help", "expected": "Shows usage, exit 0", "observed": "Exit 0, shows --config, --output" },
+        { "action": "Run: python3 eval.py walk-forward --help", "expected": "Shows usage, exit 0", "observed": "Exit 0, shows --config, --river, --train-months, etc." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-006",
+      "title": "Missing args produce clear errors",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 eval.py sweep (no args)", "expected": "Exit non-zero, error mentions missing argument", "observed": "Exit 2, stderr: 'error: the following arguments are required: --config, --primitive, --x-param, --output'" },
+        { "action": "Run: python3 eval.py compare (no args)", "expected": "Exit non-zero, error mentions missing argument", "observed": "Exit 2, stderr: 'error: the following arguments are required: --config, --output'" },
+        { "action": "Run: python3 eval.py walk-forward (no args)", "expected": "Exit non-zero, error mentions missing argument", "observed": "Exit 2, stderr: 'error: the following arguments are required: --config, --output'" },
+        { "action": "Run: python3 eval.py (no subcommand)", "expected": "Exit non-zero or shows help", "observed": "Exit 2, shows usage" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-007",
+      "title": "Phase 1 run.py backward compatibility",
+      "status": "pass",
+      "steps": [
+        { "action": "Run: python3 run.py --config configs/locked_baseline.yaml --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv --output /tmp/flow_so_cli_test/phase1/", "expected": "Exit 0, cascade_summary.json + per-primitive JSONs", "observed": "Exit 0, cascade_summary.json produced with 9784 total_detections, 29 JSON files total" },
+        { "action": "Validate output structure matches Phase 1", "expected": "cascade_summary.json has detection_counts + total_detections", "observed": "detection_counts present, total_detections=9784. Per-primitive files: fvg_5m.json, displacement_5m.json, mss_5m.json, order_block_5m.json all present" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CLI-008",
+      "title": "Progress output for long sweeps",
+      "status": "pass",
+      "steps": [
+        { "action": "Run displacement sweep (5 combinations), capture stderr", "expected": "Progress lines in stderr between start and finish", "observed": "Stderr (7735 chars) contains progress pattern: '[displacement sweep] 1/5 (20%)' through '[displacement sweep] 5/5 (100%)'" },
+        { "action": "Verify intermediate lines present", "expected": "Not silent — has x/5 intermediate progress", "observed": "Has 1/5, 2/5, 3/5, 4/5, 5/5 progress lines with percentages" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 21 assertions: 21 passed, 0 failed, 0 blocked. All structured output schemas (4A-4E) validated. All CLI subcommands (sweep, compare, walk-forward, help) work correctly. Phase 1 run.py backward compatibility confirmed (9784 detections). River walk-forward produces 2 windows over Jan-Mar 2024. Existing test suite (49 tests in test_output.py + test_cli_eval.py) passes 100%."
+}

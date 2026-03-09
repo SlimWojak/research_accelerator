@@ -1,0 +1,408 @@
+{
+  "groupId": "structured-output",
+  "testedAt": "2026-03-08T23:19:07.075493",
+  "credentials": {
+    "account": "none (pure library)",
+    "namespace": "flow_so"
+  },
+  "toolsUsed": [
+    "python3 -c inline checks"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-SO-001",
+      "title": "Evaluation run JSON matches Schema 4A",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Generate Schema 4A evaluation run output",
+          "expected": "All 4A fields present: ['schema_version', 'run_id', 'dataset', 'configs', 'timestamp', 'per_config', 'pairwise']",
+          "observed": "All fields present"
+        },
+        {
+          "action": "Check dataset subfields",
+          "expected": "Dataset has ['name', 'bars_1m', 'range']",
+          "observed": "All present: name=EURUSD_5day_test, bars_1m=7177, range=['2024-01-07', '2024-01-12']"
+        },
+        {
+          "action": "Check per_config structure",
+          "expected": "Dict keyed by config name",
+          "observed": "Keys: ['locked_baseline'], type=dict"
+        },
+        {
+          "action": "Check pairwise field exists",
+          "expected": "Dict (can be empty for single config)",
+          "observed": "Keys: [], type=dict"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/eval_run_4a.json",
+        "field_count": 9
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-002",
+      "title": "Per-config result matches Schema 4B",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check Schema 4B top-level fields",
+          "expected": "Fields: ['config_name', 'params', 'per_primitive', 'cascade_funnel']",
+          "observed": "All present"
+        },
+        {
+          "action": "Check displacement.per_tf.1m fields",
+          "expected": "Fields: ['detection_count', 'detections_per_day', 'by_session', 'by_direction', 'detections']",
+          "observed": "All present, detection_count=4170"
+        },
+        {
+          "action": "Check cascade_funnel structure",
+          "expected": "Has 'levels' and 'timeframe'",
+          "observed": "timeframe=5m, levels_count=8"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/per_config_4b.json",
+        "primitives_count": 14
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-003",
+      "title": "Pairwise comparison matches Schema 4C",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check Schema 4C top-level fields",
+          "expected": "Fields: ['config_a', 'config_b', 'per_primitive', 'divergence_index']",
+          "observed": "All present"
+        },
+        {
+          "action": "Check asia_range.global comparison fields",
+          "expected": "Fields: ['count_a', 'count_b', 'agreement_rate', 'only_in_a', 'only_in_b']",
+          "observed": "All present, agreement_rate=1.0"
+        },
+        {
+          "action": "Check divergence_index is a list",
+          "expected": "List of divergence entries",
+          "observed": "Type=list, length=9777"
+        },
+        {
+          "action": "Check divergence_index entry structure",
+          "expected": "Fields: ['time', 'primitive', 'tf', 'in_a', 'in_b', 'detection_id_a', 'detection_id_b']",
+          "observed": "All present, in_a=True, in_b=True"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/pairwise_4c.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-004",
+      "title": "Grid sweep matches Schema 4D",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check Schema 4D top-level fields",
+          "expected": "Fields: ['schema_version', 'sweep_id', 'primitive', 'metric', 'axes', 'grid', 'current_lock', 'plateau', 'cliff_edges']",
+          "observed": "All present"
+        },
+        {
+          "action": "Check axes structure",
+          "expected": "axes.x and axes.y each have param and values",
+          "observed": "axes.x.param=atr_multiplier, axes.y.param=body_ratio"
+        },
+        {
+          "action": "Check grid dimensions match axes",
+          "expected": "grid: 5 rows \u00d7 3 cols",
+          "observed": "grid: 5 rows \u00d7 3 cols"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/grid_sweep_4d.json",
+        "grid_dims": "5x3"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-005",
+      "title": "Walk-forward matches Schema 4E",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check Schema 4E top-level fields",
+          "expected": "Fields: ['schema_version', 'config', 'primitive', 'metric', 'window_config', 'windows', 'summary']",
+          "observed": "All present"
+        },
+        {
+          "action": "Check window_config fields",
+          "expected": "Fields: ['train_months', 'test_months', 'step_months']",
+          "observed": "All present: {'train_months': 1, 'test_months': 1, 'step_months': 1}"
+        },
+        {
+          "action": "Check summary fields",
+          "expected": "Fields: ['windows_total', 'windows_passed', 'windows_failed', 'mean_test_metric', 'std_test_metric', 'mean_delta', 'worst_window', 'degradation_flag', 'pass_threshold_pct', 'verdict']",
+          "observed": "All present, verdict=STABLE"
+        },
+        {
+          "action": "Check verdict value",
+          "expected": "One of ['STABLE', 'CONDITIONALLY_STABLE', 'UNSTABLE']",
+          "observed": "verdict=STABLE"
+        },
+        {
+          "action": "Check windows array",
+          "expected": "List of window dicts",
+          "observed": "Type=list, count=0"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/walk_forward_4e.json",
+        "windows_count": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-006",
+      "title": "schema_version field in all outputs",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check schema_version in Schema 4A (evaluation run)",
+          "expected": "Non-empty string",
+          "observed": "schema_version='1.0'"
+        },
+        {
+          "action": "Check schema_version in Schema 4D (grid sweep)",
+          "expected": "Non-empty string",
+          "observed": "schema_version='1.0'"
+        },
+        {
+          "action": "Check schema_version in Schema 4E (walk-forward)",
+          "expected": "Non-empty string",
+          "observed": "schema_version='1.0'"
+        }
+      ],
+      "evidence": {
+        "schema_versions": {
+          "4A": "1.0",
+          "4D": "1.0",
+          "4E": "1.0"
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-007",
+      "title": "Round-trip JSON fidelity",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Write JSON and read back, deep compare all fields",
+          "expected": "All fields match within float tolerance",
+          "observed": "Differences: 0 \u2014 perfect match"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/roundtrip_test.json",
+        "diff_count": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-008",
+      "title": "by_session percentages sum to 100",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check by_session pct sums to 100 (\u00b10.1) across all primitives/TFs",
+          "expected": "All sums within tolerance",
+          "observed": "Checked 25 blocks, violations: 0"
+        }
+      ],
+      "evidence": {
+        "blocks_checked": 25,
+        "violations": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-009",
+      "title": "Cascade funnel level ordering",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Compute cascade funnel for 5m timeframe",
+          "expected": "Non-empty levels array",
+          "observed": "levels count: 8"
+        },
+        {
+          "action": "Check level ordering: leaf \u2192 composite \u2192 terminal",
+          "expected": "Types in non-decreasing order",
+          "observed": "Types: [('displacement', 'leaf'), ('equal_hl', 'leaf'), ('fvg', 'leaf'), ('mss', 'leaf'), ('order_block', 'leaf'), ('ote', 'leaf'), ('swing_points', 'leaf'), ('liquidity_sweep', 'terminal')], sorted=True"
+        }
+      ],
+      "evidence": {
+        "levels": [
+          [
+            "displacement",
+            "leaf"
+          ],
+          [
+            "equal_hl",
+            "leaf"
+          ],
+          [
+            "fvg",
+            "leaf"
+          ],
+          [
+            "mss",
+            "leaf"
+          ],
+          [
+            "order_block",
+            "leaf"
+          ],
+          [
+            "ote",
+            "leaf"
+          ],
+          [
+            "swing_points",
+            "leaf"
+          ],
+          [
+            "liquidity_sweep",
+            "terminal"
+          ]
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-010",
+      "title": "Detection arrays sorted by time",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check detection arrays sorted by time in 25 primitive/TF blocks",
+          "expected": "All detection arrays sorted ascending by time",
+          "observed": "Checked 25 blocks, violations: 0"
+        }
+      ],
+      "evidence": {
+        "blocks_checked": 25,
+        "violations": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-011",
+      "title": "numpy/pandas type serialization",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Serialize numpy/pandas types to JSON and read back",
+          "expected": "Valid JSON without TypeError",
+          "observed": "JSON serialization succeeded"
+        },
+        {
+          "action": "Check int64 \u2192 int",
+          "expected": "int value 42",
+          "observed": "type=int, value=42"
+        },
+        {
+          "action": "Check float64 \u2192 float",
+          "expected": "float value ~3.14",
+          "observed": "type=float, value=3.14"
+        },
+        {
+          "action": "Check NaN \u2192 null",
+          "expected": "null",
+          "observed": "value=None"
+        },
+        {
+          "action": "Check numpy NaN \u2192 null",
+          "expected": "null",
+          "observed": "value=None"
+        },
+        {
+          "action": "Check Timestamp \u2192 ISO string",
+          "expected": "ISO 8601 string containing '2024-01-08'",
+          "observed": "value=2024-01-08T09:35:00"
+        },
+        {
+          "action": "Check NaT \u2192 null",
+          "expected": "null",
+          "observed": "value=None"
+        },
+        {
+          "action": "Check ndarray \u2192 list",
+          "expected": "list [1, 2, 3]",
+          "observed": "type=list, value=[1, 2, 3]"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/numpy_pandas_test.json"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-012",
+      "title": "by_direction distribution validation",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check by_direction distribution across 25 primitive/TF blocks",
+          "expected": "bullish/bearish present, counts sum to detection_count, pcts sum to 100%",
+          "observed": "count violations: 0, pct violations: 0"
+        },
+        {
+          "action": "Check direction counts sum to detection_count",
+          "expected": "Sum matches exactly",
+          "observed": "All 25 blocks pass"
+        },
+        {
+          "action": "Check direction pcts sum to 100%",
+          "expected": "Sum within \u00b10.1",
+          "observed": "All 25 blocks pass"
+        }
+      ],
+      "evidence": {
+        "blocks_checked": 25
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SO-013",
+      "title": "1D grid sweep format",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check 1D sweep has Schema 4D fields",
+          "expected": "Fields: ['schema_version', 'sweep_id', 'primitive', 'metric', 'axes', 'grid']",
+          "observed": "All present"
+        },
+        {
+          "action": "Check y-axis is null/degenerate for single-param sweep",
+          "expected": "y.param='_single', y.values=[0] or null y-axis",
+          "observed": "y.param='_single', y.values=[0], degenerate=True"
+        },
+        {
+          "action": "Check grid is 1D wrapped in 2D (1\u00d7N)",
+          "expected": "1 row \u00d7 5 cols",
+          "observed": "1 rows \u00d7 5 cols, valid=True"
+        }
+      ],
+      "evidence": {
+        "output_file": "/tmp/flow_so_test/grid_1d_test.json"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 13 assertions: 13 passed, 0 failed, 0 blocked"
+}

@@ -1,0 +1,200 @@
+{
+  "groupId": "walk-forward",
+  "testedAt": "2026-03-09T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "none"
+  },
+  "toolsUsed": ["python3 -c inline checks", "python3 -m pytest"],
+  "assertions": [
+    {
+      "id": "VAL-WF-001",
+      "title": "Window generation correct splits",
+      "status": "pass",
+      "steps": [
+        { "action": "generate_windows('2024-01-01','2024-12-31', train=3, test=1, step=1)", "expected": "9 windows, first train=Jan-Mar test=Apr, second train=Feb-Apr test=May", "observed": "9 windows generated. First: train=2024-01-01..2024-03-31, test=2024-04-01..2024-04-30. Second: train=2024-02-01..2024-04-30, test=2024-05-01..2024-05-31. All windows offset by step_months=1." },
+        { "action": "Verify all window step offsets", "expected": "Each window start 1 month after previous", "observed": "All 9 windows correctly stepped by 1 month. Last window: train=Sep-Nov, test=Dec." },
+        { "action": "Verify no test_end exceeds end_date", "expected": "All test_end <= 2024-12-31", "observed": "Confirmed for all 9 windows." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "39/39 tests pass in test_evaluation_walk_forward.py including TestGenerateWindows"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-002",
+      "title": "Configurable train/test/step sizes respected",
+      "status": "pass",
+      "steps": [
+        { "action": "generate_windows with train=3,test=1,step=1 vs train=6,test=2,step=3", "expected": "Larger config produces fewer windows", "observed": "Config 3/1/1: 9 windows. Config 6/2/3: 2 windows. 2 < 9 confirmed." },
+        { "action": "Verify 6/2/3 first window boundaries", "expected": "train=Jan-Jun, test=Jul-Aug", "observed": "train=2024-01-01..2024-06-30, test=2024-07-01..2024-08-31" },
+        { "action": "Verify 6/2/3 second window step", "expected": "Stepped by 3 months", "observed": "train=2024-04-01..2024-09-30, test=2024-10-01..2024-11-30" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestGenerateWindows::test_different_config_6_2_3 passes"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-003",
+      "title": "Per-window evaluation isolated to date range",
+      "status": "pass",
+      "steps": [
+        { "action": "Run _process_window with train=Jan7-8, test=Jan9-10", "expected": "Valid metrics from train/test periods", "observed": "Window 0: train_metric=1353.0, test_metric=2084.0" },
+        { "action": "Run _process_window with train=Jan8-9, test=Jan10-11", "expected": "Different metrics (different date ranges)", "observed": "Window 1: train_metric=2090.0, test_metric=2062.0" },
+        { "action": "Verify independence", "expected": "Each window runs fresh cascade, no cross-contamination", "observed": "Source code creates new EvaluationRunner per train and test period. Metrics differ between windows confirming isolation." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestWindowIsolation tests pass"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-004",
+      "title": "Delta and delta_pct computed correctly",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify delta = test_metric - train_metric on real data", "expected": "Arithmetic identity holds", "observed": "train=2403.0, test=2820.0, delta=417.0 = 2820.0-2403.0 ✓" },
+        { "action": "Verify delta_pct = (delta/train)*100", "expected": "delta_pct = (417.0/2403.0)*100 = 17.35", "observed": "delta_pct=17.35 matches expected 17.35 ✓" },
+        { "action": "Verify zero-division handling", "expected": "delta_pct is None when train_metric == 0", "observed": "Source code confirms: 'if train_metric == 0: delta_pct = None'. No infinity produced." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestDeltaComputation tests pass"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-005",
+      "title": "Summary statistics correct",
+      "status": "pass",
+      "steps": [
+        { "action": "Compute summary for windows with test_metrics [10, 20, 30]", "expected": "mean=20.0, std=sqrt(66.67)≈8.165", "observed": "mean_test_metric=20.0, std_test_metric=8.164966 — matches manual computation" },
+        { "action": "Verify mean_delta", "expected": "mean_delta = (-2+0+5)/3 = 1.0", "observed": "mean_delta=1.0 ✓" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestSummaryStatistics::test_mean_std_computation passes"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-006",
+      "title": "Worst window identification",
+      "status": "pass",
+      "steps": [
+        { "action": "Build 4 windows with test_metrics [50, 5, 45, 15]", "expected": "worst_window points to window_index=1 (test_metric=5.0)", "observed": "worst_window.window_index=1, worst_window.test_metric=5.0 — correctly identifies min" },
+        { "action": "Verify against manual min()", "expected": "min(test_metrics) = 5.0 at index 1", "observed": "Manual min confirms window_index=1, metric=5.0" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestWorstWindow::test_worst_window_is_min_test_metric passes"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-007",
+      "title": "Per-window passed field, degradation flag, and verdict",
+      "status": "pass",
+      "steps": [
+        { "action": "Scenario 1: All windows pass", "expected": "STABLE, degradation_flag=False", "observed": "verdict=STABLE, degradation_flag=False, 5/0 pass/fail ✓" },
+        { "action": "Scenario 2: Majority pass, some fail", "expected": "CONDITIONALLY_STABLE, degradation_flag=True", "observed": "verdict=CONDITIONALLY_STABLE, degradation_flag=True, 3/1 pass/fail ✓" },
+        { "action": "Scenario 3: Majority fail", "expected": "UNSTABLE, degradation_flag=True", "observed": "verdict=UNSTABLE, degradation_flag=True, 1/3 pass/fail ✓" },
+        { "action": "Equal pass/fail split", "expected": "UNSTABLE (majority must pass)", "observed": "verdict=UNSTABLE for 1/1 split ✓" },
+        { "action": "Verify passed threshold: abs(delta_pct) <= threshold", "expected": "Code uses <= comparison", "observed": "Source confirms: passed = abs(delta_pct) <= threshold" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestVerdictLogic all 4 tests pass"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-008",
+      "title": "No-data window gracefully skipped",
+      "status": "pass",
+      "steps": [
+        { "action": "Process window with empty DataFrame bars", "expected": "Returns None (skipped), no crash", "observed": "_process_window returns None for empty bars ✓" },
+        { "action": "Full run() with data gaps (5-day CSV, windows spanning months with no data)", "expected": "Produces valid output with fewer windows", "observed": "0 windows produced (all skipped due to no data outside January), verdict=STABLE, no crash ✓" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestNoDataWindowSkip::test_empty_bars_window_skipped passes"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-009",
+      "title": "Works with River adapter multi-month data",
+      "status": "pass",
+      "steps": [
+        { "action": "Load EURUSD Jan-Mar 2024 via RiverAdapter.load_bars()", "expected": "93600 1m bars loaded", "observed": "93600 1m bars, 18720 5m bars, 6240 15m bars loaded" },
+        { "action": "Run walk-forward with train=1, test=1, step=1", "expected": "At least 1 window spanning multi-month data", "observed": "2 windows generated: Window 0: train=Jan test=Feb (metric=22192), Window 1: train=Feb test=Mar (metric=22021)" },
+        { "action": "Verify verdict and summary", "expected": "Valid verdict", "observed": "verdict=STABLE, both windows present with valid metrics" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "Inline python3 -c test with real River parquet data"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-010",
+      "title": "Smoke test with 5-day CSV",
+      "status": "pass",
+      "steps": [
+        { "action": "Run _process_window on 5-day CSV (train=Jan7-9, test=Jan10-12)", "expected": "Valid Schema 4E per-window output with all fields", "observed": "All required fields present: window_index, train_period, test_period, train_metric, test_metric, delta, delta_pct, regime_tags, passed. Types correct." },
+        { "action": "Run full run() producing Schema 4E output", "expected": "Valid JSON with config, primitive, metric, window_config, windows, summary", "observed": "All top-level and summary fields present. JSON round-trip successful." },
+        { "action": "Verify JSON serializable", "expected": "json.dumps + json.loads succeeds", "observed": "Round-trip works without errors ✓" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestSmokeTestCSV all 3 tests pass"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WF-011",
+      "title": "regime_tags field present per window",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify regime_slicing.enabled=false in config", "expected": "False", "observed": "config.evaluation.regime_slicing.enabled = False ✓" },
+        { "action": "Check regime_tags on per-window result", "expected": "Empty list (not missing/null)", "observed": "regime_tags = [] (empty list, type=list) ✓" },
+        { "action": "Check summary.worst_window.regime", "expected": "String type (empty or populated)", "observed": "worst_window.regime = '' (empty string, type=str) ✓" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "n/a",
+        "pytest": "TestRegimeTags all 2 tests pass"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 11 assertions: 11 passed, 0 failed. All walk-forward validation contract assertions verified through pytest (39/39 existing tests pass) and targeted inline Python checks. Window generation, delta computation, summary statistics, verdict logic, no-data handling, River adapter integration, CSV smoke test, and regime_tags all confirmed working correctly."
+}

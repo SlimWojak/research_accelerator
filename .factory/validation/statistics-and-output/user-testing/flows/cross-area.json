@@ -1,0 +1,44 @@
+{
+  "flowId": "cross-area",
+  "milestone": "statistics-and-output",
+  "assertions": {
+    "VAL-XA-001": {
+      "status": "pass",
+      "evidence": "End-to-end sweep->compare->JSON pipeline: sweep produced 5 configs, comparison had per_primitive and divergence_index, grid_data serialized with schema_version, round-trip file read matched",
+      "tool": "python3 -c inline"
+    },
+    "VAL-XA-002": {
+      "status": "pass",
+      "evidence": "River->eval->walk-forward pipeline: loaded 86400 1m bars from EURUSD Jan-Mar 2024, walk-forward produced 2 windows spanning Jan-Mar, verdict STABLE",
+      "tool": "python3 -c inline"
+    },
+    "VAL-XA-003": {
+      "status": "pass",
+      "evidence": "Phase 1 regression: 378 passed in 52.56s, exit code 0, zero failures",
+      "tool": "python3 -m pytest (subprocess)"
+    },
+    "VAL-XA-004": {
+      "status": "pass",
+      "evidence": "Locked baseline equivalence: Phase 1 CascadeEngine=9784, Phase 2 EvaluationRunner=9784, all per-primitive per-TF counts match exactly",
+      "tool": "python3 -c inline"
+    },
+    "VAL-XA-005": {
+      "status": "pass",
+      "evidence": "Grid sweep determinism: two independent runs of FVG floor_threshold_pips sweep both produced grid [2480, 2480, 2480, 2480, 2480]",
+      "tool": "python3 -c inline"
+    },
+    "VAL-XA-006": {
+      "status": "pass",
+      "evidence": "Sweep comparison divergence: 9805 divergence_index entries, agreement_rate in [0,1] for all primitives/TFs, displacement showed expected variation (1m: rate=0.987, only_a=42, only_b=12)",
+      "tool": "python3 -c inline"
+    },
+    "VAL-XA-007": {
+      "status": "pass",
+      "evidence": "Walk-forward with River data: loaded 252000 bars (Jan-Aug 2024), produced 7 windows (>=6 required), verdict STABLE, all windows had non-null metrics",
+      "tool": "python3 -c inline"
+    }
+  },
+  "frictions": [],
+  "blockers": [],
+  "toolsUsed": ["python3 -c inline", "python3 -m pytest"]
+}

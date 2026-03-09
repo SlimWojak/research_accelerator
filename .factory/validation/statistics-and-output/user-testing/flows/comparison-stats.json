@@ -1,0 +1,218 @@
+{
+  "groupId": "comparison-stats",
+  "testedAt": "2026-03-09T00:00:00Z",
+  "credentials": {
+    "account": "none",
+    "namespace": "none"
+  },
+  "toolsUsed": ["python3 -c inline checks", "pytest"],
+  "assertions": [
+    {
+      "id": "VAL-COMP-001",
+      "title": "detection_count per primitive per TF",
+      "status": "pass",
+      "steps": [
+        { "action": "Load locked_baseline.yaml and run CascadeEngine on 5-day CSV", "expected": "Detection results for all primitives", "observed": "Results produced for all primitives across 1m/5m/15m" },
+        { "action": "Call compute_stats() on results", "expected": "Stats with detection_count per primitive/TF", "observed": "Stats computed successfully" },
+        { "action": "Load baseline fixtures from tests/fixtures/baseline_output/*.json and compare detection counts", "expected": "All 15 primitive/TF pairs match fixture counts", "observed": "All 15 pairs match: fvg/5m=345, displacement/5m=819, swing_points/5m=267, mss/5m=44, order_block/5m=37, etc." }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A — pure Python library",
+        "testOutput": "15/15 primitive/TF pairs matched. Verified fvg (1m:2017, 5m:345, 15m:118), displacement (1m:4170, 5m:819, 15m:258), swing_points (1m:833, 5m:267, 15m:124), mss (1m:179, 5m:44, 15m:20), order_block (1m:138, 5m:37, 15m:17)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-002",
+      "title": "detections_per_day mean and std",
+      "status": "pass",
+      "steps": [
+        { "action": "Compute stats for FVG 5m (345 detections, 5 forex days)", "expected": "mean=69.0, std computed from per-day counts", "observed": "mean=69.0, std=2.45" },
+        { "action": "Manual computation: per-day counts [72, 71, 68, 65, 69]", "expected": "mean=69.0, population std=2.45", "observed": "Module returns mean=69.0, std=2.45 — exact match" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "FVG 5m: count=345, mean=69.0, std=2.45. Manual: days=5, per_day_counts={'2024-01-08': 72, '2024-01-09': 71, '2024-01-10': 68, '2024-01-11': 65, '2024-01-12': 69}, mean=69.00, std=2.45"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-003",
+      "title": "by_session_distribution count and pct",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify all 28 primitive/TF pairs have {asia, lokz, nyokz, other} sessions", "expected": "4 session categories present", "observed": "All 28 pairs have exactly 4 categories" },
+        { "action": "Verify session counts sum to detection_count for each pair", "expected": "count sum = detection_count", "observed": "All sums match" },
+        { "action": "Verify session percentages sum to 100% (±0.1)", "expected": "pct sum ≈ 100.0", "observed": "All pairs within ±0.1 tolerance" },
+        { "action": "Check displacement/5m session distribution", "expected": "Known distribution", "observed": "asia:181(22.1%), lokz:118(14.4%), nyokz:124(15.1%), other:396(48.4%)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "displacement/5m: asia={count:181, pct:22.1}, lokz={count:118, pct:14.4}, nyokz={count:124, pct:15.1}, other={count:396, pct:48.4}. 28 primitive/TF pairs all pass."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-004",
+      "title": "cascade_rate displacement to MSS",
+      "status": "pass",
+      "steps": [
+        { "action": "Run cascade_funnel on real 5m results", "expected": "MSS conversion rate from displacement = 44/819 ≈ 0.054", "observed": "Rate = 0.0537" },
+        { "action": "Verify rate is between 0 and 1", "expected": "0 ≤ rate ≤ 1", "observed": "0.0537 ∈ [0, 1]" },
+        { "action": "Cross-check: displacement=819, mss=44, 44/819=0.0537", "expected": "Rate matches manual calculation", "observed": "Exact match" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "displacement count: 819, mss count: 44, rate=0.0537"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-005",
+      "title": "cascade_completion full chain tracking",
+      "status": "pass",
+      "steps": [
+        { "action": "Run cascade_completion on real 5m results", "expected": "Chain tracking for composite/terminal primitives", "observed": "Chains computed for liquidity_sweep, mss, order_block, ote" },
+        { "action": "Verify OB chain: total=37, complete_count verified via upstream_refs traversal", "expected": "complete_count matches manual traversal", "observed": "OB: total=37, complete=37, manual=37 — match" },
+        { "action": "Verify total_count = complete_count + incomplete_count for all composites", "expected": "Arithmetic identity holds", "observed": "All composites satisfy identity" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "liquidity_sweep: 39/39 complete; mss: 44/44 complete; order_block: 37/37 complete; ote: 44/44 complete"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-006",
+      "title": "Pairwise agreement_rate",
+      "status": "pass",
+      "steps": [
+        { "action": "Self-comparison: compare locked baseline against itself", "expected": "agreement_rate = 1.0 for all primitive/TF pairs", "observed": "All pairs show agreement_rate = 1.0, only_in_a = 0, only_in_b = 0" },
+        { "action": "Cross-comparison with sweep candidate", "expected": "agreement_rate ∈ [0, 1]", "observed": "All rates within valid range" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "Self-comparison: all agreement_rate = 1.0. Cross-comparison: all rates in [0, 1]."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-007",
+      "title": "Pairwise only_in_A and only_in_B",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare locked baseline vs sweep candidate with different displacement params", "expected": "only_in_a + only_in_b + agreed = total_unique", "observed": "Arithmetic invariant holds for all primitive/TF pairs" },
+        { "action": "Verify agreed from A = count_a - only_a equals agreed from B = count_b - only_b", "expected": "Consistency check passes", "observed": "All pairs consistent" },
+        { "action": "Also verified with synthetic data (unit tests pass)", "expected": "2 agreed, 8 only_a, 1 only_b", "observed": "Arithmetic checks pass in existing unit tests (37 tests pass)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "displacement/5m: count_a=819, count_b=819, only_a=0, only_b=0, agreed=819. Invariant holds for all pairs."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-008",
+      "title": "Divergence index per-detection diff list",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare two synthetic configs with known differences (5 vs 3 detections, 2 shared)", "expected": "divergence_index non-empty with correct structure", "observed": "6 total entries: 2 agreed, 3 only_in_a, 1 only_in_b" },
+        { "action": "Verify each entry has {time, primitive, tf, in_a, in_b, detection_id_a, detection_id_b}", "expected": "All required fields present with correct types", "observed": "Structure validated — in_a/in_b are bools, IDs are strings or null" },
+        { "action": "Verify self-comparison has no divergent entries", "expected": "All entries have in_a=True and in_b=True", "observed": "Confirmed via existing unit test" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "Synthetic test: 6 entries, 4 divergent. only_in_a=3, only_in_b=1, agreed=2. All entries have required keys."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-009",
+      "title": "Cascade funnel multi-level structure",
+      "status": "pass",
+      "steps": [
+        { "action": "Run cascade_funnel on real 5m results", "expected": "Levels array with leaf, composite, terminal primitives in order", "observed": "8 levels: 4 leaf, 3 composite, 1 terminal" },
+        { "action": "Verify level ordering: leaf → composite → terminal", "expected": "Type sequence monotonically ordered", "observed": "Sequence: [leaf, leaf, leaf, leaf, composite, composite, composite, terminal]" },
+        { "action": "Verify each level has name, count, type; composites/terminals have conversion_rates", "expected": "All fields present", "observed": "All levels have required fields. Composites/terminal have conversion_rates dicts." },
+        { "action": "Verify expected primitives present", "expected": "fvg, displacement, swing_points, mss, order_block, liquidity_sweep", "observed": "All present with correct type classifications" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "Levels: displacement(leaf,819), equal_hl(leaf,0), fvg(leaf,345), swing_points(leaf,267), mss(composite,44), order_block(composite,37), ote(composite,44), liquidity_sweep(terminal,39)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-010",
+      "title": "Zero-detection edge case",
+      "status": "pass",
+      "steps": [
+        { "action": "Create empty DetectionResult for equal_hl and compute_stats", "expected": "detection_count=0, detections_per_day=0, std=0, sessions all zero", "observed": "All metrics return 0/0.0 — no NaN/inf" },
+        { "action": "Pairwise compare two empty results", "expected": "agreement_rate=1.0, no crash", "observed": "agreement_rate=1.0, only_in_a=0, only_in_b=0" },
+        { "action": "cascade_funnel with zero detections", "expected": "cascade_rate=0, no division-by-zero", "observed": "mss conversion_rates: from_displacement=0.0, from_fvg=0.0 — no errors" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "equal_hl/5m: detection_count=0, detections_per_day=0.0, std=0.0, all session counts/pcts=0. No NaN/inf anywhere."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-011",
+      "title": "by_session agreement breakdown",
+      "status": "pass",
+      "steps": [
+        { "action": "Compare two synthetic configs with known per-session differences", "expected": "by_session_agreement structure with per-session rates ∈ [0, 1]", "observed": "asia:0.3333, lokz:0.5, nyokz:0.5, other:1.0" },
+        { "action": "Verify rates match manual calculation", "expected": "asia=1/3, lokz=1/2, nyokz=1/2, other=1/1", "observed": "All match within 0.01 tolerance" },
+        { "action": "Self-comparison session agreement", "expected": "All sessions = 1.0", "observed": "Confirmed via existing unit test" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "asia: agreement=0.3333, lokz: agreement=0.5, nyokz: agreement=0.5, other: agreement=1.0"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-COMP-012",
+      "title": "Multi-config pairwise produces all pairs",
+      "status": "pass",
+      "steps": [
+        { "action": "Create 3 configs with unique detections, run compare_multi", "expected": "C(3,2)=3 pairwise entries", "observed": "3 entries produced" },
+        { "action": "Verify pair names", "expected": "(baseline, candidate_1), (baseline, candidate_2), (candidate_1, candidate_2)", "observed": "All 3 expected pairs present with correct config_a/config_b" },
+        { "action": "Verify non-empty divergence_index for each pair", "expected": "Each pair has divergent detections", "observed": "Each pair: 2 divergent entries out of 4 total" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "testOutput": "(baseline, candidate_1): divergent=2; (baseline, candidate_2): divergent=2; (candidate_1, candidate_2): divergent=2"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 12 assertions (VAL-COMP-001 through VAL-COMP-012): all 12 passed. Existing pytest suite (37 tests) also passes. All comparison statistics, pairwise comparison, cascade funnel, cascade completion, zero-detection edge cases, session agreement, and multi-config pairwise functions work correctly."
+}
