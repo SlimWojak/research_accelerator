@@ -2,6 +2,15 @@ commands:
   install: cd /Users/echopeso/research_accelerator && python3 -m pip install -e ".[dev]" --quiet
   test: cd /Users/echopeso/research_accelerator && python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider
   test_phase1_only: cd /Users/echopeso/research_accelerator && python3 -m pytest tests/test_config.py tests/test_data_layer.py tests/test_engine_base.py tests/test_fvg.py tests/test_swing_points.py tests/test_displacement.py tests/test_session_liquidity.py tests/test_asia_range.py tests/test_reference_levels.py tests/test_mss.py tests/test_order_block.py tests/test_htf_liquidity.py tests/test_ote.py tests/test_liquidity_sweep.py tests/test_cascade.py tests/test_regression.py -v --tb=short -x -q --no-header -p no:cacheprovider
+  generate_fixtures: cd /Users/echopeso/research_accelerator && bash site/generate_eval_data.sh
   typecheck: ""
   lint: ""
   build: ""
+
+services:
+  site:
+    start: cd /Users/echopeso/research_accelerator && python3 -m http.server 8100 -d site &
+    stop: lsof -ti :8100 | xargs kill 2>/dev/null || true
+    healthcheck: curl -sf http://localhost:8100/ > /dev/null
+    port: 8100
+    depends_on: []
