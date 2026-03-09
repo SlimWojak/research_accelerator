@@ -155,6 +155,45 @@ Vanilla HTML/CSS/JS — no build system. TradingView Lightweight Charts v4.1.3 a
 
 ---
 
+## Phase 3.5 Validation Mode (`site/validate.html`)
+
+Week-by-week detection browsing on 6 months of real data — validate what the engine finds, label ground truth, lock decisions to disk.
+
+### Quick Start
+
+```bash
+# 1. Generate detection data (runs cascade engine over River data)
+python3 detect.py --config configs/locked_baseline.yaml \
+                  --river EURUSD --start 2024-01-01 --end 2024-06-30 \
+                  --output site/eval/
+
+# 2. Serve the site
+python3 serve.py
+
+# 3. Open http://localhost:8100/validate.html
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Week Picker** | Navigate week-by-week across the 6-month date range. |
+| **Chart with Markers** | TradingView LC candlestick chart with detection markers overlaid per primitive. |
+| **Ground Truth Labeling** | Click markers to label `CORRECT` / `NOISE` / `BORDERLINE` — persisted to disk as JSON. |
+| **Lock Panel** | Record parameter lock decisions with provenance, saved alongside labels. |
+
+### Architecture
+
+Files-first: CLI produces files, HTML renders files, labels are files.
+
+- **`detect.py`** — CLI that drives the cascade engine over River data, writes per-week detection JSON to `site/eval/`.
+- **`serve.py`** — Local HTTP server with POST endpoint for saving ground truth labels to disk.
+- **`validate.html`** — Single-page app that reads detection JSON, renders charts, and sends labels back to `serve.py`.
+
+No database, no build step. Everything is a file on disk — detections, labels, lock decisions.
+
+---
+
 ## Calibration Visual Bible (`site/`)
 
 Interactive threshold calibration tool for visual review of L1.5 parameter tuning on EURUSD data.
@@ -191,11 +230,14 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 │
 ├── run.py                         # CLI entry point for cascade pipeline (Phase 1)
 ├── eval.py                        # CLI entry point for evaluation engine (Phase 2)
+├── detect.py                      # CLI entry point for validation data generation (Phase 3.5)
+├── serve.py                       # HTTP server with label persistence (Phase 3.5)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
-├── site/                          # Static calibration charts + comparison interface
+├── site/                          # Static calibration charts + comparison + validation
 │   ├── index.html                 # Landing page → 6 chart pages
 │   ├── compare.html               # Phase 3 comparison interface
+│   ├── validate.html              # Phase 3.5 validation mode
 │   ├── generate_eval_data.sh      # Generate single-config evaluation fixture
 │   ├── generate_comparison_fixture.py  # Generate 2-config comparison fixture
 │   └── *.html / *.json            # Chart pages + data
