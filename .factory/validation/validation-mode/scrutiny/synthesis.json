@@ -1,0 +1,103 @@
+{
+  "milestone": "validation-mode",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd /Users/echopeso/research_accelerator && python3 -m pytest tests/test_config.py tests/test_data_layer.py tests/test_engine_base.py tests/test_fvg.py tests/test_swing_points.py tests/test_displacement.py tests/test_session_liquidity.py tests/test_asia_range.py tests/test_reference_levels.py tests/test_mss.py tests/test_order_block.py tests/test_htf_liquidity.py tests/test_ote.py tests/test_liquidity_sweep.py tests/test_cascade.py tests/test_regression.py -v --tb=short -x -q --no-header -p no:cacheprovider",
+      "exitCode": 0,
+      "detail": "378 passed in 50.74s"
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "detail": "No typecheck configured in services.yaml"
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "detail": "No lint configured in services.yaml"
+    }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "cli-batch-generator",
+      "count": 6,
+      "highlights": "Unused import (os), unused constant (NY_TZ), dead variables (start_ts/end_ts), unused calendar_days field, silent exception suppression in params snapshot, hardcoded EURUSD pair"
+    },
+    {
+      "featureId": "write-server",
+      "count": 3,
+      "highlights": "Content-Length defaults to 0 edge case, query string in path not handled, suppressed GET request logs"
+    },
+    {
+      "featureId": "validate-page-and-chart",
+      "count": 3,
+      "highlights": "Linear scan O(n*m) in nearest-candle-time lookup, GT CSS in shared validate.html, marker deduplication collapses same-time same-primitive detections"
+    },
+    {
+      "featureId": "ground-truth-disk-labels",
+      "count": 5,
+      "highlights": "Unawaited save call (safe via last-writer-wins), dead resetValidateGT function, unescaped innerHTML for params (low risk), silent save failures, redundant label fetch in validate-app.js"
+    },
+    {
+      "featureId": "index-integration-and-e2e",
+      "count": 0,
+      "highlights": "No code issues found"
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add Python code hygiene rules alongside existing JS rules: remove unused imports, remove dead variables/constants, prefer logging warnings over bare 'except: pass'. Currently the Code Hygiene section only covers JS conventions (underscore prefix, init guards, Plotly.purge).",
+      "evidence": "cli-batch-generator left unused 'import os', unused NY_TZ constant, dead start_ts/end_ts variables, and uses 'except Exception: pass' in site/detect.py. AGENTS.md Code Hygiene section only covers JS patterns.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document the typeof guard pattern for cross-file function calls in vanilla JS architecture. Workers should use `if (typeof fnName === 'function') fnName()` when calling functions defined in other script files to maintain loose coupling. This pattern was discovered and applied consistently by multiple workers but is not documented.",
+      "evidence": "validate-chart.js uses typeof guards at lines 183, 358 for initValidateGT/onVGTWeekChange/rebuildVGTRings. validate-app.js uses same pattern at lines 428, 435, 442. Both workers independently adopted this pattern without explicit guidance.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Note in ra-validation-worker skill: agent-browser click command may time out on nested card/link elements with complex child structures. Workaround: use eval-based JS clicks (e.g., document.querySelector('a.card-link').click()) instead of direct click commands on such elements.",
+      "evidence": "index-integration-and-e2e worker reported click timeouts on card elements with nested divs, required eval-based JS clicks as workaround. Worker's skillFeedback.suggestedChanges confirms this pattern.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "services.yaml generate_validation_data command was correctly registered (cli-batch-generator review)",
+      "reason": "Not an issue — observation confirms correct behavior, no action needed"
+    },
+    {
+      "observation": "validate.html provides DOM scaffolding (CSS + HTML elements) for validate-gt.js feature within the validate-page-and-chart commit",
+      "reason": "This is a reasonable architectural choice for a shared host page. The feature descriptions explicitly state validate.html is the container page and GT is a downstream feature. No documentation change needed."
+    },
+    {
+      "observation": "validate-gt.js is 681 lines, larger than handoff reported (~470 lines)",
+      "reason": "File size is within reasonable bounds for a vanilla JS module handling click-to-label, ring primitives, lock panel, and export. No guideline needed — this is not a recurring pattern requiring action."
+    },
+    {
+      "observation": "toTS() function in validate-app.js adds timezone offset stripping beyond CHART_PATTERNS_REFERENCE.md",
+      "reason": "This is a valid adaptation for Phase 3.5 data format. CHART_PATTERNS_REFERENCE.md is a Phase 3 document specific to Mode 1. Phase 3.5 has its own data formats documented in AGENTS.md Data Format Specifications section."
+    },
+    {
+      "observation": "Transcript skeleton for worker session 7dc34baf has 0 tool calls despite extensive verification",
+      "reason": "Transcript logging gap — not within scope of scrutiny validation. This is a platform concern, not a codebase/guidance issue."
+    }
+  ],
+  "previousRound": null
+}

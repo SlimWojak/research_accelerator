@@ -1,0 +1,63 @@
+{
+  "featureId": "cli-batch-generator",
+  "reviewedAt": "2026-03-09T12:30:00.000Z",
+  "commitId": "8279a00d139a871f6c1c5200bbb8bb225c39886a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "detect.py (479 lines) is a well-structured CLI batch generator that correctly implements all 12 VAL-CLI assertions. It uses argparse for CLI args, loads River parquet data via RiverAdapter, aggregates to 5m/15m via aggregate(), runs EvaluationRunner.run_locked() for detections, strips qualifies from slim format, and writes per-week detection/candle/session/manifest/params files. NumpyEncoder handles numpy types correctly including NaN/Inf→null. Missing data is handled gracefully via try/except and empty DataFrame checks. Session boundary format matches the existing site/session_boundaries.json exactly (forex_day, session, start_time, end_time, label, color, border). Progress output format matches the spec. Only non-blocking issues found: unused imports and dead variables.",
+    "issues": [
+      {
+        "file": "site/detect.py",
+        "line": 16,
+        "severity": "non_blocking",
+        "description": "Unused import: 'import os' is imported but never used. All file operations use pathlib.Path. Should be removed for cleanliness."
+      },
+      {
+        "file": "site/detect.py",
+        "line": 42,
+        "severity": "non_blocking",
+        "description": "Unused variable: NY_TZ = ZoneInfo('America/New_York') is defined at module level but never referenced anywhere in the code."
+      },
+      {
+        "file": "site/detect.py",
+        "line": 253,
+        "severity": "non_blocking",
+        "description": "Dead code: start_ts and end_ts (lines 253-254) are computed from sess_bars['timestamp_ny'] but never used. The actual session boundary times are computed from the session definitions and forex day date. These should be removed."
+      },
+      {
+        "file": "site/detect.py",
+        "line": 138,
+        "severity": "non_blocking",
+        "description": "Unused data: The 'calendar_days' field built by get_forex_weeks() is never consumed by process_week(), which only uses 'start' and 'end'. This means partial-week date ranges (e.g., --start on a Wednesday) still load the full Monday-Friday week. Likely intentional for complete forex week context, but the calendar_days computation is wasted."
+      },
+      {
+        "file": "site/detect.py",
+        "line": 282,
+        "severity": "non_blocking",
+        "description": "Broad exception suppression: build_locked_params_snapshot() uses 'except Exception: pass' when extracting per-primitive params. If a primitive's params fail to extract (e.g., due to a config schema change), this silently drops them from the snapshot with no logging. Consider at minimum logging a warning."
+      },
+      {
+        "file": "site/detect.py",
+        "line": 299,
+        "severity": "non_blocking",
+        "description": "Hardcoded instrument: adapter.load_bars('EURUSD', ...) hardcodes the pair rather than reading it from config.instrument. Acceptable for current single-instrument scope but reduces reusability."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Worker left unused imports (os) and unused module-level variables (NY_TZ) in detect.py. AGENTS.md mentions 'Code Hygiene' conventions for JS (prefix file-private variables with _, init guard pattern) but has no equivalent Python-specific hygiene rules about unused imports or dead code.",
+      "evidence": "site/detect.py:16 — 'import os' never used; site/detect.py:42 — NY_TZ defined but unreferenced. AGENTS.md 'Code Hygiene' section only covers JS conventions."
+    },
+    {
+      "area": "services",
+      "observation": "The generate_validation_data command was correctly added to services.yaml. No gaps here — the worker properly registered the CLI command.",
+      "evidence": "services.yaml contains: generate_validation_data: cd /Users/echopeso/research_accelerator && python3 site/detect.py --start 2025-09-01 --end 2026-02-28 --config configs/locked_baseline.yaml --output site/data/"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. detect.py is a solid 479-line CLI that correctly implements all required functionality: argparse CLI, River data loading, TF aggregation, locked cascade detection, slim JSON serialization (no qualifies), per-week output files (detections, candles, sessions), weeks.json manifest, params/locked.json snapshot, NumpyEncoder, progress display, and graceful missing-data handling. Session boundary format exactly matches the existing site/session_boundaries.json. Verification was thorough: 2-week and single-week runs confirmed detection count accuracy, slim format compliance (avg 324 bytes/det < 600 target), correct candle counts (7200/1440/480), session boundary structure, and file size under 10MB (3.80MB). Six non-blocking issues found: unused os import, unused NY_TZ constant, dead start_ts/end_ts variables, unused calendar_days field, silent exception suppression in params snapshot, and hardcoded EURUSD pair. None affect correctness or user-facing behavior."
+}

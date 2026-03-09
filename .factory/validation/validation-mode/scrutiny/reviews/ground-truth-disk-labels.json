@@ -1,0 +1,57 @@
+{
+  "featureId": "ground-truth-disk-labels",
+  "reviewedAt": "2026-03-09T12:15:00Z",
+  "commitId": "379faa4",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of the disk-backed ground truth labeling system. The code correctly adapts Mode 1's ground-truth.js localStorage pattern to disk persistence via serve.py POST endpoints. All 8 feature requirements are covered: VGTRingPrimitive with 3-class colored rings, click-to-label popover with viewport clamping, POST to /api/labels/{week} with correct label object schema, fetch from /data/labels/{week}.json with 404→empty handling, export via Blob URL, lock panel with nested param rendering, and persistence across refresh and week switching. The code follows project conventions (underscore-prefixed privates, init guard, vanilla JS, design tokens). Integration with validate-chart.js and validate-app.js is clean with proper typeof guards for loose coupling.",
+    "issues": [
+      {
+        "file": "site/js/validate-gt.js",
+        "line": 85,
+        "severity": "non_blocking",
+        "description": "saveVGTLabels() is called without await in setVGTLabel(). If a user labels two detections in rapid succession, two concurrent POSTs could race. However, since the _vgtLabels array is mutated synchronously before each POST and the full array is sent, the last-writer-wins behavior is safe — the server writes atomically. Still, adding await would be slightly more robust."
+      },
+      {
+        "file": "site/js/validate-gt.js",
+        "line": 681,
+        "severity": "non_blocking",
+        "description": "resetValidateGT() is defined but never called from any code path. The chart is created once (guarded by _vChartCreated flag in validate-chart.js) and never recreated, so this function is dead code. Not harmful, but could be removed or wired up if chart recreation is ever needed."
+      },
+      {
+        "file": "site/js/validate-gt.js",
+        "line": 438,
+        "severity": "non_blocking",
+        "description": "In _renderParamRows(), param keys and values from locked.json are inserted into innerHTML without HTML entity escaping. If any param key or value contains <, >, or & characters, it could break the HTML rendering. Since the source is the app's own locked.json (not user input), the risk is very low."
+      },
+      {
+        "file": "site/js/validate-gt.js",
+        "line": 75,
+        "severity": "non_blocking",
+        "description": "Save failures (e.g., server down) are only logged via console.warn with no visual feedback to the user. User might think a label was saved when it wasn't. A toast notification pattern could improve UX but is not required by the feature spec."
+      },
+      {
+        "file": "site/js/validate-app.js",
+        "line": 134,
+        "severity": "non_blocking",
+        "description": "loadWeekData() fetches vApp.labelsData from disk, but validate-gt.js maintains its own _vgtLabels state via loadVGTLabels(). The vApp.labelsData loaded by validate-app.js is never consumed by any code. Minor redundancy — the extra fetch is harmless but wastes one HTTP request per week switch."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The validate-gt.js file is 681 lines (handoff says ~470 lines). The diff adds 957 lines total across 4 files (681 JS + 240 HTML/CSS + 27 app + 9 chart). AGENTS.md doesn't specify a file size guideline, but this is a notable size for a single JS module — worth noting if future features grow similarly.",
+      "evidence": "git show 379faa4 --stat shows validate-gt.js at 681 insertions, handoff says 470 lines."
+    },
+    {
+      "area": "conventions",
+      "observation": "Worker correctly used typeof guards (e.g., `if (typeof initValidateGT === 'function')`) for cross-file function calls, consistent with the loosely-coupled vanilla JS architecture. This pattern is not explicitly documented in AGENTS.md but is a good practice that should be maintained.",
+      "evidence": "site/js/validate-chart.js lines 183, 358; site/js/validate-app.js lines 428, 435, 442"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Feature passes review. The ground-truth disk labeling system is well-implemented, correctly adapting Mode 1's localStorage pattern to disk persistence via serve.py. All 8 feature requirements are fully covered: colored ring primitive, click-to-label popover, POST on label, fetch on load, export, lock panel, refresh persistence, and week-switch persistence. Five non-blocking issues identified: unawaited save call (safe due to last-writer-wins), dead resetValidateGT function, unescaped innerHTML for params, silent save failures, and redundant label fetch in validate-app.js. None are blocking — the feature works correctly as designed."
+}

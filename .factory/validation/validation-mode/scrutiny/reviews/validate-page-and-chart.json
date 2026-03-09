@@ -1,0 +1,45 @@
+{
+  "featureId": "validate-page-and-chart",
+  "reviewedAt": "2026-03-09T12:30:00Z",
+  "commitId": "8ad4045",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of Phase 3.5 validation mode page across 3 files (validate.html, validate-app.js, validate-chart.js) totaling 1,269 lines. All feature requirements met: dark theme with correct BUILDSPEC.md design tokens, week picker from weeks.json manifest, candlestick chart with LC v4.1.3, detection markers via setMarkers() with primitive-based colors, 11 primitive toggles, TF switching (1m/5m/15m default 5m), day navigation tabs from manifest forex_days, VSessionBandsPrimitive (3-class ISeriesPrimitive pattern), detection count summary panel, ResizeObserver for responsive sizing, fitContent after load. Week switching fully clears previous state (explicit null-clearing in onWeekSelect). Code follows all conventions from AGENTS.md: global vApp state object, file-private variables prefixed with _, vanilla JS with no modules/frameworks, CSS custom properties matching spec, Perplexity attribution in head and footer. The toTS() function is enhanced beyond the CHART_PATTERNS_REFERENCE.md reference to strip timezone offsets — this is a valid adaptation since Phase 3.5 detection data includes timezone info that Mode 1 data did not. Defensive integration with validate-gt.js via typeof checks (initValidateGT, onVGTWeekChange, rebuildVGTRings). Verified in agent-browser with zero console errors across all interactions.",
+    "issues": [
+      {
+        "file": "site/js/validate-chart.js",
+        "line": 254,
+        "severity": "non_blocking",
+        "description": "findValidateNearestCandleTime uses linear scan O(n) through all candle times per detection. For 1m data (~7200 candles) with hundreds of detections, this is O(n*m). Binary search would be more efficient, but at practical data sizes (~20ms worst case) this is not a real performance issue."
+      },
+      {
+        "file": "site/validate.html",
+        "line": 306,
+        "severity": "non_blocking",
+        "description": "HTML includes CSS for GT-related UI components (vgt-popover, gt-action-bar, lock-panel) that belong to the validate-gt feature. While acceptable since validate.html is the shared page and these are needed for the GT feature to render, it does blur the boundary of what this feature owns. The CSS is well-scoped and minimal, so no practical issue."
+      },
+      {
+        "file": "site/js/validate-chart.js",
+        "line": 222,
+        "severity": "non_blocking",
+        "description": "Marker deduplication at end of buildValidateMarkers() removes markers at the same time+position+primitive combination. This means multiple detections of the same primitive at the same candle are visually collapsed to one marker. This is a reasonable UI tradeoff to avoid visual clutter, but worth noting for awareness."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The toTS() function in validate-app.js adds timezone offset stripping (regex to remove ±HH:MM suffixes) beyond the canonical toTS() in CHART_PATTERNS_REFERENCE.md. This is justified because Phase 3.5 detection data includes timezone offsets that Mode 1 data did not. AGENTS.md and CHART_PATTERNS_REFERENCE.md should note this variant for future workers building on Phase 3.5 data.",
+      "evidence": "site/js/validate-app.js:66-74 — clean = clean.replace(/[+-]\\d{2}:\\d{2}$/, ''); vs CHART_PATTERNS_REFERENCE.md section F which has no timezone handling"
+    },
+    {
+      "area": "conventions",
+      "observation": "Worker included CSS and HTML structural elements for the validate-gt feature (GT action bar, popover, lock panel) within the validate-page-and-chart commit. This creates an implicit dependency — the validate-gt feature assumes these DOM elements and styles exist. AGENTS.md doesn't document that validate.html is the 'host page' responsible for providing DOM scaffolding for downstream features.",
+      "evidence": "site/validate.html lines 306-400 (GT-specific CSS), lines 445-460 (GT action bar HTML), lines 468-478 (lock panel HTML)"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS — All feature requirements fully implemented. validate.html provides a complete dark-themed validation mode page with week picker, controls bar, chart container, metadata bar, and footer. validate-app.js handles global state, data loading (manifest + candles + detections + sessions + labels), primitive toggles, day tabs, TF switching, and detection count computation. validate-chart.js implements the LC candlestick chart with VSessionBandsPrimitive (3-class pattern), marker building with per-primitive colors, day filtering, nearest-candle-time matching, and ResizeObserver. Week switching fully clears stale state. All AGENTS.md conventions followed. Three non-blocking issues noted (linear scan in nearest-candle lookup, GT CSS in shared page, marker deduplication collapsing). Two shared-state observations for timezone-aware toTS() variant and implicit GT DOM scaffolding dependency."
+}
