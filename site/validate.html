@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a8ra Validation Mode — Detection Browser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface2: #1e222d;
+    --border: #2a2e39;
+    --text: #d1d4dc;
+    --muted: #787b86;
+    --faint: #4a4e59;
+    --teal: #26a69a;
+    --red: #ef5350;
+    --blue: #2962ff;
+    --yellow: #f7c548;
+    --purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────────── */
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    height: 48px;
+    min-height: 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .header-badge {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--blue);
+    background: rgba(41,98,255,0.15);
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .header-spacer { flex: 1; }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-nav a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .header-nav a:hover { color: var(--text); }
+
+  /* ── Week Picker ─────────────────────────────────────────────────────── */
+
+  .week-picker-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .week-picker-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  #week-picker {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+  }
+  #week-picker:focus { border-color: var(--blue); }
+  #week-picker option { background: var(--bg); color: var(--text); }
+
+  /* ── Controls Bar ────────────────────────────────────────────────────── */
+
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .controls-bar .separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ── TF Buttons ──────────────────────────────────────────────────────── */
+
+  .tf-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tf-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tf-btn:hover { color: var(--text); border-color: var(--faint); }
+  .tf-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* ── Day Tabs ────────────────────────────────────────────────────────── */
+
+  .day-tabs {
+    display: flex;
+    gap: 0;
+  }
+
+  .day-tab {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .day-tab:hover { color: var(--text); }
+  .day-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  /* ── Primitive Toggles ───────────────────────────────────────────────── */
+
+  .prim-toggles {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .prim-toggle {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .prim-toggle:hover { color: var(--text); border-color: var(--faint); }
+  .prim-toggle.active { color: #fff; border-color: var(--teal); background: rgba(38,166,154,0.18); }
+
+  .prim-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ── Session Legend ──────────────────────────────────────────────────── */
+
+  .session-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .session-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .session-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ── Main Area ───────────────────────────────────────────────────────── */
+
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Chart Container ─────────────────────────────────────────────────── */
+
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  #chart-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Loading Overlay ─────────────────────────────────────────────────── */
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .loading-overlay.hidden { display: none; }
+
+  /* ── Metadata Bar ────────────────────────────────────────────────────── */
+
+  .metadata-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 4px 20px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-height: 28px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .meta-value {
+    font-family: var(--mono);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Detection Summary ───────────────────────────────────────────────── */
+
+  .detection-summary {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .det-count-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .det-count-label {
+    color: var(--muted);
+  }
+
+  .det-count-value {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────────────── */
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .footer a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .footer a:hover { color: var(--text); }
+
+  /* ── Empty State ─────────────────────────────────────────────────────── */
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .empty-state-icon { font-size: 32px; opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-title">a8ra Validation Mode</span>
+    <span class="header-badge">Detection Browser</span>
+    <div class="week-picker-group">
+      <span class="week-picker-label">Week</span>
+      <select id="week-picker"><option value="">Loading…</option></select>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-nav">
+      <a href="index.html">← Index</a>
+      <a href="compare.html">Calibration</a>
+    </div>
+  </div>
+
+  <!-- Controls Bar -->
+  <div class="controls-bar">
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="separator"></div>
+    <div class="tf-group" id="tf-group"></div>
+    <div class="separator"></div>
+    <div class="prim-toggles" id="prim-toggles"></div>
+    <div class="session-legend" id="session-legend"></div>
+  </div>
+
+  <!-- Main Area -->
+  <div class="main-area">
+    <div class="chart-wrapper">
+      <div id="chart-container">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-state-icon">📊</div>
+          <div>Select a week to begin browsing detections</div>
+        </div>
+      </div>
+      <div class="loading-overlay hidden" id="loading-overlay">Loading chart data…</div>
+    </div>
+  </div>
+
+  <!-- Metadata Bar -->
+  <div class="metadata-bar" id="metadata-bar">
+    <div class="meta-item">
+      <span>Week:</span>
+      <span class="meta-value" id="meta-week">—</span>
+    </div>
+    <div class="meta-item">
+      <span>Range:</span>
+      <span class="meta-value" id="meta-range">—</span>
+    </div>
+    <div class="meta-item">
+      <span>Detections:</span>
+      <span class="meta-value" id="meta-detections">—</span>
+    </div>
+    <div class="detection-summary" id="detection-summary"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+  </div>
+</div>
+
+<script src="js/validate-app.js"></script>
+<script src="js/validate-chart.js"></script>
+</body>
+</html>
