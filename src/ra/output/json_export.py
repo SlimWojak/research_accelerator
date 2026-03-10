@@ -29,6 +29,7 @@ import pandas as pd
 from ra.engine.base import Detection, DetectionResult
 from ra.evaluation.comparison import compute_stats, compare_pairwise
 from ra.evaluation.cascade_stats import cascade_funnel
+from ra.evaluation.scoring import score_labels
 
 logger = logging.getLogger(__name__)
 
@@ -381,6 +382,208 @@ def serialize_walk_forward(
     }
 
 
+def _collect_detection_ids_per_config(
+    results_by_config: dict[str, dict[str, dict[str, DetectionResult]]],
+) -> dict[str, set[str]]:
+    """Collect all detection IDs per config name.
+
+    Returns:
+        Dict mapping config_name -> set of detection IDs.
+    """
+    per_config: dict[str, set[str]] = {}
+    for config_name, results in results_by_config.items():
+        ids: set[str] = set()
+        for prim_name, tf_dict in results.items():
+            for tf, det_result in tf_dict.items():
+                for det in det_result.detections:
+                    ids.add(det.id)
+        per_config[config_name] = ids
+    return per_config
+
+
+def _score_per_config(
+    labels: list[dict[str, str]],
+    detection_ids: set[str],
+    config_name: str,
+) -> dict[str, Any]:
+    """Score labels that match detections in a specific config.
+
+    Returns per-primitive scoring with detection_count and labelled_count.
+    """
+    from collections import defaultdict
+
+    # Filter labels to only those whose detection_id exists in this config
+    matched_labels = [l for l in labels if l["detection_id"] in detection_ids]
+
+    # Group by primitive
+    by_primitive: dict[str, list[dict]] = defaultdict(list)
+    for label in matched_labels:
+        by_primitive[label["primitive"]].append(label)
+
+    # Count detections per primitive in this config (for detection_count)
+    # We need actual detection counts, not just labelled counts
+    # detection_count comes from the results, labelled_count from matched labels
+
+    per_primitive: dict[str, Any] = {}
+    for primitive in sorted(by_primitive.keys()):
+        prim_labels = by_primitive[primitive]
+        correct = sum(1 for l in prim_labels if l["label"] == "CORRECT")
+        noise = sum(1 for l in prim_labels if l["label"] == "NOISE")
+        borderline = sum(1 for l in prim_labels if l["label"] == "BORDERLINE")
+        missed = sum(1 for l in prim_labels if l["label"] == "MISSED")
+
+        from ra.evaluation.scoring import compute_precision, compute_recall, compute_f1
+        precision = compute_precision(correct, noise)
+        recall = compute_recall(correct, missed)
+        f1 = compute_f1(precision, recall)
+
+        per_primitive[primitive] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "labelled_count": len(prim_labels),
+            "correct": correct,
+            "noise": noise,
+            "borderline": borderline,
+        }
+
+    return per_primitive
+
+
+def _compute_detection_counts_per_config(
+    results: dict[str, dict[str, DetectionResult]],
+) -> dict[str, int]:
+    """Compute total detection count per primitive for a config."""
+    counts: dict[str, int] = {}
+    for prim_name, tf_dict in results.items():
+        total = sum(len(dr.detections) for dr in tf_dict.values())
+        counts[prim_name] = total
+    return counts
+
+
+def _compute_scoring_delta(
+    scoring_a: dict[str, Any],
+    scoring_b: dict[str, Any],
+) -> dict[str, Any]:
+    """Compute delta between two per-config scoring dicts.
+
+    Delta = B - A for precision, recall, f1.
+    Returns per_primitive and aggregate deltas.
+    """
+    all_primitives = set(scoring_a.keys()) | set(scoring_b.keys())
+    per_primitive: dict[str, Any] = {}
+
+    for prim in sorted(all_primitives):
+        a = scoring_a.get(prim, {})
+        b = scoring_b.get(prim, {})
+
+        p_a = a.get("precision")
+        p_b = b.get("precision")
+        r_a = a.get("recall")
+        r_b = b.get("recall")
+        f1_a = a.get("f1")
+        f1_b = b.get("f1")
+
+        per_primitive[prim] = {
+            "precision_delta": (p_b - p_a) if (p_a is not None and p_b is not None) else None,
+            "recall_delta": (r_b - r_a) if (r_a is not None and r_b is not None) else None,
+            "f1_delta": (f1_b - f1_a) if (f1_a is not None and f1_b is not None) else None,
+            "detection_count_a": a.get("detection_count", 0),
+            "detection_count_b": b.get("detection_count", 0),
+        }
+
+    return {"per_primitive": per_primitive}
+
+
+def _build_scoring_section(
+    labels: list[dict[str, str]],
+    results_by_config: dict[str, dict[str, dict[str, DetectionResult]]],
+) -> dict[str, Any]:
+    """Build the scoring section for the evaluation run output.
+
+    Computes:
+    - Global scoring from score_labels()
+    - Per-config scoring (labels matched to each config's detections)
+    - Delta between first two configs (if 2+ configs)
+
+    Args:
+        labels: Canonical label list (non-empty).
+        results_by_config: Config results.
+
+    Returns:
+        Scoring dict with per_primitive, aggregate, label_source,
+        per_config, and optionally delta.
+    """
+    # Global scoring
+    global_scores = score_labels(labels)
+
+    # Per-config scoring
+    detection_ids_per_config = _collect_detection_ids_per_config(results_by_config)
+    detection_counts_per_config = {
+        name: _compute_detection_counts_per_config(results)
+        for name, results in results_by_config.items()
+    }
+
+    per_config_scoring: dict[str, dict[str, Any]] = {}
+    config_names = sorted(results_by_config.keys())
+
+    for config_name in config_names:
+        ids = detection_ids_per_config.get(config_name, set())
+        config_scoring = _score_per_config(labels, ids, config_name)
+        counts = detection_counts_per_config.get(config_name, {})
+
+        # Enrich with detection_count from actual results
+        for prim, scores in config_scoring.items():
+            scores["detection_count"] = counts.get(prim, 0)
+
+        per_config_scoring[config_name] = config_scoring
+
+    scoring: dict[str, Any] = {
+        "schema_version": global_scores["schema_version"],
+        "scored_at": global_scores["scored_at"],
+        "label_source": global_scores["label_source"],
+        "per_primitive": global_scores["per_primitive"],
+        "aggregate": global_scores["aggregate"],
+        "per_config": per_config_scoring,
+    }
+
+    # Delta between first two configs
+    if len(config_names) >= 2:
+        name_a = config_names[0]
+        name_b = config_names[1]
+        delta = _compute_scoring_delta(
+            per_config_scoring.get(name_a, {}),
+            per_config_scoring.get(name_b, {}),
+        )
+        # Add aggregate delta
+        agg_a_scores = score_labels(
+            [l for l in labels if l["detection_id"] in detection_ids_per_config.get(name_a, set())]
+        )
+        agg_b_scores = score_labels(
+            [l for l in labels if l["detection_id"] in detection_ids_per_config.get(name_b, set())]
+        )
+        agg_a = agg_a_scores.get("aggregate", {})
+        agg_b = agg_b_scores.get("aggregate", {})
+
+        p_a = agg_a.get("precision")
+        p_b = agg_b.get("precision")
+        r_a = agg_a.get("recall")
+        r_b = agg_b.get("recall")
+        f1_a = agg_a.get("f1")
+        f1_b = agg_b.get("f1")
+
+        delta["aggregate"] = {
+            "precision_delta": (p_b - p_a) if (p_a is not None and p_b is not None) else None,
+            "recall_delta": (r_b - r_a) if (r_a is not None and r_b is not None) else None,
+            "f1_delta": (f1_b - f1_a) if (f1_a is not None and f1_b is not None) else None,
+        }
+        delta["config_a"] = name_a
+        delta["config_b"] = name_b
+        scoring["delta"] = delta
+
+    return scoring
+
+
 def serialize_evaluation_run(
     results_by_config: dict[str, dict[str, dict[str, DetectionResult]]],
     dataset_name: str,
@@ -392,6 +595,7 @@ def serialize_evaluation_run(
     run_id: Optional[str] = None,
     variant_a: Optional[str] = None,
     variant_b: Optional[str] = None,
+    labels: Optional[list[dict[str, str]]] = None,
 ) -> dict[str, Any]:
     """Serialize full evaluation run to Schema 4A.
 
@@ -406,9 +610,13 @@ def serialize_evaluation_run(
         run_id: Optional run ID. Auto-generated if None.
         variant_a: Optional variant name for first config (included in output).
         variant_b: Optional variant name for second config (included in output).
+        labels: Optional list of canonical label dicts for scoring.
+            When provided and non-empty, output includes a 'scoring' section
+            with precision/recall/F1, per-config scoring, and delta.
+            When None or empty, output has no scoring fields.
 
     Returns:
-        Dict conforming to Schema 4A.
+        Dict conforming to Schema 4A, optionally with scoring section.
     """
     config_names = sorted(results_by_config.keys())
 
@@ -478,5 +686,9 @@ def serialize_evaluation_run(
         "grid_sweep": serialize_grid_sweep(grid_sweep) if grid_sweep else None,
         "walk_forward": serialize_walk_forward(walk_forward) if walk_forward else None,
     }
+
+    # Add scoring section when labels are provided and non-empty
+    if labels:
+        output["scoring"] = _build_scoring_section(labels, results_by_config)
 
     return output

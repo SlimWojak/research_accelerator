@@ -419,10 +419,14 @@ def cmd_compare(args) -> int:
     - Two per_config entries (one per variant), each with a 'variant' field
     - Pairwise comparison statistics between variants
     - Divergence index for variant disagreements
+
+    When --labels is provided, the output includes precision/recall/F1 per
+    config alongside detection counts. Without --labels, output is unchanged.
     """
     from ra.evaluation.runner import EvaluationRunner
     from ra.evaluation.comparison import compare_pairwise, compute_stats
     from ra.evaluation.cascade_stats import cascade_funnel
+    from ra.evaluation.label_ingestion import load_all_labels
     from ra.output.json_export import (
         serialize_evaluation_run,
         write_json,
@@ -442,6 +446,22 @@ def cmd_compare(args) -> int:
 
     variant_a = getattr(args, "variant_a", "a8ra_v1")
     variant_b = getattr(args, "variant_b", "a8ra_v1")
+
+    # Load ground truth labels if provided
+    labels_arg = getattr(args, "labels", None)
+    labels = None
+    if labels_arg:
+        labels_path = Path(labels_arg)
+        if labels_path.is_dir():
+            # Directory of validate-mode label files
+            labels = load_all_labels(validate_dir=labels_path)
+            logger.info("Loaded %d labels from directory: %s", len(labels), labels_path)
+        elif labels_path.is_file():
+            # Single file: could be compare-mode export or validate-mode
+            labels = load_all_labels(compare_file=labels_path)
+            logger.info("Loaded %d labels from file: %s", len(labels), labels_path)
+        else:
+            logger.warning("Labels path not found: %s (proceeding without labels)", labels_path)
 
     # Infer date range from bars
     date_range = _infer_date_range(bars_by_tf)
@@ -476,6 +496,7 @@ def cmd_compare(args) -> int:
             dep_graph=dep_graph,
             variant_a=variant_a,
             variant_b=variant_b,
+            labels=labels,
         )
     else:
         # ── Single-variant mode (original behavior) ──────────────────
@@ -492,6 +513,7 @@ def cmd_compare(args) -> int:
             bars_1m_count=bars_1m_count,
             date_range=date_range,
             dep_graph=dep_graph,
+            labels=labels,
         )
 
     out_path = output_dir / "evaluation_run.json"
@@ -663,6 +685,12 @@ def main() -> int:
     compare_parser.add_argument(
         "--variant-b", default="a8ra_v1",
         help="Variant name for config B (default: a8ra_v1)",
+    )
+    compare_parser.add_argument(
+        "--labels", default=None,
+        help="Path to ground truth labels JSON file or labels directory. "
+             "When provided, comparison output includes precision/recall/F1 "
+             "per config alongside detection counts.",
     )
 
     # ─── walk-forward subcommand ──────────────────────────────────────
