@@ -560,6 +560,7 @@ def build_default_registry() -> Registry:
     from ra.detectors.ote import OTEDetector
     from ra.detectors.liquidity_sweep import LiquiditySweepDetector
     from ra.detectors.luxalgo_mss import LuxAlgoMSSDetector
+    from ra.detectors.luxalgo_ob import LuxAlgoOBDetector
 
     detectors = [
         FVGDetector,
@@ -575,6 +576,7 @@ def build_default_registry() -> Registry:
         OTEDetector,
         LiquiditySweepDetector,
         LuxAlgoMSSDetector,
+        LuxAlgoOBDetector,
     ]
 
     for det_cls in detectors:
