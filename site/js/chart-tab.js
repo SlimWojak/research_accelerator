@@ -12,6 +12,17 @@ let _allMarkers = [];       // All built markers (unfiltered) for current day/tf
 let _candleTimeSet = null;  // Current candle time set
 let _candleTimesArr = null; // Current candle times array
 
+/** Reset chart tab state so it re-initializes on next activation. */
+function resetChartTab() {
+  _chartInitialized = false;
+  _sessionPrimitive = null;
+  _allMarkers = [];
+  _candleTimeSet = null;
+  _candleTimesArr = null;
+  app.chart = null;
+  app.candleSeries = null;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Session Bands Primitive (ISeriesPrimitive 3-class pattern)
  * ═══════════════════════════════════════════════════════════════════════════════ */
@@ -272,8 +283,12 @@ function renderConfigToggles(container) {
     const isOn = app.configToggles[name] !== false;
     btn.className = 'toggle-btn config-toggle-btn' + (isOn ? ' active' : '');
     btn.dataset.config = name;
-    btn.title = isOn ? `Hide ${name}` : `Show ${name}`;
-    btn.innerHTML = `<span class="toggle-swatch" style="background:${isOn ? c.base : 'var(--faint)'}"></span><span class="toggle-label">${name}</span>`;
+
+    // Include variant name in label if variant data is available
+    const variant = getConfigVariant(name);
+    const displayName = variant ? `${name} (${variant})` : name;
+    btn.title = isOn ? `Hide ${displayName}` : `Show ${displayName}`;
+    btn.innerHTML = `<span class="toggle-swatch" style="background:${isOn ? c.base : 'var(--faint)'}"></span><span class="toggle-label">${displayName}</span>`;
 
     btn.addEventListener('click', () => {
       app.configToggles[name] = !app.configToggles[name];
@@ -376,12 +391,14 @@ function renderDetectionSummary(container) {
   html += `<span class="summary-meta">${app.tf} · ${dayLabel(app.day)}</span>`;
   html += '</div>';
 
-  // Table header
+  // Table header — include variant name if available
   html += '<table class="detection-summary-table"><thead><tr>';
   html += '<th class="prim-col">Primitive</th>';
   for (let ci = 0; ci < configs.length; ci++) {
     const c = CONFIG_COLORS[Math.min(ci, CONFIG_COLORS.length - 1)];
-    html += `<th class="count-col" style="color:${c.base}">${configs[ci]}</th>`;
+    const variant = getConfigVariant(configs[ci]);
+    const headerLabel = variant ? variant : configs[ci];
+    html += `<th class="count-col" style="color:${c.base}" title="${configs[ci]}">${headerLabel}</th>`;
   }
   html += '</tr></thead><tbody>';
 
@@ -643,6 +660,100 @@ function updateDetectionSummary() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+ * Variant / Fixture Selector Dropdown
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Render the variant/fixture selector in the sidebar.
+ * Shows a dropdown to switch between fixture files (e.g., default vs variant comparison).
+ * Also shows available variant names extracted from the current fixture.
+ */
+function renderVariantSelector(container) {
+  if (!container) return;
+
+  const fixtures = typeof getAvailableFixtures === 'function' ? getAvailableFixtures() : [];
+  const hasMultipleFixtures = fixtures.length > 1;
+  const hasVariants = app.hasVariantData && app.availableVariants.length > 0;
+
+  // Hide section if no variant data and no fixture options
+  if (!hasMultipleFixtures && !hasVariants) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = '';
+
+  let html = '';
+
+  // Fixture selector dropdown (if multiple fixtures available)
+  if (hasMultipleFixtures) {
+    html += '<span class="toggle-group-label">Fixture</span>';
+    html += '<select id="fixture-select" class="variant-select">';
+    for (const f of fixtures) {
+      const selected = f.key === (app.activeVariantFixture || 'default') ? ' selected' : '';
+      html += `<option value="${f.key}"${selected}>${f.label}</option>`;
+    }
+    html += '</select>';
+  }
+
+  // Variant info display
+  if (hasVariants) {
+    html += '<span class="toggle-group-label" style="margin-top:8px">Variants</span>';
+    const configs = app.evalData.configs || [];
+    for (let ci = 0; ci < configs.length; ci++) {
+      const cfgName = configs[ci];
+      const variant = getConfigVariant(cfgName);
+      const c = CONFIG_COLORS[Math.min(ci, CONFIG_COLORS.length - 1)];
+      if (variant) {
+        html += `<div class="variant-info-row">
+          <span class="toggle-swatch" style="background:${c.base}"></span>
+          <span class="variant-info-label">${variant}</span>
+        </div>`;
+      }
+    }
+  }
+
+  container.innerHTML = html;
+
+  // Bind fixture selector change event
+  const fixtureSelect = document.getElementById('fixture-select');
+  if (fixtureSelect) {
+    fixtureSelect.addEventListener('change', async (e) => {
+      const key = e.target.value;
+      await switchFixture(key);
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Config Legend (in controls bar — maps colors to config/variant names)
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Render config/variant color legend in the controls bar.
+ */
+function renderConfigLegend(container) {
+  if (!container || !app.evalData) {
+    if (container) container.innerHTML = '';
+    return;
+  }
+
+  const configs = app.evalData.configs || [];
+  let html = '<div class="config-legend">';
+  for (let ci = 0; ci < configs.length; ci++) {
+    const cfgName = configs[ci];
+    const c = CONFIG_COLORS[Math.min(ci, CONFIG_COLORS.length - 1)];
+    const variant = getConfigVariant(cfgName);
+    const displayName = variant ? variant : cfgName;
+    html += `<span class="config-legend-item">
+      <span class="config-swatch" style="background:${c.base}"></span>
+      <span class="config-legend-name">${displayName}</span>
+    </span>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
  * initChartTab — called by shared.js when Chart tab is activated
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
@@ -662,10 +773,12 @@ function initChartTab() {
       <div class="chart-controls-bar">
         <div class="chart-day-tabs" id="chart-day-tabs"></div>
         <div class="chart-tf-group" id="chart-tf-group"></div>
+        <div id="chart-config-legend"></div>
         <div id="chart-session-legend"></div>
       </div>
       <div class="chart-body">
         <div class="chart-sidebar">
+          <div class="sidebar-section" id="chart-variant-selector"></div>
           <div class="sidebar-section" id="chart-config-toggles"></div>
           <div class="sidebar-section" id="chart-prim-toggles"></div>
           <div class="sidebar-section" id="chart-detection-summary"></div>
@@ -683,8 +796,10 @@ function initChartTab() {
   // Render controls
   renderDayTabs(document.getElementById('chart-day-tabs'));
   renderTFButtons(document.getElementById('chart-tf-group'));
+  renderVariantSelector(document.getElementById('chart-variant-selector'));
   renderConfigToggles(document.getElementById('chart-config-toggles'));
   renderPrimitiveToggles(document.getElementById('chart-prim-toggles'));
+  renderConfigLegend(document.getElementById('chart-config-legend'));
   renderSessionLegend(document.getElementById('chart-session-legend'));
 
   // Create chart

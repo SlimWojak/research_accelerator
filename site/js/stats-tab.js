@@ -7,6 +7,11 @@
 
 let _statsInitialized = false;
 
+/** Reset stats tab state so it re-initializes on next activation. */
+function resetStatsTab() {
+  _statsInitialized = false;
+}
+
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 
 /** Get per_primitive.{prim}.per_tf.{tf} data for a config. Returns {} if missing. */
@@ -137,8 +142,14 @@ function renderStatsContent() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function renderStatsTables(configs, prim, tf, isSingle) {
+  // Build title with variant info if available
+  let statsTitle = 'Detection Statistics';
+  if (app.hasVariantData && app.availableVariants.length > 0) {
+    statsTitle += ` — ${primLabel(prim)}`;
+  }
+
   let html = '<div class="stats-section">';
-  html += '<h3 class="stats-section-title">Detection Statistics</h3>';
+  html += `<h3 class="stats-section-title">${statsTitle}</h3>`;
   html += `<div class="stats-tables-grid${isSingle ? ' single' : ''}">`;
 
   for (let ci = 0; ci < configs.length; ci++) {
@@ -150,10 +161,14 @@ function renderStatsTables(configs, prim, tf, isSingle) {
     const perDay = data.detections_per_day != null ? data.detections_per_day : 0;
     const perDayStd = data.detections_per_day_std != null ? data.detections_per_day_std : 0;
 
+    // Include variant name in config card header
+    const variant = typeof getConfigVariant === 'function' ? getConfigVariant(cfgName) : '';
+    const cardTitle = variant ? `${cfgName} <span style="color:var(--muted);font-weight:400;font-size:11px">(${variant})</span>` : cfgName;
+
     html += `<div class="stats-config-card">
       <div class="stats-config-header" style="border-left: 3px solid ${color.base}">
         <span class="config-swatch" style="background:${color.base}"></span>
-        <span class="stats-config-name">${cfgName}</span>
+        <span class="stats-config-name">${cardTitle}</span>
       </div>
       <table class="stats-kv-table">
         <tr>
@@ -200,16 +215,20 @@ function renderSessionBarChart(configs, prim, tf) {
       return sd ? (sd.pct != null ? sd.pct : 0) : 0;
     });
 
+    // Use variant name in trace label if available
+    const traceVariant = typeof getConfigVariant === 'function' ? getConfigVariant(cfgName) : '';
+    const traceName = traceVariant ? `${cfgName} (${traceVariant})` : cfgName;
+
     traces.push({
       x: sessionLabels,
       y: counts,
-      name: cfgName,
+      name: traceName,
       type: 'bar',
       marker: { color: color.base },
       text: pcts.map(p => fmtPct(p)),
       textposition: 'outside',
       textfont: { size: 10, color: '#d1d4dc' },
-      hovertemplate: '%{x}: %{y} detections (%{text})<extra>' + cfgName + '</extra>',
+      hovertemplate: '%{x}: %{y} detections (%{text})<extra>' + traceName + '</extra>',
     });
   }
 
@@ -258,10 +277,14 @@ function renderDirectionSplit(configs, prim, tf) {
     const bullPct = bull.pct != null ? bull.pct : 0;
     const bearPct = bear.pct != null ? bear.pct : 0;
 
+    // Include variant name in direction split card header
+    const dirVariant = typeof getConfigVariant === 'function' ? getConfigVariant(cfgName) : '';
+    const dirCardTitle = dirVariant ? `${cfgName} <span style="color:var(--muted);font-weight:400;font-size:11px">(${dirVariant})</span>` : cfgName;
+
     html += `<div class="stats-config-card">
       <div class="stats-config-header" style="border-left: 3px solid ${color.base}">
         <span class="config-swatch" style="background:${color.base}"></span>
-        <span class="stats-config-name">${cfgName}</span>
+        <span class="stats-config-name">${dirCardTitle}</span>
       </div>
       <div class="direction-split">
         <div class="direction-bar-wrapper">
@@ -436,11 +459,17 @@ function renderPairwiseStats(prim, tf) {
   const configA = pw.data.config_a || 'Config A';
   const configB = pw.data.config_b || 'Config B';
 
+  // Include variant names in pairwise header if available
+  const varA = pw.data.variant_a || (typeof getConfigVariant === 'function' ? getConfigVariant(configA) : '');
+  const varB = pw.data.variant_b || (typeof getConfigVariant === 'function' ? getConfigVariant(configB) : '');
+  const pairLabelA = varA ? `${configA} (${varA})` : configA;
+  const pairLabelB = varB ? `${configB} (${varB})` : configB;
+
   let html = '<div class="stats-section">';
   html += '<h3 class="stats-section-title">Pairwise Comparison</h3>';
   html += `<div class="stats-config-card" style="max-width: 600px">
     <div class="stats-config-header" style="border-left: 3px solid var(--blue)">
-      <span class="stats-config-name">${configA} vs ${configB}</span>
+      <span class="stats-config-name">${pairLabelA} vs ${pairLabelB}</span>
     </div>
     <table class="stats-kv-table">
       <tr>
@@ -448,11 +477,11 @@ function renderPairwiseStats(prim, tf) {
         <td class="stats-kv-value">${fmtPct(agreementRate * 100)}</td>
       </tr>
       <tr>
-        <td class="stats-kv-label">Only in ${configA}</td>
+        <td class="stats-kv-label">Only in ${pairLabelA}</td>
         <td class="stats-kv-value">${fmtNum(onlyInA)}</td>
       </tr>
       <tr>
-        <td class="stats-kv-label">Only in ${configB}</td>
+        <td class="stats-kv-label">Only in ${pairLabelB}</td>
         <td class="stats-kv-value">${fmtNum(onlyInB)}</td>
       </tr>
     </table>`;

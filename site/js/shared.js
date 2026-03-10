@@ -11,6 +11,12 @@ const app = {
   candlesByDay: {},         // keyed by day key → { 1m: [...], 5m: [...], 15m: [...] }
   sessionBoundaries: null,  // session_boundaries.json
 
+  // Variant state
+  availableVariants: [],    // e.g. ['a8ra_v1', 'luxalgo_v1'] — extracted from fixture data
+  variantByConfig: {},      // config name → variant name (e.g. 'locked_a8ra_v1' → 'a8ra_v1')
+  hasVariantData: false,    // true when fixture includes variant fields
+  activeVariantFixture: null, // name of the active fixture file ('default' or 'variant')
+
   // UI state
   activeTab: 'chart',
   tf: '5m',
@@ -172,6 +178,69 @@ function primLabel(s) {
   return s.replace(/_/g, ' ').split(' ').map(capitalize).join(' ');
 }
 
+/* ── Variant Helpers ────────────────────────────────────────────────────────── */
+
+/**
+ * Extract variant information from loaded eval data.
+ * Populates app.availableVariants, app.variantByConfig, app.hasVariantData.
+ */
+function extractVariantInfo() {
+  app.availableVariants = [];
+  app.variantByConfig = {};
+  app.hasVariantData = false;
+
+  if (!app.evalData || !app.evalData.per_config) return;
+
+  const variants = new Set();
+  for (const [cfgName, cfgData] of Object.entries(app.evalData.per_config)) {
+    const v = cfgData.variant;
+    if (v) {
+      variants.add(v);
+      app.variantByConfig[cfgName] = v;
+      app.hasVariantData = true;
+    }
+  }
+
+  // Also check pairwise for variant info
+  if (app.evalData.pairwise) {
+    for (const pw of Object.values(app.evalData.pairwise)) {
+      if (pw.variant_a) variants.add(pw.variant_a);
+      if (pw.variant_b) variants.add(pw.variant_b);
+    }
+  }
+
+  app.availableVariants = Array.from(variants).sort();
+}
+
+/**
+ * Get the variant name for a config. Returns '' if no variant info.
+ */
+function getConfigVariant(configName) {
+  return app.variantByConfig[configName] || '';
+}
+
+/**
+ * Get display label for a config, including variant name if available.
+ * e.g. "locked_a8ra_v1" with variant "a8ra_v1" → "locked_a8ra_v1 (a8ra_v1)"
+ * or just the config name if no variant info.
+ */
+function configDisplayLabel(configName) {
+  const variant = getConfigVariant(configName);
+  if (variant) return `${configName}`;
+  return configName;
+}
+
+/**
+ * Get variant-qualified primitive label.
+ * e.g. "MSS (luxalgo_v1)" when variant present, or just "MSS" otherwise.
+ */
+function primVariantLabel(primName, configName) {
+  const variant = getConfigVariant(configName);
+  const base = primLabel(primName);
+  if (variant) return `${base} (${variant})`;
+  return base;
+}
+
 /* ── Data Loading ──────────────────────────────────────────────────────────── */
 
 /** Show or hide the loading overlay */
@@ -217,6 +286,15 @@ async function fetchJSON(url) {
 }
 
 /**
+ * Available fixture files for the fixture/variant selector.
+ * Each entry has a url and label. Populated during boot.
+ */
+const FIXTURE_FILES = [
+  { key: 'default',  url: 'eval/evaluation_run.json',         label: 'Default (Phase 3)' },
+  { key: 'variant',  url: 'eval/evaluation_run_variant.json',  label: 'Variant Comparison' },
+];
+
+/**
  * Load Schema 4A evaluation data (the main data file).
  * Returns the parsed object or null.
  */
@@ -232,6 +310,91 @@ async function loadEvalData() {
     return null;
   }
   return data;
+}
+
+/**
+ * Load a specific fixture file by key.
+ * Returns the parsed object or null.
+ */
+async function loadFixtureByKey(fixtureKey) {
+  const fixture = FIXTURE_FILES.find(f => f.key === fixtureKey);
+  if (!fixture) {
+    console.warn('Unknown fixture key:', fixtureKey);
+    return null;
+  }
+  const data = await fetchJSON(fixture.url);
+  if (!data) {
+    console.warn(`Could not load fixture: ${fixture.url}`);
+    return null;
+  }
+  if (!data.schema_version || !data.per_config) {
+    console.warn(`Fixture ${fixture.url} is malformed.`);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Switch to a different fixture file. Reloads all data and re-renders the active tab.
+ */
+async function switchFixture(fixtureKey) {
+  if (fixtureKey === app.activeVariantFixture) return;
+
+  setLoading(true);
+  hideError();
+
+  const data = await loadFixtureByKey(fixtureKey);
+  if (!data) {
+    showError(`Could not load fixture "${fixtureKey}". Keeping current data.`);
+    setLoading(false);
+    return;
+  }
+
+  app.evalData = data;
+  app.activeVariantFixture = fixtureKey;
+  app.selectedConfigs = [...(data.configs || [])];
+
+  // Re-extract variant info
+  extractVariantInfo();
+
+  // Update metadata
+  renderMetadata();
+
+  // Reset chart and stats initialization flags so they rebuild on next visit.
+  // These globals are defined in chart-tab.js / stats-tab.js respectively.
+  if (typeof resetChartTab === 'function') resetChartTab();
+  if (typeof resetStatsTab === 'function') resetStatsTab();
+
+  // Re-render current tab
+  switchTab(app.activeTab);
+
+  setLoading(false);
+}
+
+/**
+ * Probe which fixture files are actually available on disk.
+ * Marks unavailable fixtures so the UI can hide them.
+ */
+async function probeAvailableFixtures() {
+  for (const fixture of FIXTURE_FILES) {
+    if (fixture.key === 'default') {
+      fixture.available = true; // Already loaded
+      continue;
+    }
+    try {
+      const resp = await fetch(fixture.url, { method: 'HEAD' });
+      fixture.available = resp.ok;
+    } catch {
+      fixture.available = false;
+    }
+  }
+}
+
+/**
+ * Get available fixture files for the UI selector.
+ */
+function getAvailableFixtures() {
+  return FIXTURE_FILES.filter(f => f.available !== false);
 }
 
 /**
@@ -316,8 +479,17 @@ async function bootApp() {
       return;
     }
 
+    // Track active fixture
+    app.activeVariantFixture = 'default';
+
     // Set selected configs from evalData
     app.selectedConfigs = [...(evalData.configs || [])];
+
+    // Extract variant info from loaded data
+    extractVariantInfo();
+
+    // Probe which fixture files are actually available (for the fixture selector)
+    await probeAvailableFixtures();
 
     // Pre-load candle data for default day
     await loadCandles(app.day);
@@ -377,6 +549,14 @@ function renderMetadata() {
   const range = dataset.range || [];
   const sv = d.schema_version || '?';
 
+  let variantMeta = '';
+  if (app.hasVariantData && app.availableVariants.length > 0) {
+    variantMeta = `
+      <span class="meta-sep">·</span>
+      <span class="meta-item" title="Variants"><span class="meta-label">Variants</span> ${app.availableVariants.join(', ')}</span>
+    `;
+  }
+
   el.innerHTML = `
     <span class="meta-item" title="Schema version"><span class="meta-label">Schema</span> v${sv}</span>
     <span class="meta-sep">·</span>
@@ -385,5 +565,6 @@ function renderMetadata() {
     <span class="meta-item" title="Dataset"><span class="meta-label">Dataset</span> ${range[0] || '?'} → ${range[1] || '?'}</span>
     <span class="meta-sep">·</span>
     <span class="meta-item" title="Configs"><span class="meta-label">Configs</span> ${(d.configs || []).join(', ')}</span>
+    ${variantMeta}
   `;
 }

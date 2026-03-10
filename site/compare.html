@@ -1590,6 +1590,42 @@
     border-color: var(--faint);
   }
 
+  /* ── Variant Selector ─────────────────────────────────────────────────── */
+
+  .variant-select {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 8px;
+    cursor: pointer;
+    outline: none;
+    margin-top: 4px;
+  }
+
+  .variant-select:focus {
+    border-color: var(--blue);
+  }
+
+  .variant-info-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .variant-info-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {

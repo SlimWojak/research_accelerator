@@ -21,7 +21,7 @@ echo "Output: $EVAL_DIR"
 echo ""
 
 # 1. Compare — produces Schema 4A (evaluation_run.json)
-echo "[1/3] Running eval.py compare ..."
+echo "[1/5] Running eval.py compare ..."
 python3 "$ROOT_DIR/eval.py" compare \
   --config "$CONFIG" \
   --data "$DATA" \
@@ -29,7 +29,7 @@ python3 "$ROOT_DIR/eval.py" compare \
 echo "  ✓ compare done"
 
 # 2. Sweep (1D) — produces Schema 4D (sweep JSON, 1D line, y.param='_single')
-echo "[2/4] Running eval.py sweep 1D (displacement: atr_multiplier only) ..."
+echo "[2/5] Running eval.py sweep 1D (displacement: atr_multiplier only) ..."
 python3 "$ROOT_DIR/eval.py" sweep \
   --config "$CONFIG" \
   --data "$DATA" \
@@ -43,7 +43,7 @@ mv "$EVAL_DIR/sweep_displacement_ltf_atr_multiplier.json" \
 echo "  ✓ 1D sweep done"
 
 # 3. Sweep (2D) — produces Schema 4D (sweep JSON, 2D grid)
-echo "[3/4] Running eval.py sweep 2D (displacement: atr_multiplier × body_ratio) ..."
+echo "[3/5] Running eval.py sweep 2D (displacement: atr_multiplier × body_ratio) ..."
 python3 "$ROOT_DIR/eval.py" sweep \
   --config "$CONFIG" \
   --data "$DATA" \
@@ -54,8 +54,24 @@ python3 "$ROOT_DIR/eval.py" sweep \
   --output "$EVAL_DIR"
 echo "  ✓ 2D sweep done"
 
-# 4. Walk-forward — produces Schema 4E (walk_forward JSON)
-echo "[4/4] Running eval.py walk-forward ..."
+# 4. Variant comparison — produces Schema 4A with variant fields (evaluation_run_variant.json)
+echo "[4/5] Running eval.py compare with variant flags (a8ra_v1 vs luxalgo_v1) ..."
+VARIANT_TMP=$(mktemp -d)
+if python3 "$ROOT_DIR/eval.py" compare \
+  --config "$CONFIG" \
+  --data "$DATA" \
+  --variant-a a8ra_v1 \
+  --variant-b luxalgo_v1 \
+  --output "$VARIANT_TMP" 2>/dev/null; then
+  mv "$VARIANT_TMP/evaluation_run.json" "$EVAL_DIR/evaluation_run_variant.json"
+  echo "  ✓ variant comparison done → evaluation_run_variant.json"
+else
+  echo "  ⚠ Variant comparison skipped (luxalgo detectors may not be available)"
+fi
+rm -rf "$VARIANT_TMP"
+
+# 5. Walk-forward — produces Schema 4E (walk_forward JSON)
+echo "[5/5] Running eval.py walk-forward ..."
 python3 "$ROOT_DIR/eval.py" walk-forward \
   --config "$CONFIG" \
   --data "$DATA" \
