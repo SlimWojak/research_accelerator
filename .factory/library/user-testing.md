@@ -1,5 +1,52 @@
 # User Testing
 
+## Flow Validator Guidance: CLI (Phase 4 Parameter Search)
+
+**Surface:** Terminal commands — search.py CLI, Python modules
+
+**Isolation rules:**
+- CLI tests are stateless — no shared state between subagents.
+- Use /tmp/ for output files (e.g., /tmp/search-test-*).
+- Do NOT modify source code or existing data files.
+- search.py reads from data/ and configs/ — these are read-only.
+- Output goes to results/ or specified --output path.
+
+**Key files:**
+- `search.py` — CLI entry point
+- `configs/locked_baseline.yaml` — Base config
+- `configs/search_space.yaml` — Search space definition
+- `site/data/labels/2025-W43.json` — Ground truth labels (3 labels)
+- `data/eurusd_1m_2024-01-07_to_2024-01-12.csv` — Regression dataset
+- `results/search_results.json` — Pre-existing search results
+- `site/eval/search_winner.json` — Pre-existing winner fixture
+
+**Testing approach:**
+1. Run search.py --help to verify flags
+2. Run search.py with small iteration counts (2-3) for quick validation
+3. Inspect output JSON structure for schema compliance
+4. Use --seed for reproducibility testing
+5. Check provenance fields in output
+6. Test --export-winner with existing search results
+
+## Flow Validator Guidance: agent-browser (Phase 4 Winner Review)
+
+**Surface:** Web UI at http://localhost:8100/compare.html
+
+**Isolation rules:**
+- Read-only web UI, no backend state mutation.
+- Each subagent MUST use a unique browser session ID.
+
+**Testing approach:**
+1. Navigate to http://localhost:8100/compare.html
+2. Check for search_winner.json fixture in fixture switcher
+3. Load winner fixture and verify Stats tab shows improvement metrics
+4. Verify chart shows detection differences between baseline and winner
+5. Take screenshots as evidence
+6. Check browser console for errors
+
+**Fixture details:**
+- `site/eval/search_winner.json` — Schema 4A comparison fixture with search provenance (winner vs baseline)
+
 ## Phase 4 Variant Architecture Testing
 
 ### CLI Testing Surface
