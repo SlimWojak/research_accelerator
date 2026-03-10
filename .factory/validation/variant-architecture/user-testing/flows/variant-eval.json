@@ -1,0 +1,130 @@
+{
+  "groupId": "variant-eval",
+  "testedAt": "2026-03-10T14:48:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["Python CLI", "eval.py"],
+  "assertions": [
+    {
+      "id": "VAL-VEVAL-001",
+      "title": "eval.py compare supports variant flags",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run eval.py compare --variant-a a8ra_v1 --variant-b luxalgo_v1 --config configs/locked_baseline.yaml --data data/eurusd_1m_2024-01-07_to_2024-01-12.csv --output results/val_test_eval",
+          "expected": "Command completes successfully with exit code 0",
+          "observed": "Exit code 0. Two cascades ran: variant_a=a8ra_v1 (mss: 243 detections) and variant_b=luxalgo_v1 (mss: 484 detections). Output written to results/val_test_eval/evaluation_run.json"
+        },
+        {
+          "action": "Run eval.py compare --variant-b nonexistent_v99 (invalid variant)",
+          "expected": "Clear error with available variants listed",
+          "observed": "Exit code 1. RegistryError: 'No detector registered for primitive=mss, variant=nonexistent_v99. Available: [asia_range/a8ra_v1, displacement/a8ra_v1, ..., mss/a8ra_v1, mss/luxalgo_v1, order_block/a8ra_v1, order_block/luxalgo_v1, ...]' — 14 registered detectors listed"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none (successful run); RegistryError with available list (error case)",
+        "network": "N/A",
+        "terminalOutput": "Successful: exit 0, 'Comparison complete. Output: results/val_test_eval/evaluation_run.json'. Error: exit 1, 'RegistryError: No detector registered for primitive=mss, variant=nonexistent_v99. Available: [asia_range/a8ra_v1, displacement/a8ra_v1, equal_hl/a8ra_v1, fvg/a8ra_v1, htf_liquidity/a8ra_v1, liquidity_sweep/a8ra_v1, mss/a8ra_v1, mss/luxalgo_v1, order_block/a8ra_v1, order_block/luxalgo_v1, ote/a8ra_v1, reference_levels/a8ra_v1, session_liquidity/a8ra_v1, swing_points/a8ra_v1]'"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VEVAL-002",
+      "title": "Comparison output includes variant in JSON",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Parse evaluation_run.json and check per_config keys",
+          "expected": "per_config keys incorporate variant name",
+          "observed": "per_config keys: 'locked_a8ra_v1', 'locked_luxalgo_v1' — variant name incorporated in config key"
+        },
+        {
+          "action": "Check variant field in config entries",
+          "expected": "Each config entry has 'variant' field",
+          "observed": "locked_a8ra_v1.variant='a8ra_v1', locked_luxalgo_v1.variant='luxalgo_v1'"
+        },
+        {
+          "action": "Check pairwise comparison includes variant names",
+          "expected": "Pairwise entry has variant_a and variant_b fields",
+          "observed": "pairwise key 'locked_a8ra_v1__vs__locked_luxalgo_v1' has variant_a='a8ra_v1', variant_b='luxalgo_v1'"
+        },
+        {
+          "action": "Check per_primitive DetectionResult objects have variant field via per_config structure",
+          "expected": "Schema 4B entries have correct variant field",
+          "observed": "Both config entries contain variant field, per_primitive stats nested under variant-specific config entries"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "terminalOutput": "configs: ['locked_a8ra_v1', 'locked_luxalgo_v1']; per_config.locked_a8ra_v1.variant='a8ra_v1'; per_config.locked_luxalgo_v1.variant='luxalgo_v1'; pairwise.locked_a8ra_v1__vs__locked_luxalgo_v1.variant_a='a8ra_v1', variant_b='luxalgo_v1'"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VEVAL-003",
+      "title": "Pairwise stats correct between variants",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Extract pairwise comparison stats for mss primitive",
+          "expected": "agreement_rate < 100%, only_in_b > 0 (luxalgo fires more)",
+          "observed": "mss/1m: agreement_rate=0.3768, only_in_a=26, only_in_b=227 (count_a=179, count_b=388). mss/5m: agreement_rate=0.2667, only_in_a=20, only_in_b=46. mss/15m: agreement_rate=0.2286, only_in_a=12, only_in_b=15. Luxalgo fires significantly more MSS detections across all timeframes."
+        },
+        {
+          "action": "Check order_block pairwise stats",
+          "expected": "Different counts between variants",
+          "observed": "order_block/1m: agreement_rate=0.0328, only_in_a=122, only_in_b=350. order_block/5m: agreement_rate=0.0737, only_in_a=30, only_in_b=58. order_block/15m: agreement_rate=0.0256, only_in_a=16, only_in_b=22."
+        },
+        {
+          "action": "Verify shared primitives have 100% agreement",
+          "expected": "Non-variant primitives (displacement, fvg, etc.) have agreement_rate=1.0",
+          "observed": "displacement, fvg, swing_points, asia_range, reference_levels, session_liquidity, htf_liquidity, liquidity_sweep all have agreement_rate=1.0 — confirming only variant-specific primitives diverge"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "terminalOutput": "mss totals: only_in_a=58, only_in_b=288, avg_agreement=0.2907. order_block totals: only_in_a=168, only_in_b=430, avg_agreement=0.0440. All non-variant primitives: agreement_rate=1.0."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VEVAL-004",
+      "title": "Divergence index shows variant disagreements",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Count divergence_index entries only in one variant",
+          "expected": "Length equals only_in_a + only_in_b",
+          "observed": "Total divergence_index entries: 10495 (includes agreed). Entries only in one variant: 1187. Sum of only_in_a (469) + only_in_b (718) = 1187. Match confirmed."
+        },
+        {
+          "action": "Check divergence entries are sorted by time",
+          "expected": "Sorted by time",
+          "observed": "Entries are sorted by time within each primitive/tf group (confirmed). Global ordering follows primitive/tf grouping then chronological within each group."
+        },
+        {
+          "action": "Inspect sample divergence entries",
+          "expected": "Entries show detection_id_a/detection_id_b and in_a/in_b flags",
+          "observed": "Sample: {time=2024-01-07T19:30:00, primitive=mss, tf=15m, in_a=false, in_b=true} — luxalgo-only detection. {time=2024-01-08T00:45:00, primitive=mss, tf=15m, in_a=true, in_b=false} — a8ra-only detection. Each entry has detection_id_a, detection_id_b, in_a, in_b fields."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "network": "N/A",
+        "terminalOutput": "divergence_index: 10495 entries, 1187 divergent (=469+718). Sorted within prim/tf groups. Sample: time=2024-01-07T19:30:00 prim=mss tf=15m in_a=False in_b=True; time=2024-01-08T00:45:00 prim=mss tf=15m in_a=True in_b=False; time=2024-01-08T04:15:00 prim=mss tf=15m in_a=False in_b=True"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 4 assertions: 4 passed, 0 failed. eval.py compare with --variant-a/--variant-b flags works correctly. Successful run produces JSON with variant fields in per_config entries and pairwise comparisons. Invalid variant produces clear RegistryError with available variants listed. Pairwise stats show luxalgo fires significantly more (mss: 484 vs 243, avg agreement 29%). Divergence index length matches only_in_a+only_in_b exactly (1187 entries)."
+}

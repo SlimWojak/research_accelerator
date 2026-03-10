@@ -1,0 +1,156 @@
+{
+  "groupId": "variant-ui",
+  "testedAt": "2026-03-10T14:30:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-VUI-001",
+      "title": "Variant selector dropdown in compare.html",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open compare.html and wait for data to load",
+          "expected": "Page loads with default fixture showing Chart tab",
+          "observed": "Page loaded with default fixture, Chart tab active, sidebar shows FIXTURE dropdown with 'Default (Phase 3)' selected"
+        },
+        {
+          "action": "Inspect sidebar FIXTURE dropdown options",
+          "expected": "Dropdown lists fixture options including variant",
+          "observed": "Dropdown has two options: 'Default (Phase 3)' and 'Variant Comparison'"
+        },
+        {
+          "action": "Select 'Variant Comparison' from fixture dropdown",
+          "expected": "Config panel shows variant dropdown listing a8ra_v1 and luxalgo_v1, styled consistently with dark theme",
+          "observed": "Sidebar now shows: FIXTURE dropdown='Variant Comparison', VARIANTS section with teal swatch 'a8ra_v1' and amber swatch 'luxalgo_v1', CONFIGS showing 'locked_a8ra_v1 (a8ra_v1)' and 'locked_luxalgo_v1 (luxalgo_v1)'. All styled with dark theme (#0a0e17 background, consistent color palette)."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/va_initial.png", "/tmp/va_variant_loaded.png", "/tmp/va_vui004_both_variants.png"],
+        "consoleErrors": "none",
+        "network": "GET /eval/evaluation_run_variant.json -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VUI-002",
+      "title": "Variant switch reloads chart markers",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Start with default fixture loaded, note markers and detection counts",
+          "expected": "Default configs shown (candidate_relaxed, current_locked), detection summary shows single total",
+          "observed": "Default fixture shows 'candidate_relaxed' and 'current_locked' configs, detection summary Total: 252 (single column). Config legend shows 'candidate_relaxed' and 'current_locked'."
+        },
+        {
+          "action": "Switch fixture dropdown to 'Variant Comparison'",
+          "expected": "Detection markers reload, marker positions change visibly, detection count summary updates",
+          "observed": "Chart reloads with new data. Sidebar now shows two-column detection summary: a8ra_v1 (Total: 261) vs luxalgo_v1 (Total: 272). MSS counts differ (13 vs 17), Order Block counts differ (10 vs 17). Config legend now shows 'a8ra_v1' and 'luxalgo_v1'. Markers on chart visibly changed with teal/amber color coding."
+        },
+        {
+          "action": "Switch back to 'Default (Phase 3)' fixture",
+          "expected": "Original markers and counts restored",
+          "observed": "Original configs restored: 'candidate_relaxed' and 'current_locked' with Total: 252. Chart markers reverted to original positions and colors."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/va_vui002_before.png", "/tmp/va_vui002_after.png", "/tmp/va_vui002_restored.png"],
+        "consoleErrors": "none",
+        "network": "GET /eval/evaluation_run.json -> 200, GET /eval/evaluation_run_variant.json -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VUI-003",
+      "title": "Stats dashboard shows variant names",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load variant fixture and switch to Stats tab",
+          "expected": "Stats tab headers include variant name",
+          "observed": "Stats tab shows 'Detection Statistics — Displacement' header. Two side-by-side config cards: 'locked_a8ra_v1 (a8ra_v1)' (teal) and 'locked_luxalgo_v1 (luxalgo_v1)' (amber). Session Distribution chart legend shows both variant-qualified names."
+        },
+        {
+          "action": "Select MSS primitive in Stats",
+          "expected": "MSS stats show different values for each variant",
+          "observed": "MSS Detection Statistics shows locked_a8ra_v1 (a8ra_v1): 44 detections, 8.8±3.1/day vs locked_luxalgo_v1 (luxalgo_v1): 73 detections, 14.6±3.1/day. Direction Split and Session Distribution charts both show side-by-side variant comparison."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/va_vui003_stats.png", "/tmp/va_vui003_stats_mss.png"],
+        "consoleErrors": "none",
+        "network": "N/A (data already loaded)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-VUI-004",
+      "title": "Both variants visible simultaneously",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Load variant fixture and view Chart tab",
+          "expected": "Teal markers for a8ra_v1 and amber markers for luxalgo_v1 visible at the same time, legend maps colors to variants",
+          "observed": "Chart shows both teal (a8ra_v1) and amber/yellow (luxalgo_v1) detection markers simultaneously overlaid on the candlestick chart. Top controls bar legend shows: teal square 'a8ra_v1', amber square 'luxalgo_v1'. Sidebar VARIANTS section also lists both with matching color swatches. Detection summary table has two columns (a8ra_v1, luxalgo_v1) showing per-primitive counts."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/va_vui004_both_variants.png"],
+        "consoleErrors": "none",
+        "network": "N/A (data already loaded)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Full variant comparison end-to-end",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open compare.html fresh",
+          "expected": "Page loads with default fixture",
+          "observed": "Page loaded with default fixture, Chart tab active, configs: candidate_relaxed, current_locked"
+        },
+        {
+          "action": "Select 'Variant Comparison' from fixture dropdown",
+          "expected": "Chart shows different markers with variant colors",
+          "observed": "Variant fixture loaded. Chart shows teal (a8ra_v1) and amber (luxalgo_v1) markers. Sidebar shows VARIANTS section, CONFIGS with variant names in parentheses, detection summary with two variant columns."
+        },
+        {
+          "action": "Switch to Stats tab",
+          "expected": "Stats tab shows variant names in headers",
+          "observed": "Stats tab shows 'locked_a8ra_v1 (a8ra_v1)' and 'locked_luxalgo_v1 (luxalgo_v1)' in card headers. Side-by-side comparison charts and tables present."
+        },
+        {
+          "action": "Switch back to Chart tab and select 'Default (Phase 3)' fixture",
+          "expected": "Original markers restored",
+          "observed": "Default fixture restored. Configs reverted to 'candidate_relaxed' and 'current_locked'. Variant section disappeared from sidebar. Detection summary reverted to original counts (Total: 252)."
+        },
+        {
+          "action": "Check console errors throughout entire flow",
+          "expected": "No console errors",
+          "observed": "No console errors reported at any point during the flow"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["/tmp/va_cross001_step1_open.png", "/tmp/va_cross001_step2_variant.png", "/tmp/va_cross001_step3_stats.png", "/tmp/va_cross001_step4_restored.png"],
+        "consoleErrors": "none",
+        "network": "GET /compare.html -> 200, GET /eval/evaluation_run.json -> 200, GET /eval/evaluation_run_variant.json -> 200"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The fixture dropdown uses value='variant' internally but the ref-based select command failed due to ambiguous element matching (3 comboboxes on page). Had to use JavaScript eval to change the dropdown value and dispatch change event.",
+      "resolved": true,
+      "resolution": "Used agent-browser eval to directly set select element value and dispatch change event via document.getElementById('fixture-select')",
+      "affectedAssertions": ["VAL-VUI-001", "VAL-VUI-002", "VAL-CROSS-001"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 5 assertions: 5 passed, 0 failed. All variant UI features work correctly — fixture switcher loads variant data, sidebar shows variant names with color-coded swatches, chart displays both teal (a8ra_v1) and amber (luxalgo_v1) markers simultaneously, Stats tab shows variant-qualified headers with different detection statistics, and round-trip fixture switching restores original state cleanly. No console errors encountered."
+}

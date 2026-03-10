@@ -1,0 +1,111 @@
+{
+  "groupId": "luxalgo-mss",
+  "testedAt": "2026-03-10T00:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A (read-only CLI testing)"
+  },
+  "toolsUsed": ["Python CLI"],
+  "assertions": [
+    {
+      "id": "VAL-LMSS-001",
+      "title": "Detects BOS and CHoCH correctly",
+      "status": "pass",
+      "steps": [
+        { "action": "Run LuxAlgoMSSDetector on 5m regression dataset", "expected": "Detections with break_type field", "observed": "73 detections produced on 5m data" },
+        { "action": "Count BOS and CHoCH classifications", "expected": "At least one of each type", "observed": "BOS=37, CHoCH=36 — both present" },
+        { "action": "Verify break_type values are BOS or CHoCH", "expected": "All detections classified as BOS or CHoCH", "observed": "All 73 detections correctly classified" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "5m: total=73, BOS=37, CHoCH=36. Sample: mss_5m_2024-01-07T18:00:00_bear (BOS), mss_5m_2024-01-07T19:25:00_bull (CHoCH)"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LMSS-002",
+      "title": "No displacement gate — fires on close beyond swing only",
+      "status": "pass",
+      "steps": [
+        { "action": "Run LuxAlgoMSSDetector and a8ra MSSDetector on same 5m data", "expected": "LuxAlgo fires on breaks without displacement", "observed": "LuxAlgo: 73 detections, a8ra: 44 detections" },
+        { "action": "Compute detections unique to LuxAlgo (fired where a8ra did not)", "expected": "LuxAlgo-only detections exist", "observed": "46 detections only in LuxAlgo, confirming no displacement gate" },
+        { "action": "Verify pytest test_fires_without_displacement passes", "expected": "Test passes", "observed": "Test passed — LuxAlgo fires on tiny candles without displacement-grade movement" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "5m: LuxAlgo=73, a8ra=44. LuxAlgo-only detections=46. Sample: mss_5m_2024-01-07T18:00:00_bear, mss_5m_2024-01-07T19:25:00_bull, mss_5m_2024-01-07T22:35:00_bear"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LMSS-003",
+      "title": "Fires more structure breaks than a8ra on same data",
+      "status": "pass",
+      "steps": [
+        { "action": "Run both detectors on 1m, 5m, 15m regression data", "expected": "LuxAlgo > a8ra on all timeframes", "observed": "1m: 388 vs 179, 5m: 73 vs 44, 15m: 23 vs 20 — strictly more on all TFs" },
+        { "action": "Verify pytest test_more_detections_on_regression_data passes", "expected": "Test passes", "observed": "Test passed" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "TF     LuxAlgo    a8ra       LuxAlgo > a8ra\n1m     388        179        True\n5m     73         44         True\n15m    23         20         True"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LMSS-004",
+      "title": "Two structure levels — internal and swing",
+      "status": "pass",
+      "steps": [
+        { "action": "Run LuxAlgoMSSDetector on 5m data with internal_length=5, swing_length=50", "expected": "Both 'internal' and 'swing' structure_level values present", "observed": "internal=64, swing=9 on 5m data" },
+        { "action": "Verify non-zero counts for both levels", "expected": "Both > 0", "observed": "internal=64>0, swing=9>0" },
+        { "action": "Check 1m data as well", "expected": "Both levels present", "observed": "1m: internal=341, swing=47" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "5m: internal=64, swing=9. 1m: internal=341, swing=47. Swing-level samples: mss_5m_2024-01-08T08:35:00_bull, mss_5m_2024-01-08T21:20:00_bull, mss_5m_2024-01-09T00:40:00_bear"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LMSS-005",
+      "title": "Trend state tracks correctly",
+      "status": "pass",
+      "steps": [
+        { "action": "Run detector on 5m data and sort detections by time", "expected": "CHoCH flips trend, BOS keeps trend", "observed": "All 73 detections show correct trend transitions" },
+        { "action": "Verify CHoCH always flips trend_state from previous detection", "expected": "Every CHoCH flips", "observed": "All 36 CHoCH detections flip trend state" },
+        { "action": "Verify BOS maintains trend_state matching direction", "expected": "Every BOS trend_state == direction", "observed": "All 37 BOS detections have matching trend_state and direction" },
+        { "action": "Find bullish→BOS→CHoCH→BOS pattern per contract", "expected": "Pattern exists with states bullish→bullish→bearish→bearish", "observed": "Found at indices 9,10,11: BOS bullish→CHoCH bearish(FLIPPED)→BOS bearish(kept)" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "Pattern: [9] BOS bullish trend=bullish -> [10] CHoCH bearish trend=bearish (FLIP) -> [11] BOS bearish trend=bearish (kept). Zero trend state errors across 73 detections."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LMSS-006",
+      "title": "Valid Detection objects with correct schema",
+      "status": "pass",
+      "steps": [
+        { "action": "Validate DetectionResult has variant='luxalgo_v1' and primitive='mss'", "expected": "Correct variant and primitive", "observed": "All results: variant=luxalgo_v1, primitive=mss" },
+        { "action": "Validate every Detection.id matches {primitive}_{tf}_{timestamp}_{direction} format", "expected": "All IDs match pattern mss_{tf}_YYYY-MM-DDTHH:MM:SS_(bull|bear)", "observed": "All 461 detections (388 on 1m + 73 on 5m) match the required ID format" },
+        { "action": "Validate direction is bullish/bearish, properties contain break_type and structure_level", "expected": "All required fields present with valid values", "observed": "All detections pass: direction in {bullish,bearish}, break_type in {BOS,CHoCH}, structure_level in {internal,swing}" },
+        { "action": "Run existing pytest test suite (18 tests)", "expected": "All tests pass", "observed": "18 passed in 0.51s" }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "1m: Validated 388 detections, variant=luxalgo_v1. 5m: Validated 73 detections, variant=luxalgo_v1. All detections have valid schema. pytest: 18 passed."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions: all 6 passed. LuxAlgoMSSDetector correctly classifies BOS/CHoCH (VAL-LMSS-001), fires without displacement gate producing 46 unique detections on 5m that a8ra misses (VAL-LMSS-002), produces strictly more detections than a8ra on all 3 timeframes (VAL-LMSS-003), operates at both internal and swing structure levels (VAL-LMSS-004), tracks trend state correctly with CHoCH flipping and BOS keeping (VAL-LMSS-005), and all Detection objects follow the required schema (VAL-LMSS-006). Existing pytest suite (18 tests) passes cleanly."
+}

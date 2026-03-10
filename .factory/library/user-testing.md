@@ -1,5 +1,66 @@
 # User Testing
 
+## Phase 4 Variant Architecture Testing
+
+### CLI Testing Surface
+
+All variant engine, detector, and eval assertions can be tested via Python CLI. No authentication, no browser needed.
+
+**Key files:**
+- `src/ra/detectors/luxalgo_mss.py` — LuxAlgo MSS detector
+- `src/ra/detectors/luxalgo_ob.py` — LuxAlgo OB detector
+- `src/ra/engine/cascade.py` — CascadeEngine with variant_by_primitive support
+- `src/ra/engine/registry.py` — Registry with multi-variant support
+- `eval.py` — CLI with compare --variant-a/--variant-b flags
+- `configs/locked_baseline.yaml` — Base config
+- `data/eurusd_1m_2024-01-07_to_2024-01-12.csv` — Regression dataset
+
+**No isolation concerns:** CLI tests are read-only and stateless. Multiple subagents can run in parallel.
+
+### Browser Testing Surface
+
+Variant UI assertions test compare.html on http://localhost:8100/compare.html
+
+**Fixture for variant testing:** `site/eval/evaluation_run_variant.json` — contains a8ra_v1 and luxalgo_v1 comparison data.
+
+**How to load variant fixture:** compare.html has a fixture switcher. Navigate to compare.html, use the fixture dropdown/switcher to select the variant comparison fixture.
+
+## Flow Validator Guidance: CLI (Phase 4 Variant Architecture)
+
+**Surface:** Terminal commands — Python scripts and eval.py CLI
+
+**Isolation rules:**
+- CLI tests are read-only. No shared state.
+- Use `--output` to write to temporary directories if needed.
+- Do NOT modify source code or existing data files.
+
+**Testing approach:**
+1. Import modules directly in Python
+2. Run eval.py commands via shell
+3. Inspect output programmatically
+4. Report results in the flow JSON file
+
+## Flow Validator Guidance: agent-browser (Phase 4 Variant UI)
+
+**Surface:** Web UI at http://localhost:8100/compare.html
+
+**Isolation rules:**
+- Read-only web UI, no backend state mutation.
+- Each subagent MUST use a unique browser session ID.
+- No localStorage writes needed for variant testing.
+
+**Testing approach:**
+1. Navigate to http://localhost:8100/compare.html
+2. The page loads with default fixture. To test variant features, need to load variant fixture.
+3. Look for fixture switcher dropdown to select evaluation_run_variant.json
+4. Check variant dropdown in config panel
+5. Switch variants and observe marker changes
+6. Check Stats tab for variant names in headers
+7. Take screenshots as evidence
+8. Check browser console for errors
+
+---
+
 ## Phase 3.5 Validation Interface
 
 **Primary URL:** http://localhost:8200/validate.html

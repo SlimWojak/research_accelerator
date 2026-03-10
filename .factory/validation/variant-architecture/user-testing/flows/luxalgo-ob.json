@@ -1,0 +1,149 @@
+{
+  "groupId": "luxalgo-ob",
+  "testedAt": "2026-03-10T00:00:00Z",
+  "credentials": {
+    "account": "N/A",
+    "namespace": "N/A (read-only CLI testing)"
+  },
+  "toolsUsed": ["python3 CLI"],
+  "assertions": [
+    {
+      "id": "VAL-LOB-001",
+      "title": "Creates OB zones on structure break events",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run LuxAlgo MSS then LuxAlgo OB on 5m regression data",
+          "expected": "OB count <= MSS count, every OB upstream_refs[0] matches an MSS detection ID",
+          "observed": "MSS count=73, OB count=73. OB<=MSS: True. All 73 upstream_refs match MSS IDs."
+        },
+        {
+          "action": "Run LuxAlgo MSS then LuxAlgo OB on 1m regression data",
+          "expected": "OB count <= MSS count, all upstream_refs valid",
+          "observed": "MSS count=388, OB count=388. OB<=MSS: True. All upstream_refs match MSS IDs."
+        },
+        {
+          "action": "Run pytest tests/test_luxalgo_ob.py",
+          "expected": "All 29 tests pass",
+          "observed": "29 passed in 0.61s"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "MSS detection count (5m): 73, OB detection count (5m): 73, OB count <= MSS count: True, All upstream_refs match MSS IDs: True. Sample: ob_5m_2024-01-07T17:55:00_bear -> mss_5m_2024-01-07T18:00:00_bear. 1m: MSS=388, OB=388, all refs valid."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LOB-002",
+      "title": "Extreme candle anchor with ATR filter",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run OB with default ATR filter (multiplier=2.0) on 5m data, inspect anchor selection",
+          "expected": "Anchor is the most extreme candle in structure interval, candle range < ATR * multiplier",
+          "observed": "73 OBs created. For bearish OBs, anchor has highest high in interval (e.g., 1.094525==1.094525). For bullish OBs, anchor has lowest low. Candle range < ATR*2.0 confirmed for all anchors with valid ATR."
+        },
+        {
+          "action": "Run OB with strict ATR filter (multiplier=0.1) to test rejection",
+          "expected": "Fewer OBs created when filter is stricter",
+          "observed": "Strict filter (0.1): 3 OBs. Normal filter (2.0): 73 OBs. Reduction of 70 OBs confirms ATR filter actively rejects candles."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "OB count with normal ATR filter (multiplier=2.0): 73. Sample: ob_5m_2024-01-07T18:40:00_bull anchor_bar_index=20, candle_range=0.000265, ATR=0.000175, <ATR*2.0: True. bearish OB: highest high in interval = anchor high. OB count with strict ATR filter (multiplier=0.1): 3. Reduction: 70 fewer OBs."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LOB-003",
+      "title": "Zone uses full candle range (wick-to-wick)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Compare zone_high/zone_low to anchor candle high/low for all 73 OBs",
+          "expected": "zone_high == anchor high, zone_low == anchor low (wick-to-wick, not body-only)",
+          "observed": "All 73 OBs have zone_high == anchor candle high and zone_low == anchor candle low. 73/73 zones are wider than body-only range."
+        },
+        {
+          "action": "Compare zone dimensions to a8ra body-only concept",
+          "expected": "LuxAlgo zones include wicks, a8ra uses body only",
+          "observed": "Example: ob_5m_2024-01-07T17:55:00_bear zone=[1.094445,1.094525] (range=0.000080) vs body=[1.094445,1.094485] (range=0.000040). Zone is wider because it includes wicks."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "All LuxAlgo OB zones use wick-to-wick: True. Zones wider than body: 73/73. Example: zone=[1.093495,1.093760] range=0.000265, body=[1.093560,1.093745] range=0.000185. a8ra OB uses zone_body (body-only), LuxAlgo uses zone_high/zone_low (wick-to-wick)."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LOB-004",
+      "title": "Mitigation and invalidation lifecycle",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check state distribution across all 73 OBs on 5m data",
+          "expected": "States are ACTIVE, MITIGATED, or INVALIDATED. Both MITIGATED and INVALIDATED states present.",
+          "observed": "State distribution: INVALIDATED=64, MITIGATED=9. All states are valid (no ACTIVE on 5-day data with full forward scan)."
+        },
+        {
+          "action": "Verify mitigation is triggered by price touch",
+          "expected": "Bullish OB: low touches zone_high. Bearish OB: high touches zone_low.",
+          "observed": "Example MITIGATED: ob_5m_2024-01-10T01:55:00_bull, bar 684 low=1.092475 <= zone_high=1.092575."
+        },
+        {
+          "action": "Verify invalidation is triggered by close through opposite side",
+          "expected": "Bullish OB: close < zone_low. Bearish OB: close > zone_high.",
+          "observed": "Example INVALIDATED: ob_5m_2024-01-07T17:55:00_bear, bar 27 close=1.094575 > zone_high=1.094525."
+        },
+        {
+          "action": "Verify invalidated OBs cannot be subsequently mitigated",
+          "expected": "For INVALIDATED OBs, mitigation_bar_index <= invalidation_bar_index",
+          "observed": "No mitigation-after-invalidation violations found across all 64 INVALIDATED OBs."
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "State distribution: {INVALIDATED: 64, MITIGATED: 9}. MITIGATED example: ob_5m_2024-01-10T01:55:00_bull anchor=683 mitigation=684 low=1.092475<=zone_high=1.092575. INVALIDATED example: ob_5m_2024-01-07T17:55:00_bear anchor=11 mitigation=12 invalidation=27 close=1.094575>zone_high=1.094525. No mitigation-after-invalidation violations: True."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-LOB-005",
+      "title": "Valid Detection objects",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Verify DetectionResult has correct type, primitive, variant fields",
+          "expected": "DetectionResult with primitive='order_block', variant='luxalgo_v1'",
+          "observed": "DetectionResult type confirmed. primitive=order_block, variant=luxalgo_v1, timeframe=5m."
+        },
+        {
+          "action": "Validate all 73 Detection objects have required fields",
+          "expected": "Each detection has zone_high, zone_low, state, anchor_bar_index. IDs follow ob_{tf}_{timestamp}_{direction} format.",
+          "observed": "All 73 detections validated: correct ID format (ob_5m_*_bull/bear), direction in (bullish/bearish), type=order_block, all required properties present, zone_high>zone_low, valid states, upstream_refs point to mss_* IDs."
+        },
+        {
+          "action": "Run full pytest suite for test_luxalgo_ob.py",
+          "expected": "All tests pass including schema validation tests",
+          "observed": "29 passed in 0.61s"
+        }
+      ],
+      "evidence": {
+        "screenshots": [],
+        "consoleErrors": "none",
+        "terminalOutput": "DetectionResult: primitive=order_block, variant=luxalgo_v1, timeframe=5m. 73 detections all valid: IDs follow ob_{tf}_{timestamp}_{direction}, all have zone_high/zone_low/state/anchor_bar_index, zone_high>zone_low, states in (ACTIVE/MITIGATED/INVALIDATED), upstream_refs point to mss_* IDs. 29 pytest tests passed."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 5 assertions: 5 passed, 0 failed. All LuxAlgo OB detector behaviors confirmed via Python CLI on the 5-day regression dataset. 29 unit tests also pass. OB zones correctly created from upstream MSS events (VAL-LOB-001), anchor selection uses extreme candle with ATR filter (VAL-LOB-002), zones use wick-to-wick range (VAL-LOB-003), lifecycle transitions work correctly with no post-invalidation mitigation (VAL-LOB-004), and all Detection objects conform to required schema with variant=luxalgo_v1 (VAL-LOB-005)."
+}
