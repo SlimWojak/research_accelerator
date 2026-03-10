@@ -1,0 +1,73 @@
+{
+  "featureId": "variant-cascade-integration",
+  "reviewedAt": "2026-03-10T14:30:00.000Z",
+  "commitId": "f3a69a9422a8ea1f86ca695111979d0c82248903",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "verdict": "pass",
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of variant cascade integration. 23 well-structured integration tests covering all required VAL assertions (VENG-002/003/004, VEVAL-001/002/003/004, CROSS-005). eval.py cmd_compare correctly branches for two-variant mode, running separate cascades and producing JSON with variant fields. json_export.py properly threads variant_a/variant_b through per_config entries and pairwise comparisons. All 378 Phase 1 tests + 96 variant tests + 39 output tests pass with zero regressions. End-to-end eval.py compare with --variant-a/--variant-b produces correct JSON with agreement_rate < 100% and divergence index entries.",
+    "issues": [
+      {
+        "file": "eval.py",
+        "line": 460,
+        "severity": "non_blocking",
+        "description": "Variant-b cascade hardcodes only mss+order_block as variant_b primitives (lines 460-461: vbp_b['mss'] = variant_b, vbp_b['order_block'] = variant_b). CLI --variant-b help text says 'Variant name for config B' without clarifying that only MSS and OB use it. If a user expects --variant-b to apply to ALL primitives, they'd be surprised. This matches the feature spec ('mss=luxalgo_v1, order_block=luxalgo_v1, all others=a8ra_v1') but the help text should document this behavior."
+      },
+      {
+        "file": "src/ra/output/json_export.py",
+        "line": 428,
+        "severity": "non_blocking",
+        "description": "variant_map uses substring matching ('if variant_a in cname') to associate config names with variants. Config names are 'locked_a8ra_v1' and 'locked_luxalgo_v1' so this works, but if variant names were substrings of each other (e.g., 'v1' and 'v1_ext'), the first match would win incorrectly. Low risk since config names are constructed from f'locked_{variant}' in the same function, but fragile coupling."
+      },
+      {
+        "file": "src/ra/output/json_export.py",
+        "line": 441,
+        "severity": "non_blocking",
+        "description": "Dead code branch: 'elif variant_a and not variant_b' is unreachable because the only call site in eval.py always passes both variant_a and variant_b together, or neither. Harmless but adds confusion."
+      },
+      {
+        "file": "tests/test_variant_integration.py",
+        "line": 370,
+        "severity": "non_blocking",
+        "description": "Weak assertion in test_eval_compare_output_has_variant_field: checks 'variant in config_data or variant in config_data.get(\"params\", {})'. The fallback to checking params dict is overly permissive — per the feature spec, variant should be a top-level field in config entries. The actual implementation does add it at the top level, so this doesn't mask a bug, but the assertion could be tighter."
+      }
+    ]
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "severity": "non_blocking",
+      "description": "eval.py --variant-b help text doesn't clarify only MSS and OB use the variant_b override; other primitives always use variant_a."
+    },
+    {
+      "severity": "non_blocking",
+      "description": "json_export.py variant_map uses fragile substring matching for config-name-to-variant association."
+    },
+    {
+      "severity": "non_blocking",
+      "description": "json_export.py has unreachable 'elif variant_a and not variant_b' branch (dead code)."
+    },
+    {
+      "severity": "non_blocking",
+      "description": "test_eval_compare_output_has_variant_field has overly permissive assertion that checks params dict fallback."
+    }
+  ],
+  "sharedStateObservations": [
+    {
+      "target": "services.yaml",
+      "area": "services",
+      "observation": "The test_new command in services.yaml is missing test_variant_engine_infra.py — the 73 tests from the variant-engine-infra feature are only covered by the full test suite, not the quick Phase 4 test command. This was introduced by the prior feature (variant-engine-infra), not this one, but remains a gap.",
+      "evidence": "services.yaml test_new lists: test_luxalgo_mss.py, test_luxalgo_ob.py, test_variant_integration.py but NOT test_variant_engine_infra.py. Running `rg test_variant_engine_infra .factory/services.yaml` returns no matches."
+    },
+    {
+      "target": "library/output_schemas.md",
+      "area": "conventions",
+      "observation": "output_schemas.md (Schema 4A/4B/4C) does not document the new 'variant' field added to per_config entries and pairwise comparisons. Phase 3 or future workers consuming comparison JSON may not know about the variant field.",
+      "evidence": "Schema 4B in output_schemas.md shows config_name, params, per_primitive, cascade_funnel — no variant field. The implementation adds config_entry['variant'] at json_export.py:439."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. Feature variant-cascade-integration is well-implemented with comprehensive 23-test integration suite covering all 8 required VAL assertions. The mixed-variant cascade (luxalgo mss+ob, a8ra everything else) works correctly, eval.py compare produces variant-aware JSON output, and zero regressions were introduced. Four non-blocking issues identified: (1) CLI help text doesn't clarify variant-b only applies to MSS+OB, (2) fragile substring matching for variant map, (3) dead code branch, (4) slightly weak test assertion. Two shared state observations: test_variant_engine_infra.py missing from services.yaml test_new, and output schema docs don't reflect the new variant field."
+}

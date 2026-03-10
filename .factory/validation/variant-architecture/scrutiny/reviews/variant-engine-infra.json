@@ -1,0 +1,49 @@
+{
+  "featureId": "variant-engine-infra",
+  "reviewedAt": "2026-03-10T14:30:00.000Z",
+  "commitId": "f0c3d99",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "verdict": "pass",
+  "codeReview": {
+    "summary": "Solid, well-structured implementation of per-primitive variant selection across all four layers: CascadeEngine, config schema, eval.py CLI, and EvaluationRunner. The code is clean, properly documented, defensive (stores copies of variant dicts), and has comprehensive test coverage with 26 tests covering acceptance, default behavior regression, error handling, config loading, CLI flags, and runner forwarding. All feature requirements (VAL-VENG-001, VAL-VENG-005, VAL-VENG-006) are met.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/runner.py",
+        "line": 162,
+        "severity": "non_blocking",
+        "description": "In _build_engine(), `vbp = variant_by_primitive or self._variant_by_primitive` uses Python's falsy evaluation. If an explicit empty dict `{}` is passed to _build_engine(variant_by_primitive={}), it's falsy and falls through to self._variant_by_primitive instead of clearing the overrides. Consider using `vbp = variant_by_primitive if variant_by_primitive is not None else self._variant_by_primitive` for precise None-vs-empty semantics. Unlikely to be hit in practice, but a subtle correctness gap."
+      },
+      {
+        "file": "src/ra/evaluation/runner.py",
+        "line": 137,
+        "severity": "non_blocking",
+        "description": "Same falsy pattern in __init__: `dict(variant_by_primitive) if variant_by_primitive else None` means passing `variant_by_primitive={}` stores None. This is consistent with CascadeEngine (which stores {} for both None and {}), but the Runner and Engine handle empty dicts differently (Runner→None, Engine→{}). Consider using `is not None` checks for consistency."
+      }
+    ]
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "severity": "non_blocking",
+      "description": "Empty dict falsy evaluation in runner.py _build_engine() and __init__: passing variant_by_primitive={} is treated as None/falsy rather than 'explicitly no overrides'. Use `is not None` checks for precise semantics."
+    }
+  ],
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "target": "skills",
+      "observation": "Worker noted in skillFeedback that the ra-engine-worker skill is oriented toward detector implementation with TDD against baseline fixtures. For infrastructure features (like variant-engine-infra) where the implementation already exists and the task is primarily test enhancement and verification, the skill could include guidance for verification-focused work patterns.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The ra-engine-worker skill is oriented toward implementing new detectors with baseline fixtures. For infrastructure features like variant-engine-infra where the implementation is already done, the skill could include guidance for verification-focused work.'"
+    },
+    {
+      "area": "conventions",
+      "target": "conventions",
+      "observation": "The variant_by_primitive config mechanism and its interaction with CascadeEngine is not documented in AGENTS.md Variant Architecture section. The section covers new variant detector files but not the config-driven per-primitive variant selection. Workers implementing features that depend on variant_by_primitive would benefit from knowing about cascade.variant_by_primitive in YAML config and how it flows through EvaluationRunner to CascadeEngine.",
+      "evidence": "AGENTS.md 'Variant Architecture' section covers file naming and registration but does not mention cascade.variant_by_primitive config, eval.py --variant-a/--variant-b flags, or EvaluationRunner variant_by_primitive parameter."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The variant-engine-infra feature is correctly implemented across all four layers: CascadeEngine.variant_by_primitive with per-primitive variant resolution, CascadeConfig schema, eval.py --variant-a/--variant-b CLI flags, and EvaluationRunner variant forwarding. 26 tests provide thorough coverage of all three validation assertions (VAL-VENG-001, VAL-VENG-005, VAL-VENG-006) plus error handling, backward compatibility, and copy safety. Two minor non-blocking issues around empty-dict falsy evaluation in runner.py; these don't affect any current code paths. No blocking issues found."
+}

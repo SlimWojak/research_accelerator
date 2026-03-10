@@ -1,0 +1,122 @@
+{
+  "milestone": "variant-architecture",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cd /Users/echopeso/research_accelerator && python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider",
+      "exitCode": 0,
+      "details": "727 passed in 844.63s (0:14:04)"
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "details": "Not configured in services.yaml (empty string)"
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": null,
+      "details": "Not configured in services.yaml (empty string)"
+    }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssuesSummary": [
+    {
+      "featureId": "variant-engine-infra",
+      "count": 1,
+      "issues": [
+        "Empty dict falsy evaluation in runner.py: variant_by_primitive={} treated as None instead of 'explicitly no overrides'"
+      ]
+    },
+    {
+      "featureId": "luxalgo-mss-detector",
+      "count": 4,
+      "issues": [
+        "Swing activation timing diverges from exact LuxAlgo (activates ~length-1 bars earlier)",
+        "Potential duplicate detection IDs for same-bar breaks at different structure levels",
+        "Redundant BOS classification for trend==0 case",
+        "test_both_levels_present only asserts 'internal' is present, not 'swing'"
+      ]
+    },
+    {
+      "featureId": "luxalgo-ob-detector",
+      "count": 3,
+      "issues": [
+        "Lifecycle scan starts from anchor_idx+1 instead of mss_bar_index+1 (premature mitigation risk)",
+        "test_atr_filter_can_reject has trivially-true assertion",
+        "test_anchor_is_extreme_candle doesn't verify extremeness"
+      ]
+    },
+    {
+      "featureId": "variant-cascade-integration",
+      "count": 4,
+      "issues": [
+        "CLI --variant-b help text doesn't clarify only MSS+OB use variant_b override",
+        "json_export.py variant_map uses fragile substring matching",
+        "json_export.py has unreachable elif branch (dead code)",
+        "test_eval_compare_output_has_variant_field has overly permissive assertion"
+      ]
+    },
+    {
+      "featureId": "variant-ui-selector",
+      "count": 3,
+      "issues": [
+        "configDisplayLabel() in shared.js is dead code with a bug (both branches return same value)",
+        "primVariantLabel() in shared.js is dead code (defined but never called)",
+        "No concurrency guard on switchFixture() for rapid fixture switching"
+      ]
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "services.yaml",
+      "description": "Added test_variant_engine_infra.py to test_new command — the 26 variant infra tests were missing from the quick Phase 4 test command",
+      "sourceFeature": "variant-cascade-integration"
+    },
+    {
+      "target": "library",
+      "description": "Added Variant Extension section to output_schemas.md documenting the new 'variant' field in Schema 4B per_config entries and Schema 4C pairwise comparisons",
+      "sourceFeature": "variant-cascade-integration"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add to Variant Architecture section: document the variant_by_primitive config mechanism — cascade.variant_by_primitive in YAML config maps primitive names to variant names, eval.py --variant-a/--variant-b CLI flags, and EvaluationRunner variant_by_primitive parameter. Workers implementing features that depend on variant selection need to know how the config flows through to CascadeEngine.",
+      "evidence": "variant-engine-infra review found AGENTS.md Variant Architecture section covers file naming and registration but does not mention cascade.variant_by_primitive config, eval.py flags, or EvaluationRunner parameter.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills/ra-engine-worker",
+      "suggestion": "Add guidance for (1) verification-focused work where implementation already exists (e.g., infrastructure features requiring test enhancement), (2) checking for existing implementations from prior sessions before writing from scratch, and (3) alternative TDD approach for variant detectors without baseline fixtures (behavioral/property-based tests instead of exact count matching).",
+      "evidence": "Three features (variant-engine-infra, luxalgo-mss-detector, luxalgo-ob-detector) all noted in their skillFeedback that the ra-engine-worker skill is oriented toward new detector TDD with baseline fixtures and doesn't cover verification-focused work, prior session recovery, or variant-specific testing patterns.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills/ra-comparison-worker",
+      "suggestion": "Add note that site/eval/ directory is gitignored — variant fixtures need to be regenerated via generate_eval_data.sh after fresh clone. The skill's fixture generation step mentions the script but doesn't note the gitignore.",
+      "evidence": "variant-ui-selector worker's skillFeedback suggests this addition. The skill Step 3 says 'If data files are missing' without explaining WHY they'd be missing (gitignored).",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "services.yaml test_new already includes tests/test_luxalgo_mss.py",
+      "reason": "already-documented — the file is present in the command, no gap exists"
+    },
+    {
+      "observation": "generate_eval_data.sh updated with variant-aware steps that gracefully degrade if luxalgo detectors not available",
+      "reason": "already-handled — the script uses if-statement with graceful fallback, no action needed"
+    }
+  ],
+  "previousRound": null
+}

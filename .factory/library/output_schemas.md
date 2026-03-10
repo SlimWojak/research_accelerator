@@ -160,6 +160,20 @@ Per-config detection results, aggregate statistics, and cascade funnel.
 - `detections` is the full detection array for chart overlay rendering (multi-config markers).
 - `cascade_funnel.levels[]` provides both counts (for funnel bars) AND conversion rates (for labels). `type` is one of: `"leaf"`, `"composite"`, `"terminal"`.
 
+### Variant Extension (Phase 4)
+
+When variant comparison is used (`eval.py compare --variant-a/--variant-b`), Schema 4B per_config entries gain an additional `variant` field:
+
+```json
+{
+  "config_name": "locked_luxalgo_v1",
+  "variant": "luxalgo_v1",
+  "params": { ... }
+}
+```
+
+The `variant` field is a string identifying which detector variant was used (e.g., `"a8ra_v1"`, `"luxalgo_v1"`). It is only present when variant comparison mode is active. Schema 4C pairwise entries also include `variant_a` and `variant_b` labels when comparing variants. The compare.html UI reads these fields to populate variant dropdowns, legend labels, and stats headers.
+
 ---
 
 ## Schema 4C: Pairwise Comparison Result

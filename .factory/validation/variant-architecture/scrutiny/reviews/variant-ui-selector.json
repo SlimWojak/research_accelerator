@@ -1,0 +1,63 @@
+{
+  "featureId": "variant-ui-selector",
+  "reviewedAt": "2026-03-10T14:30:00.000Z",
+  "commitId": "5654a9f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "verdict": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of variant UI selector for compare.html. Five files modified (shared.js, chart-tab.js, stats-tab.js, compare.html, generate_eval_data.sh) adding 394 lines. The feature correctly implements fixture switching via a dropdown, variant-aware config legends with teal/amber color coding, variant names in stats tab headers and pairwise comparison labels, detection summary column headers showing variant names, and metadata bar showing available variants. Backward compatibility is properly handled: extractVariantInfo() gracefully handles fixtures without variant fields, and all variant display code guards on hasVariantData or getConfigVariant() returning empty string. The probeAvailableFixtures() function uses HEAD requests to check fixture file existence before showing them in the dropdown. All validation assertions (VAL-VUI-001 through VAL-VUI-004, VAL-CROSS-001) are covered by the implementation and verified via agent-browser interactive testing.",
+    "issues": [
+      {
+        "file": "site/js/shared.js",
+        "line": 227,
+        "severity": "non_blocking",
+        "description": "Dead code: configDisplayLabel() is defined but never called anywhere. Additionally, both branches of the conditional return the same value (`configName`), so the variant annotation described in the JSDoc comment ('locked_a8ra_v1 (a8ra_v1)') is never actually produced. The function appears to be a leftover from an earlier iteration where it was intended to be used but was replaced by inline variant display logic in chart-tab.js and stats-tab.js."
+      },
+      {
+        "file": "site/js/shared.js",
+        "line": 237,
+        "severity": "non_blocking",
+        "description": "Dead code: primVariantLabel() is defined but never called anywhere in the codebase. The variant-qualified primitive labels are instead constructed inline in the various rendering functions. This is harmless but adds unused code."
+      },
+      {
+        "file": "site/js/shared.js",
+        "line": 303,
+        "severity": "non_blocking",
+        "description": "Minor race condition potential: switchFixture() has no guard against concurrent calls. If a user rapidly switches between fixtures, overlapping async operations could result in inconsistent state. The early return `if (fixtureKey === app.activeVariantFixture) return` helps but doesn't prevent two rapid switches to different fixtures from overlapping. Low risk in practice since fixture loading is fast and UX makes rapid switching unlikely."
+      }
+    ]
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "severity": "non_blocking",
+      "description": "configDisplayLabel() in shared.js (line 227) is dead code with a bug — both branches return the same value, defeating the variant annotation purpose described in its JSDoc."
+    },
+    {
+      "severity": "non_blocking",
+      "description": "primVariantLabel() in shared.js (line 237) is dead code — defined but never called. Variant-qualified labels are constructed inline instead."
+    },
+    {
+      "severity": "non_blocking",
+      "description": "No concurrency guard on switchFixture() for rapid fixture switching — minor UX edge case, low practical risk."
+    }
+  ],
+  "sharedStateObservations": [
+    {
+      "target": "skills",
+      "area": "skills",
+      "observation": "Worker's skillFeedback suggests the ra-comparison-worker skill should mention that fixture data (site/eval/) is gitignored, so variant fixtures need to be regenerated via generate_eval_data.sh. This is valid — the skill's Step 3 mentions generate_eval_data.sh but doesn't note that the eval/ directory is gitignored, which could confuse future workers who expect fixture files to exist after a fresh clone.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The skill could mention that fixture data (site/eval/) is gitignored, so variant fixtures need to be regenerated via generate_eval_data.sh'. The skill SKILL.md Step 3 says 'If this is the foundation feature or data files are missing' but doesn't explicitly state the directory is gitignored."
+    },
+    {
+      "target": "services",
+      "area": "services",
+      "observation": "generate_eval_data.sh was updated from 3 steps to 5 steps (added variant comparison step 4/5 and renumbered walk-forward to 5/5). The services.yaml generate_fixtures command points to this script so no services.yaml change needed, but the script now depends on luxalgo variant detectors being installed. If the detectors aren't available, the variant step gracefully skips with a warning message.",
+      "evidence": "site/generate_eval_data.sh step [4/5] wraps the variant eval.py call in an if-statement with 2>/dev/null fallback: 'Variant comparison skipped (luxalgo detectors may not be available)'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The variant-ui-selector feature is well-implemented across 5 files with 394 lines of changes. All required behaviors are covered: fixture dropdown with probed availability, variant-aware legends/headers/labels with teal/amber color coding, detection summary with variant names, stats tab with variant names in config cards and pairwise comparison, and full backward compatibility with old fixtures. The worker followed the ra-comparison-worker skill procedure, verified via agent-browser with zero console errors across all fixture switching and tab navigation. Three non-blocking issues found: two dead helper functions (configDisplayLabel, primVariantLabel) and a minor async race condition in switchFixture. None affect functionality."
+}
