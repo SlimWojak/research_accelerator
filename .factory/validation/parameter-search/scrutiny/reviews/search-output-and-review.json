@@ -1,0 +1,51 @@
+{
+  "featureId": "search-output-and-review",
+  "reviewedAt": "2026-03-10T14:00:00Z",
+  "commitId": "06ef5c6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The implementation fully covers all feature requirements: ranked candidates output sorted by fitness descending with rank/score/config/iteration fields (VAL-SRCH-003), --export-winner flag producing Schema 4A comparison fixture (VAL-WIN-001), compare.html fixture selector integration with Search Provenance stats display (VAL-WIN-002), and full pipeline integration (VAL-CROSS-003). The code is well-structured with proper error handling, clear separation of search vs export modes, and comprehensive test coverage (12 tests in test_export_winner.py + 38 in test_search.py). The perturbation engine's integer type preservation fix is correct and well-guarded. A few minor non-blocking issues noted below.",
+    "issues": [
+      {
+        "file": "search.py",
+        "line": 587,
+        "severity": "non_blocking",
+        "description": "Unused imports inside export_winner(): `from ra.config.loader import load_config`, `from ra.data.csv_loader import load_csv`, and `from ra.data.tf_aggregator import aggregate` are imported but never used directly — _load_config() and _load_bars() perform their own local imports. These should be removed for cleanliness."
+      },
+      {
+        "file": "search.py",
+        "line": 743,
+        "severity": "non_blocking",
+        "description": "Potential TypeError in improvement calculation: if search_meta contains 'baseline_score': None (explicitly set to null in JSON), then `search_meta.get('baseline_score', 0.0)` returns None (not the default 0.0), and `winner_score - None` raises TypeError. This edge case is unlikely with current search.py output but could occur with manually crafted or corrupted search results."
+      },
+      {
+        "file": "search.py",
+        "line": 636,
+        "severity": "non_blocking",
+        "description": "No explicit validation that --data or --river is provided for --export-winner mode. The help text says 'Requires --config and --data/--river' but only --config is validated. If neither --data nor --river is provided, _load_bars() calls sys.exit(1) with a logger.error, which works but gives a less user-friendly error than the explicit validation pattern used for --config."
+      },
+      {
+        "file": "search.py",
+        "line": 82,
+        "severity": "non_blocking",
+        "description": "Making --config, --search-space, --labels, --iterations all optional (required=False) to accommodate --export-winner mode means argparse won't enforce required args for search mode. This is handled correctly via _validate_search_args() manual validation, but the error messages differ slightly from argparse's native format. Acceptable trade-off for dual-mode CLI."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "services",
+      "observation": "services.yaml commands.test_new does not include test_export_winner.py. The new test file was added but the Phase 4 test command wasn't updated to include it, meaning workers using `test_new` won't run these 12 tests.",
+      "evidence": "services.yaml test_new command lists tests through test_search.py but omits tests/test_export_winner.py. The handoff shows 311 Phase 4 tests passing, which suggests they ran it manually but the command shortcut is stale."
+    },
+    {
+      "area": "conventions",
+      "observation": "The search_provenance field added to Schema 4A output is not documented in .factory/library/output_schemas.md. This is a new top-level field in Schema 4A that future workers should know about.",
+      "evidence": "search.py:735 adds output['search_provenance'] = {...} to the Schema 4A envelope. output_schemas.md defines Schema 4A fields but has no mention of search_provenance."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The search-output-and-review feature is well-implemented with comprehensive test coverage. All 6 expectedBehaviors are met: ranked candidates array sorted by fitness descending, each candidate has rank/score/config/iteration, top candidate exportable as Schema 4A comparison fixture via --export-winner flag, compare.html loads the exported fixture, Stats tab shows Search Provenance section with improvement metrics, and Chart tab shows detection differences. The code follows existing patterns (reuses _load_bars, _load_config, CascadeEngine, serialize_evaluation_run), handles errors appropriately, and the integer type preservation fix in perturbation.py is correct. Minor issues are non-blocking: 3 unused imports, a potential None edge case in improvement calculation, and missing data source validation for export mode."
+}

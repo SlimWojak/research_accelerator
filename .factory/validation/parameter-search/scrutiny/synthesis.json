@@ -1,0 +1,142 @@
+{
+  "milestone": "parameter-search",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider",
+      "exitCode": 0,
+      "details": "965 tests across 35 test files — all pass. Phase 1 core: 378 passed (52s), Phase 4 new: 311 passed (399s), Eval/CLI: 174 passed, Integration: 6 passed (430s), Additional: 102 passed (1s). Zero failures, zero regressions."
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "",
+      "exitCode": 0,
+      "details": "Typecheck command not configured in services.yaml (empty string). No type errors reported during test execution."
+    },
+    "lint": {
+      "passed": true,
+      "command": "",
+      "exitCode": 0,
+      "details": "Lint command not configured in services.yaml (empty string). No lint errors reported during test execution."
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "search-cli-core",
+      "severity": "non_blocking",
+      "description": "Dead code: _run_cascade_with_perturbation() in search.py (lines 258-293) is defined but never called. The search loop uses _run_cascade_with_params() instead."
+    },
+    {
+      "featureId": "search-cli-core",
+      "severity": "non_blocking",
+      "description": "Label filtering limitation: _score_results() filters labels to only those whose detection_id exists in cascade results. When perturbation changes params, different detection IDs may be produced, so labels for detections that disappear are silently dropped — recall is computed only over surviving detection subset rather than full ground truth set."
+    },
+    {
+      "featureId": "search-cli-core",
+      "severity": "non_blocking",
+      "description": "SIGINT test uses time.sleep(90) — extremely slow. The worker excluded it via -k filter during verification. Consider adding @pytest.mark.slow marker and filtering in CI."
+    },
+    {
+      "featureId": "search-cli-core",
+      "severity": "non_blocking",
+      "description": "Inconsistent variant parameter: _run_cascade_with_params creates CascadeEngine without explicit variant (relies on default), while export_winner explicitly passes variant='a8ra_v1'."
+    },
+    {
+      "featureId": "search-cli-core",
+      "severity": "non_blocking",
+      "description": "SIGINT test has weak assertion: 'if output_path.exists()' makes validation conditional. If process fails to write, test silently passes."
+    },
+    {
+      "featureId": "perturbation-engine",
+      "severity": "non_blocking",
+      "description": "base=0 edge case: _perturb_numeric computes base*(1+factor) which yields 0 when base=0. Perturbation always returns 0 regardless of seed. Unlikely to matter since search spaces use nonzero bases."
+    },
+    {
+      "featureId": "perturbation-engine",
+      "severity": "non_blocking",
+      "description": "Default min/max when not specified (base*0.5 and base*2.0) would invert for negative base values (min > max). Not a real risk since project search spaces use positive values only."
+    },
+    {
+      "featureId": "fitness-and-provenance",
+      "severity": "non_blocking",
+      "description": "walk_forward_stability_check mutates input candidate dicts in-place (adds walk_forward_verdict, walk_forward_demoted, walk_forward_result fields and modifies rank). Consistent with rank_candidates pattern but could surprise callers."
+    },
+    {
+      "featureId": "fitness-and-provenance",
+      "severity": "non_blocking",
+      "description": "improvement_pct is 0.0 when baseline_score is 0 (division-by-zero guard), even when there is a positive improvement."
+    },
+    {
+      "featureId": "fitness-and-provenance",
+      "severity": "non_blocking",
+      "description": "New provenance JSON schema (schema_version 1.0) not formally documented in .factory/library/output_schemas.md alongside schemas 4A-4F."
+    },
+    {
+      "featureId": "search-output-and-review",
+      "severity": "non_blocking",
+      "description": "Unused imports inside export_winner(): from ra.config.loader, ra.data.csv_loader, ra.data.tf_aggregator imported but not used directly — local functions do their own imports."
+    },
+    {
+      "featureId": "search-output-and-review",
+      "severity": "non_blocking",
+      "description": "Potential TypeError in improvement calculation: if search_meta contains 'baseline_score': None (explicitly null), then winner_score - None raises TypeError."
+    },
+    {
+      "featureId": "search-output-and-review",
+      "severity": "non_blocking",
+      "description": "No explicit validation that --data or --river is provided for --export-winner mode. If neither provided, _load_bars() calls sys.exit(1) with logger.error — works but less user-friendly than explicit validation pattern."
+    },
+    {
+      "featureId": "search-output-and-review",
+      "severity": "non_blocking",
+      "description": "Making --config/--search-space/--labels/--iterations all optional (required=False) to accommodate --export-winner mode means argparse won't enforce required args for search mode. Handled via _validate_search_args() but error messages differ slightly from native argparse format."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "services.yaml",
+      "description": "Added test_scored_comparison.py and test_export_winner.py to commands.test_new — these test files were added during ground-truth-scoring and parameter-search milestones but the test command shortcut was never updated.",
+      "sourceFeature": "search-output-and-review"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add guidance on feature scope: workers should implement only what's specified in the feature description. Extra functionality (e.g., search-cli-core worker also implemented --export-winner mode, adding ~200 lines beyond spec) should be deferred to a separate feature. This ensures code reviews match feature boundaries.",
+      "evidence": "search-cli-core worker implemented --export-winner mode (~200 lines) beyond the search iteration feature spec. This was later consumed by search-output-and-review feature, but it blurred feature boundaries.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills",
+      "suggestion": "ra-eval-worker skill should note that when a module already exists from a prior feature, the TDD red-green cycle becomes a 'characterization test' workflow — write tests asserting current behavior, verify they pass, then refactor if needed.",
+      "evidence": "perturbation-engine worker found perturbation.py already fully implemented by prior search-cli-core feature. Worker adapted to writing characterization tests.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add convention: new JSON output schemas should be documented in .factory/library/output_schemas.md. The search provenance schema (produced by fitness.py:build_provenance) and the search_provenance field added to Schema 4A envelope are undocumented.",
+      "evidence": "fitness-and-provenance introduced a new provenance JSON schema (schema_version 1.0) with iterations, ranked_candidates, summary sections. search-output-and-review added search_provenance field to Schema 4A output. Neither is documented in output_schemas.md.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Worker followed the skill procedure correctly per skillFeedback.followedProcedure=true. TDD cycle executed. (search-cli-core)",
+      "reason": "Not actionable — positive observation, no state change needed"
+    },
+    {
+      "observation": "architecture.md description of fitness.py is brief and doesn't mention provenance recording or JSON output schema.",
+      "reason": "Low priority documentation improvement — the architecture.md provides directional pointers, detailed behavior is in the code and tests. Not worth a state update."
+    }
+  ],
+  "previousRound": null
+}

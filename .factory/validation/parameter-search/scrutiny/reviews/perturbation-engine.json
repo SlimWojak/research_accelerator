@@ -1,0 +1,34 @@
+{
+  "featureId": "perturbation-engine",
+  "reviewedAt": "2026-03-10T11:15:00Z",
+  "commitId": "bca99ad",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The commit adds tests/test_perturbation.py (622 lines, 33 tests) covering all three validation assertions (VAL-PERT-001, VAL-PERT-002, VAL-PERT-003). The perturbation.py module itself was already implemented in a prior commit (search-cli-core feature). The implementation is solid: numeric perturbation generates ±10-20% of base with clamping to [min, max] and step-grid snapping, categorical selects from options list, boolean randomly toggles, and reproducibility is ensured via instance-local random.Random seeded per call. Tests are thorough with 200-seed fuzzing for bounds, magnitude verification on wide bounds, step-grid snapping checks, reachability tests for categoricals, seed determinism and independence tests, and edge cases (boundary bases, tiny/large values, single-option categoricals, unknown types). Two minor non-blocking edge cases exist but are unlikely to matter in practice.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/perturbation.py",
+        "line": 137,
+        "severity": "non_blocking",
+        "description": "base=0 edge case: _perturb_numeric computes `base * (1.0 + factor)` which yields 0 when base=0, meaning perturbation always returns 0 regardless of seed. No test covers this. Unlikely to matter in practice since search spaces have nonzero bases, but worth noting for completeness."
+      },
+      {
+        "file": "src/ra/evaluation/perturbation.py",
+        "line": 186,
+        "severity": "non_blocking",
+        "description": "Default min/max when not specified (`base * 0.5` and `base * 2.0`) would invert for negative base values (min > max), potentially causing clamping to always return max_val. Not a real risk since project search spaces use positive values only."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker adapted the TDD 'write failing tests FIRST' step because perturbation.py was already fully implemented by the prior search-cli-core feature. The worker wrote tests to verify the existing implementation instead. This is a reasonable deviation documented in skillFeedback.suggestedChanges. The ra-eval-worker skill could note that when a module already exists, the TDD red-green cycle becomes a 'characterization test' workflow — write tests asserting current behavior, verify they pass, then refactor if needed.",
+      "evidence": "Transcript skeleton shows worker found existing perturbation.py, wrote 33 tests that all passed immediately. handoff.skillFeedback.followedProcedure=true with suggestedChanges noting the adaptation."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. Commit bca99ad adds 33 dedicated tests for the perturbation engine in tests/test_perturbation.py. The perturbation.py module (pre-existing from search-cli-core) correctly implements all requirements: numeric ±10-20% perturbation with clamping and step-snapping, categorical random selection from options, boolean toggling, and seed-based reproducibility via instance-local RNG. All three validation assertions (VAL-PERT-001/002/003) are thoroughly covered with fuzz testing across 100-200 seeds. Two minor non-blocking issues found (base=0 always yields 0, negative base default bounds invert) — both are edge cases outside the project's practical search space definitions. No convention, services, or knowledge gaps observed."
+}

@@ -1,0 +1,45 @@
+{
+  "featureId": "fitness-and-provenance",
+  "reviewedAt": "2026-03-10T20:30:00Z",
+  "commitId": "b5c375b",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Clean, well-structured implementation of four new functions (walk_forward_stability_check, build_provenance, format_provenance_json, format_summary) added to the existing fitness.py module. All 6 VAL assertions (FIT-001/002/003, PROV-001/002/003) are fully covered. Code follows project conventions: type hints on all public functions, proper docstrings, logging for error paths, and TDD approach with 48 comprehensive tests. The walk-forward demotion logic correctly separates stable/unstable candidates and re-ranks them. Provenance recording captures all required fields per iteration. JSON output handles numpy types gracefully via a custom encoder fallback. Human-readable summary includes all required information (total iterations, baseline, best score, improvement, kept/discarded counts, top 3 with walk-forward verdicts).",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/fitness.py",
+        "line": 162,
+        "severity": "non_blocking",
+        "description": "walk_forward_stability_check mutates input candidate dicts in-place (adds walk_forward_verdict, walk_forward_demoted, walk_forward_result fields and modifies rank). This is consistent with rank_candidates which also mutates, but could surprise callers who don't expect side effects. Consider documenting this in-place mutation behavior in the docstring."
+      },
+      {
+        "file": "src/ra/evaluation/fitness.py",
+        "line": 278,
+        "severity": "non_blocking",
+        "description": "improvement_pct is 0.0 when baseline_score is 0 (division-by-zero guard), even when there is a positive improvement. This means a baseline of 0 with a best score of 1.5 reports 0.0% improvement. Acceptable behavior but worth noting for downstream consumers."
+      },
+      {
+        "file": "src/ra/evaluation/fitness.py",
+        "line": 195,
+        "severity": "non_blocking",
+        "description": "New provenance JSON schema (schema_version 1.0, with iterations/ranked_candidates/summary structure) is not formally documented in .factory/library/output_schemas.md alongside schemas 4A-4F. The schema is implicitly defined by code and tests but lacks a canonical reference for downstream consumers."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The provenance output introduces a new JSON schema (schema_version 1.0 with iterations, ranked_candidates, summary sections) that is not documented in .factory/library/output_schemas.md. The output_schemas.md doc covers Schemas 4A-4F but has no entry for the search provenance schema. The search-output-and-review feature downstream consumes this format, so it would benefit from formal documentation.",
+      "evidence": "src/ra/evaluation/fitness.py:build_provenance() produces {schema_version, baseline_score, iterations_requested, iterations_completed, iterations, ranked_candidates, summary} — no corresponding schema in .factory/library/output_schemas.md"
+    },
+    {
+      "area": "conventions",
+      "observation": "architecture.md was updated to mention fitness.py in the Phase 4 Architecture section, which is good. However the description is brief ('Fitness scoring + walk-forward stability') and doesn't mention provenance recording or the JSON output schema, which are significant parts of this module.",
+      "evidence": ".factory/library/architecture.md Phase 4 Architecture section lists 'fitness.py # Fitness scoring + walk-forward stability' — missing provenance and JSON output aspects"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. Implementation fully covers all 6 VAL assertions (FIT-001/002/003, PROV-001/002/003). Four new functions added to fitness.py: walk_forward_stability_check (top-N WF with demotion), build_provenance (iteration recording), format_provenance_json (machine-readable output), and format_summary (human-readable output). 48 tests provide thorough coverage including edge cases. Code follows project conventions (type hints, docstrings, TDD, logging). Three non-blocking issues noted: in-place mutation of candidate dicts, zero-baseline improvement_pct edge case, and undocumented provenance schema. Worker followed skill procedure correctly per handoff feedback. No regressions (172 Phase 1 + 165 Phase 4 tests pass)."
+}
