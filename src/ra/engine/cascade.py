@@ -559,6 +559,7 @@ def build_default_registry() -> Registry:
     from ra.detectors.htf_liquidity import HTFLiquidityDetector
     from ra.detectors.ote import OTEDetector
     from ra.detectors.liquidity_sweep import LiquiditySweepDetector
+    from ra.detectors.luxalgo_mss import LuxAlgoMSSDetector
 
     detectors = [
         FVGDetector,
@@ -573,6 +574,7 @@ def build_default_registry() -> Registry:
         HTFLiquidityDetector,
         OTEDetector,
         LiquiditySweepDetector,
+        LuxAlgoMSSDetector,
     ]
 
     for det_cls in detectors:
