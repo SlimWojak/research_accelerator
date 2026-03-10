@@ -412,7 +412,14 @@ def _print_progress(current: int, total: int, label: str) -> None:
 
 
 def cmd_compare(args) -> int:
-    """Execute comparison subcommand."""
+    """Execute comparison subcommand.
+
+    When --variant-a and --variant-b differ, runs two separate cascades
+    (one per variant) and produces a comparison JSON with:
+    - Two per_config entries (one per variant), each with a 'variant' field
+    - Pairwise comparison statistics between variants
+    - Divergence index for variant disagreements
+    """
     from ra.evaluation.runner import EvaluationRunner
     from ra.evaluation.comparison import compare_pairwise, compute_stats
     from ra.evaluation.cascade_stats import cascade_funnel
@@ -436,25 +443,56 @@ def cmd_compare(args) -> int:
     variant_a = getattr(args, "variant_a", "a8ra_v1")
     variant_b = getattr(args, "variant_b", "a8ra_v1")
 
-    runner = EvaluationRunner(
-        config, variant_by_primitive=variant_by_primitive,
-    )
-
-    # Run locked baseline
-    logger.info("Running locked baseline (variant_a=%s)...", variant_a)
-    locked_results = runner.run_locked(bars_by_tf)
-
-    # Build Schema 4A with single config
     # Infer date range from bars
     date_range = _infer_date_range(bars_by_tf)
 
-    output = serialize_evaluation_run(
-        results_by_config={"current_locked": locked_results},
-        dataset_name=str(args.data) if hasattr(args, "data") and args.data else "river",
-        bars_1m_count=bars_1m_count,
-        date_range=date_range,
-        dep_graph=dep_graph,
-    )
+    if variant_a != variant_b:
+        # ── Two-variant comparison mode ───────────────────────────────
+        # Run cascade A: all primitives use variant_a (plus any config overrides)
+        vbp_a = dict(variant_by_primitive) if variant_by_primitive else {}
+        runner_a = EvaluationRunner(config, variant=variant_a, variant_by_primitive=vbp_a)
+        logger.info("Running cascade with variant_a=%s...", variant_a)
+        results_a = runner_a.run_locked(bars_by_tf)
+
+        # Run cascade B: mss + order_block use variant_b, rest use variant_a
+        vbp_b = dict(variant_by_primitive) if variant_by_primitive else {}
+        vbp_b["mss"] = variant_b
+        vbp_b["order_block"] = variant_b
+        runner_b = EvaluationRunner(config, variant=variant_a, variant_by_primitive=vbp_b)
+        logger.info("Running cascade with variant_b=%s (mss+order_block)...", variant_b)
+        results_b = runner_b.run_locked(bars_by_tf)
+
+        config_name_a = f"locked_{variant_a}"
+        config_name_b = f"locked_{variant_b}"
+
+        output = serialize_evaluation_run(
+            results_by_config={
+                config_name_a: results_a,
+                config_name_b: results_b,
+            },
+            dataset_name=str(args.data) if hasattr(args, "data") and args.data else "river",
+            bars_1m_count=bars_1m_count,
+            date_range=date_range,
+            dep_graph=dep_graph,
+            variant_a=variant_a,
+            variant_b=variant_b,
+        )
+    else:
+        # ── Single-variant mode (original behavior) ──────────────────
+        runner = EvaluationRunner(
+            config, variant_by_primitive=variant_by_primitive,
+        )
+
+        logger.info("Running locked baseline (variant=%s)...", variant_a)
+        locked_results = runner.run_locked(bars_by_tf)
+
+        output = serialize_evaluation_run(
+            results_by_config={"current_locked": locked_results},
+            dataset_name=str(args.data) if hasattr(args, "data") and args.data else "river",
+            bars_1m_count=bars_1m_count,
+            date_range=date_range,
+            dep_graph=dep_graph,
+        )
 
     out_path = output_dir / "evaluation_run.json"
     write_json(output, out_path)

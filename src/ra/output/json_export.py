@@ -294,12 +294,18 @@ def serialize_pairwise_comparison(
     """
     # The comparison module already produces Schema 4C-compatible output.
     # We just ensure all required fields are present.
-    return {
+    result: dict[str, Any] = {
         "config_a": comparison.get("config_a", ""),
         "config_b": comparison.get("config_b", ""),
         "per_primitive": comparison.get("per_primitive", {}),
         "divergence_index": comparison.get("divergence_index", []),
     }
+    # Include variant names when present (variant comparison mode)
+    if "variant_a" in comparison:
+        result["variant_a"] = comparison["variant_a"]
+    if "variant_b" in comparison:
+        result["variant_b"] = comparison["variant_b"]
+    return result
 
 
 def serialize_grid_sweep(
@@ -384,6 +390,8 @@ def serialize_evaluation_run(
     grid_sweep: Optional[dict[str, Any]] = None,
     walk_forward: Optional[dict[str, Any]] = None,
     run_id: Optional[str] = None,
+    variant_a: Optional[str] = None,
+    variant_b: Optional[str] = None,
 ) -> dict[str, Any]:
     """Serialize full evaluation run to Schema 4A.
 
@@ -396,6 +404,8 @@ def serialize_evaluation_run(
         grid_sweep: Optional Schema 4D data (None if no sweep).
         walk_forward: Optional Schema 4E data (None if no walk-forward).
         run_id: Optional run ID. Auto-generated if None.
+        variant_a: Optional variant name for first config (included in output).
+        variant_b: Optional variant name for second config (included in output).
 
     Returns:
         Dict conforming to Schema 4A.
@@ -407,13 +417,31 @@ def serialize_evaluation_run(
 
     # Build per_config (Schema 4B)
     per_config: dict[str, Any] = {}
+
+    # Map config names to variant names when provided
+    variant_map: dict[str, str] = {}
+    if variant_a and variant_b and len(config_names) == 2:
+        # Assign variant names to configs in sorted order
+        # Convention: first sorted config gets variant_a, second gets variant_b
+        for cname in config_names:
+            if variant_a in cname:
+                variant_map[cname] = variant_a
+            elif variant_b in cname:
+                variant_map[cname] = variant_b
+
     for config_name, results in results_by_config.items():
-        per_config[config_name] = serialize_per_config_result(
+        config_entry = serialize_per_config_result(
             config_name=config_name,
             results=results,
             params={},  # Could be enriched with actual params
             dep_graph=dep_graph,
         )
+        # Include variant field in config entries when variant info is provided
+        if config_name in variant_map:
+            config_entry["variant"] = variant_map[config_name]
+        elif variant_a and not variant_b:
+            config_entry["variant"] = variant_a
+        per_config[config_name] = config_entry
 
     # Build pairwise (Schema 4C)
     pairwise: dict[str, Any] = {}
@@ -426,6 +454,11 @@ def serialize_evaluation_run(
             )
             comparison["config_a"] = name_a
             comparison["config_b"] = name_b
+            # Include variant names in pairwise comparison
+            if name_a in variant_map:
+                comparison["variant_a"] = variant_map[name_a]
+            if name_b in variant_map:
+                comparison["variant_b"] = variant_map[name_b]
             key = f"{name_a}__vs__{name_b}"
             pairwise[key] = serialize_pairwise_comparison(comparison)
 
