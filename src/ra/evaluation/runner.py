@@ -111,33 +111,59 @@ class EvaluationRunner:
         results = runner.run_locked(bars_by_tf)
         sweep = runner.run_sweep(bars_by_tf, "fvg")
         grid = runner.run_grid(bars_by_tf, "displacement", "ltf.atr_multiplier", "ltf.body_ratio")
+
+    Variant selection:
+        runner = EvaluationRunner(config,
+                                  variant_by_primitive={"mss": "luxalgo_v1"})
     """
 
     def __init__(
         self,
         config: RAConfig,
         variant: str = "a8ra_v1",
+        variant_by_primitive: Optional[dict[str, str]] = None,
     ) -> None:
         """Initialize the evaluation runner.
 
         Args:
             config: Validated RAConfig instance.
-            variant: Detector variant name (default "a8ra_v1").
+            variant: Default detector variant name (default "a8ra_v1").
+            variant_by_primitive: Optional dict mapping primitive_name -> variant_name.
+                Overrides the default variant for specific primitives.
         """
         self._config = config
         self._variant = variant
+        self._variant_by_primitive = (
+            dict(variant_by_primitive) if variant_by_primitive else None
+        )
         self._registry = build_default_registry()
         self._dep_graph = {
             name: node.model_dump()
             for name, node in config.dependency_graph.items()
         }
 
-        logger.info("EvaluationRunner initialized with variant '%s'", variant)
+        logger.info(
+            "EvaluationRunner initialized with variant '%s'%s",
+            variant,
+            f", overrides={self._variant_by_primitive}" if self._variant_by_primitive else "",
+        )
 
-    def _build_engine(self) -> CascadeEngine:
-        """Create a fresh CascadeEngine instance."""
+    def _build_engine(
+        self,
+        variant_by_primitive: Optional[dict[str, str]] = None,
+    ) -> CascadeEngine:
+        """Create a fresh CascadeEngine instance.
+
+        Args:
+            variant_by_primitive: Optional override for per-primitive variants.
+                If None, uses the runner's default variant_by_primitive.
+        """
+        vbp = variant_by_primitive or self._variant_by_primitive
         return CascadeEngine(
-            self._registry, self._dep_graph, variant=self._variant
+            self._registry,
+            self._dep_graph,
+            variant=self._variant,
+            variant_by_primitive=vbp,
         )
 
     def run_locked(
@@ -277,6 +303,8 @@ class EvaluationRunner:
         self,
         results_a: dict[str, dict[str, DetectionResult]],
         results_b: dict[str, dict[str, DetectionResult]],
+        variant_a: Optional[str] = None,
+        variant_b: Optional[str] = None,
     ) -> dict[str, Any]:
         """Compare two sets of cascade results.
 
@@ -286,6 +314,8 @@ class EvaluationRunner:
         Args:
             results_a: First cascade result dict.
             results_b: Second cascade result dict.
+            variant_a: Variant name for config A (for labelling output).
+            variant_b: Variant name for config B (for labelling output).
 
         Returns:
             Comparison result dict with per-primitive stats.
@@ -295,6 +325,8 @@ class EvaluationRunner:
             "summary": {
                 "total_a": 0,
                 "total_b": 0,
+                "variant_a": variant_a or self._variant,
+                "variant_b": variant_b or self._variant,
             },
         }
 

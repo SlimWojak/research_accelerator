@@ -520,6 +520,17 @@ class EvaluationConfig(StrictModel):
     regime_slicing: RegimeSlicingConfig
 
 
+# ─── Cascade Config ───────────────────────────────────────────────────────
+
+class CascadeConfig(StrictModel):
+    """Optional cascade-level configuration.
+
+    Supports per-primitive variant selection via variant_by_primitive.
+    """
+
+    variant_by_primitive: Optional[dict[str, str]] = None
+
+
 # ─── Top-Level Config ─────────────────────────────────────────────────────
 
 class RAConfig(StrictModel):
@@ -538,3 +549,4 @@ class RAConfig(StrictModel):
     dependency_graph: dict[str, DependencyNode]
     primitives: PrimitivesConfig
     evaluation: EvaluationConfig
+    cascade: Optional[CascadeConfig] = None

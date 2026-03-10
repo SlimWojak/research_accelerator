@@ -428,10 +428,20 @@ def cmd_compare(args) -> int:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    runner = EvaluationRunner(config)
+    # Resolve variant_by_primitive from config and CLI flags
+    variant_by_primitive = None
+    if hasattr(config, "cascade") and config.cascade and config.cascade.variant_by_primitive:
+        variant_by_primitive = dict(config.cascade.variant_by_primitive)
+
+    variant_a = getattr(args, "variant_a", "a8ra_v1")
+    variant_b = getattr(args, "variant_b", "a8ra_v1")
+
+    runner = EvaluationRunner(
+        config, variant_by_primitive=variant_by_primitive,
+    )
 
     # Run locked baseline
-    logger.info("Running locked baseline...")
+    logger.info("Running locked baseline (variant_a=%s)...", variant_a)
     locked_results = runner.run_locked(bars_by_tf)
 
     # Build Schema 4A with single config
@@ -607,6 +617,14 @@ def main() -> int:
     compare_parser.add_argument(
         "--output", required=True,
         help="Output directory for JSON results",
+    )
+    compare_parser.add_argument(
+        "--variant-a", default="a8ra_v1",
+        help="Variant name for config A (default: a8ra_v1)",
+    )
+    compare_parser.add_argument(
+        "--variant-b", default="a8ra_v1",
+        help="Variant name for config B (default: a8ra_v1)",
     )
 
     # ─── walk-forward subcommand ──────────────────────────────────────

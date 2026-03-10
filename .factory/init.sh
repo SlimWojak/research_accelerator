@@ -70,4 +70,32 @@ else
     echo "NOTE: No validation data generated yet. Run: python3 site/detect.py --start 2025-09-01 --end 2026-02-28 --config configs/locked_baseline.yaml --output site/data/"
 fi
 
+# Phase 4: Check variant detector files
+if [ -f "src/ra/detectors/luxalgo_mss.py" ]; then
+    echo "Phase 4 LuxAlgo MSS detector: present"
+else
+    echo "NOTE: LuxAlgo MSS detector not yet created (Phase 4 variant)"
+fi
+
+if [ -f "src/ra/detectors/luxalgo_ob.py" ]; then
+    echo "Phase 4 LuxAlgo OB detector: present"
+else
+    echo "NOTE: LuxAlgo OB detector not yet created (Phase 4 variant)"
+fi
+
+# Phase 4: Check search.py
+if [ -f "search.py" ]; then
+    echo "Phase 4 search.py: present"
+else
+    echo "NOTE: search.py not yet created (Phase 4 parameter search CLI)"
+fi
+
+# Phase 4: Check label data
+if [ -d "site/data/labels" ]; then
+    LABEL_COUNT=$(ls -1 site/data/labels/*.json 2>/dev/null | wc -l | tr -d ' ')
+    echo "Phase 4 label data: ${LABEL_COUNT} label files"
+else
+    echo "NOTE: No label data yet. Use validate.html to label detections."
+fi
+
 echo "Environment ready."

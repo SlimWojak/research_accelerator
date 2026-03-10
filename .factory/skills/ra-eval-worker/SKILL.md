@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-Use for all Phase 2 Evaluation Engine features: param extraction refactor, River adapter, evaluation runner, comparison statistics, walk-forward validation, structured output, and CLI integration.
+Use for Phase 2 Evaluation Engine features (param extraction, River adapter, evaluation runner, comparison, walk-forward, output, CLI) AND Phase 4 features: label ingestion, scoring pipeline, scored comparison, parameter search CLI, perturbation engine, fitness scoring, provenance.
 
 ## Work Procedure
 
@@ -33,6 +33,12 @@ Read relevant specification documents:
 For param extraction: read `src/ra/engine/cascade.py` (`extract_locked_params_for_cascade()`) and all detector files to understand expected param dict format. CRITICAL: detectors expect specific dict structures including `{locked: value}` wrappers — do NOT change the format.
 
 For River adapter: read `src/ra/data/river_adapter.py` (stub), `src/ra/data/csv_loader.py`, `src/ra/data/tf_aggregator.py`, `src/ra/data/session_tagger.py`.
+
+For Phase 4 label ingestion: read existing label format in `site/data/labels/` (one JSON per week) and compare-mode export format from `site/js/ground-truth.js` (Export button produces `ground_truth_labels.json`).
+
+For Phase 4 scoring: read `src/ra/evaluation/comparison.py` for existing compute_stats/compare_pairwise patterns. New scoring module goes in `src/ra/evaluation/scoring.py`.
+
+For Phase 4 search/perturbation: read `eval.py` for CLI patterns, `src/ra/evaluation/runner.py` for EvaluationRunner API, `configs/locked_baseline.yaml` for config structure. search.py is a new top-level CLI (like eval.py). Perturbation and fitness modules go in `src/ra/evaluation/`.
 
 ### Step 3: Write Failing Tests FIRST (Red Phase)
 

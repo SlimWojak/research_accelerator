@@ -161,6 +161,15 @@ class CascadeEngine:
         # On param change:
         engine.on_param_change("displacement")
         results = engine.run(bars_by_tf, params_by_primitive)
+
+    Variant selection:
+        # Global variant (all primitives use same variant):
+        engine = CascadeEngine(registry, graph, variant="a8ra_v1")
+
+        # Per-primitive variant overrides:
+        engine = CascadeEngine(registry, graph,
+                               variant_by_primitive={"mss": "luxalgo_v1"})
+        # Unspecified primitives fall back to default "a8ra_v1".
     """
 
     def __init__(
@@ -168,6 +177,7 @@ class CascadeEngine:
         registry: Registry,
         dependency_graph: dict[str, dict],
         variant: str = "a8ra_v1",
+        variant_by_primitive: Optional[dict[str, str]] = None,
     ) -> None:
         """Initialize the cascade engine.
 
@@ -175,10 +185,18 @@ class CascadeEngine:
             registry: Registry containing all detector modules.
             dependency_graph: From config dependency_graph section.
                 Maps primitive_name -> {"upstream": [list of upstream names]}.
-            variant: Variant name for looking up detectors (default "a8ra_v1").
+            variant: Default variant name for looking up detectors (default "a8ra_v1").
+                Used for any primitive not overridden by variant_by_primitive.
+            variant_by_primitive: Optional dict mapping primitive_name -> variant_name.
+                When provided, the cascade uses the specified variant for each
+                listed primitive instead of the default. Unspecified primitives
+                still use the default variant.
         """
         self._registry = registry
         self._variant = variant
+        self._variant_by_primitive: dict[str, str] = (
+            dict(variant_by_primitive) if variant_by_primitive else {}
+        )
 
         # Parse graph: primitive_name -> list of upstream primitive names
         # Merge config-declared upstream with detector's required_upstream()
@@ -191,8 +209,9 @@ class CascadeEngine:
                 config_upstream = []
 
             # Augment with detector's declared requirements
-            if registry.has(name, variant):
-                detector = registry.get(name, variant)
+            prim_variant = self.get_variant_for_primitive(name)
+            if registry.has(name, prim_variant):
+                detector = registry.get(name, prim_variant)
                 for req in detector.required_upstream():
                     if req not in config_upstream and req in dependency_graph:
                         config_upstream.append(req)
@@ -229,6 +248,25 @@ class CascadeEngine:
     def graph(self) -> dict[str, list[str]]:
         """Return a copy of the dependency graph."""
         return copy.deepcopy(self._graph)
+
+    @property
+    def variant_by_primitive(self) -> dict[str, str]:
+        """Return a copy of the per-primitive variant mapping."""
+        return dict(self._variant_by_primitive)
+
+    def get_variant_for_primitive(self, primitive: str) -> str:
+        """Get the variant name for a given primitive.
+
+        Returns the override from variant_by_primitive if set,
+        otherwise falls back to the default variant.
+
+        Args:
+            primitive: The primitive name.
+
+        Returns:
+            The variant name to use for this primitive.
+        """
+        return self._variant_by_primitive.get(primitive, self._variant)
 
     def on_param_change(self, *primitives: str) -> set[str]:
         """Mark primitives as invalidated due to parameter changes.
@@ -289,14 +327,24 @@ class CascadeEngine:
         results: dict[str, dict[str, DetectionResult]] = {}
 
         for primitive in self._execution_order:
+            # Resolve variant for this specific primitive
+            prim_variant = self.get_variant_for_primitive(primitive)
+
             # Check if detector is registered
             # Virtual primitives (ifvg, bpr) are handled by their parent
             # detector (fvg) and don't have separate registry entries.
-            if not self._registry.has(primitive, self._variant):
+            if not self._registry.has(primitive, prim_variant):
+                # If the variant was explicitly requested via variant_by_primitive,
+                # this is an error — the user asked for a variant that doesn't exist.
+                if primitive in self._variant_by_primitive:
+                    # Delegate to registry.get() which produces a clear error
+                    # listing available variants.
+                    self._registry.get(primitive, prim_variant)
+
                 logger.info(
-                    "Primitive '%s' not in registry (virtual or unimplemented), "
-                    "skipping.",
-                    primitive,
+                    "Primitive '%s' not in registry for variant '%s' "
+                    "(virtual or unimplemented), skipping.",
+                    primitive, prim_variant,
                 )
                 results[primitive] = {}
                 continue
@@ -318,8 +366,8 @@ class CascadeEngine:
                 logger.debug("Cache hit for '%s'", primitive)
                 continue
 
-            # Run the detector
-            detector = self._registry.get(primitive, self._variant)
+            # Run the detector (using per-primitive variant)
+            detector = self._registry.get(primitive, prim_variant)
 
             # Handle DEFERRED modules gracefully
             prim_results: dict[str, DetectionResult] = {}
@@ -345,7 +393,7 @@ class CascadeEngine:
                 for tf in timeframes:
                     prim_results[tf] = DetectionResult(
                         primitive=primitive,
-                        variant=self._variant,
+                        variant=prim_variant,
                         timeframe=tf,
                         detections=[],
                         metadata={"status": "DEFERRED"},

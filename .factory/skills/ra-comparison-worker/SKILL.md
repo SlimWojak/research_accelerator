@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-Use for features that create or modify the Phase 3 comparison interface: HTML pages, JavaScript modules, CSS styling, data loading logic, chart rendering, interactive controls, and fixture data generation. All work is in the `site/` directory.
+Use for features that create or modify the comparison interface: HTML pages, JavaScript modules, CSS styling, data loading logic, chart rendering, interactive controls, and fixture data generation. Covers Phase 3 comparison features AND Phase 4 variant UI selector, ground truth dashboard. All work is in the `site/` directory.
 
 ## Reference Documents (Read ONLY what you need)
 

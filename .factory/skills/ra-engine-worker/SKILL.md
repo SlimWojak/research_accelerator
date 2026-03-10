@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-Use for all features in the RA Phase 1 Detection Engine mission: project scaffolding, config system, data layer, individual detector modules, cascade engine, and integration tests.
+Use for detection engine features: project scaffolding, config system, data layer, individual detector modules, cascade engine, integration tests, AND Phase 4 variant detectors (LuxAlgo MSS, LuxAlgo OB, variant cascade integration).
 
 ## Work Procedure
 
@@ -29,7 +29,15 @@ Read the relevant specification documents in this order:
 4. `pipeline/preprocess_data_v2.py` — reference implementation (this is the ground truth code)
 5. `SYNTHETIC_OLYA_METHOD_v0.5.yaml` — L1 pseudocode (canonical spec, consult for algorithm details)
 
-For detector modules: find the relevant function in `preprocess_data_v2.py` and read it completely. The RA module must reproduce its behavior exactly at locked params.
+For a8ra_v1 detector modules: find the relevant function in `preprocess_data_v2.py` and read it completely. The RA module must reproduce its behavior exactly at locked params.
+
+For Phase 4 variant detectors (LuxAlgo MSS, LuxAlgo OB):
+- Read `.factory/research/luxalgo-smc-analysis.md` — full algorithm spec with pseudocode
+- Study existing a8ra_v1 detector as interface template (e.g., `src/ra/detectors/mss.py` for LuxAlgo MSS)
+- Clean-room implementation: follow the algorithm description in the research doc, NOT original PineScript
+- Register as `(primitive_name, "luxalgo_v1")` in the Registry
+- New files go in `src/ra/detectors/` (e.g., `luxalgo_mss.py`, `luxalgo_ob.py`)
+- Do NOT modify existing a8ra_v1 detectors
 
 ### Step 3: Study the Baseline Fixture
 

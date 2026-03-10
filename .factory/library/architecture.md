@@ -105,3 +105,39 @@ Workers writing sweep tests or evaluation assertions should use `close_gate` as 
 ### CLI
 - `run.py` — Phase 1 cascade-only (unchanged)
 - `eval.py` — Phase 2 evaluation (sweep, compare, walk-forward subcommands)
+
+---
+
+## Phase 4 Architecture
+
+### Variant System
+```
+src/ra/
+  detectors/
+    luxalgo_mss.py     # LuxAlgo MSS (BOS/CHoCH) variant
+    luxalgo_ob.py      # LuxAlgo Order Block variant
+  evaluation/
+    label_ingestion.py # Label loading from disk + compare-mode export
+    scoring.py         # Precision/recall/F1 computation
+    perturbation.py    # Config parameter perturbation engine
+    fitness.py         # Fitness scoring + walk-forward stability
+```
+
+### Variant Detectors
+- New variants register as `(primitive_name, "luxalgo_v1")` — e.g., `("mss", "luxalgo_v1")`
+- CascadeEngine accepts `variant_by_primitive` dict for per-primitive variant selection
+- YAML config supports `cascade.variant_by_primitive: {mss: luxalgo_v1, order_block: luxalgo_v1}`
+- LuxAlgo MSS key difference: NO displacement gate (fires on any close beyond swing)
+- LuxAlgo OB key difference: wick-to-wick zones (not body-only), extreme candle anchor
+
+### Label & Scoring Pipeline
+- Labels from two sources: validate-mode disk (`site/data/labels/*.json`) and compare-mode export
+- Canonical format: `{detection_id, primitive, timeframe, label, labelled_by}`
+- Scoring: precision = correct/(correct+noise), recall = correct/(correct+missed)
+- Schema 4F: scored comparison output
+
+### Parameter Search
+- `search.py` — Top-level CLI for overnight parameter search
+- Perturbation: ±10-20% of base, clamped to [min, max], snapped to step
+- Fitness: combines precision+recall, walk-forward stability check on top N
+- Provenance: every iteration recorded with full config + score
