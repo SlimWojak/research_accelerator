@@ -18,6 +18,17 @@ from ra.evaluation.scoring import (
     score_labels,
     session_from_detection_id,
 )
+from ra.evaluation.perturbation import (
+    perturb_config,
+    load_search_space,
+    apply_perturbation_to_config,
+    compute_param_deltas,
+)
+from ra.evaluation.fitness import (
+    compute_fitness,
+    evaluate_candidate,
+    rank_candidates,
+)
 
 __all__ = [
     "EvaluationRunner",
@@ -39,4 +50,11 @@ __all__ = [
     "compute_f1",
     "score_labels",
     "session_from_detection_id",
+    "perturb_config",
+    "load_search_space",
+    "apply_perturbation_to_config",
+    "compute_param_deltas",
+    "compute_fitness",
+    "evaluate_candidate",
+    "rank_candidates",
 ]
