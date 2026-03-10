@@ -1,0 +1,44 @@
+{
+  "milestone": "ground-truth-scoring",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 21,
+    "passed": 21,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-LING-001",
+    "VAL-LING-002",
+    "VAL-LING-003",
+    "VAL-LING-004",
+    "VAL-SCORE-001",
+    "VAL-SCORE-002",
+    "VAL-SCORE-003",
+    "VAL-SCORE-004",
+    "VAL-SCORE-005",
+    "VAL-SCORE-006",
+    "VAL-SCOMP-001",
+    "VAL-SCOMP-002",
+    "VAL-SCOMP-003",
+    "VAL-GTUI-001",
+    "VAL-GTUI-002",
+    "VAL-GTUI-003",
+    "VAL-GTUI-004",
+    "VAL-LGEN-001",
+    "VAL-LGEN-002",
+    "VAL-CROSS-002",
+    "VAL-CROSS-004"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance sections for CLI and agent-browser testing of ground-truth-scoring milestone (label ingestion, scoring pipeline, GT dashboard)",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null
+}

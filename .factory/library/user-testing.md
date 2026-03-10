@@ -25,6 +25,54 @@ Variant UI assertions test compare.html on http://localhost:8100/compare.html
 
 **How to load variant fixture:** compare.html has a fixture switcher. Navigate to compare.html, use the fixture dropdown/switcher to select the variant comparison fixture.
 
+## Flow Validator Guidance: CLI (Phase 4 Ground Truth Scoring)
+
+**Surface:** Terminal commands — Python modules and eval.py CLI
+
+**Isolation rules:**
+- CLI tests are read-only and stateless — no shared state.
+- Use temporary directories for output (e.g., /tmp/gt-test-*).
+- Do NOT modify source code or existing data files.
+- Label data: use existing site/data/labels/ directory for validate-mode labels.
+- Compare-mode labels: use /tmp/test_compare_labels.json fixture.
+
+**Testing approach:**
+1. Import label_ingestion and scoring modules directly in Python
+2. Run eval.py compare commands with --labels flag
+3. Verify output programmatically (JSON parsing, field validation)
+4. Report results in the flow JSON file
+
+**Key files for ground-truth-scoring:**
+- `src/ra/evaluation/label_ingestion.py` — Label ingestion module
+- `src/ra/evaluation/scoring.py` — Scoring pipeline
+- `eval.py` — CLI with compare --labels flag
+- `site/detect.py` — CLI with --start/--end date range support
+- `site/data/labels/` — Validate-mode labels directory (has 2025-W43.json)
+- `/tmp/test_compare_labels.json` — Test compare-mode export labels
+- `configs/locked_baseline.yaml` — Base config
+- `data/eurusd_1m_2024-01-07_to_2024-01-12.csv` — Regression dataset
+
+## Flow Validator Guidance: agent-browser (Phase 4 Ground Truth Dashboard)
+
+**Surface:** Web UI at http://localhost:8100/compare.html
+
+**Isolation rules:**
+- Read-only web UI, no backend state mutation.
+- Each subagent MUST use a unique browser session ID.
+
+**Testing approach:**
+1. Navigate to http://localhost:8100/compare.html
+2. The page loads with default fixture (evaluation_run.json) — NO scoring data → test no-label state
+3. Switch to evaluation_run_variant.json fixture — HAS scoring data → test scored display
+4. Check Stats tab for Ground Truth section with P/R/F1
+5. Check per-primitive breakdown and per-variant scores
+6. Take screenshots as evidence
+7. Check browser console for errors
+
+**Fixture details:**
+- `evaluation_run.json` — NO scoring section (test VAL-GTUI-003 no-label state)
+- `evaluation_run_variant.json` — HAS scoring section with per_primitive P/R/F1 and per_variant data
+
 ## Flow Validator Guidance: CLI (Phase 4 Variant Architecture)
 
 **Surface:** Terminal commands — Python scripts and eval.py CLI
