@@ -95,18 +95,37 @@ def _snap_to_step(value: float, min_val: float, step: float) -> float:
     return snapped
 
 
+def _is_integer_param(
+    base: float, min_val: float, max_val: float, step: Optional[float],
+) -> bool:
+    """Check if a numeric parameter should produce integer values.
+
+    Returns True when step is an integer and all bounds are integers,
+    indicating the parameter lives on an integer grid (e.g., N=3, min=1, max=8, step=1).
+    """
+    if step is None or step <= 0:
+        return False
+    return (
+        step == int(step)
+        and base == int(base)
+        and min_val == int(min_val)
+        and max_val == int(max_val)
+    )
+
+
 def _perturb_numeric(
     rng: random.Random,
     base: float,
     min_val: float,
     max_val: float,
     step: Optional[float] = None,
-) -> float:
+) -> float | int:
     """Perturb a numeric parameter.
 
     Perturbation magnitude: ±10-20% of base value.
     Result clamped to [min_val, max_val].
     If step is provided, snapped to step grid.
+    Returns int when all of base, min, max, step are integer-valued.
 
     Args:
         rng: Random instance for reproducibility.
@@ -116,8 +135,10 @@ def _perturb_numeric(
         step: Optional step size for grid snapping.
 
     Returns:
-        Perturbed value.
+        Perturbed value (int when the parameter is integer-typed).
     """
+    is_int = _is_integer_param(base, min_val, max_val, step)
+
     # Generate perturbation factor: uniform in [-0.20, -0.10] ∪ [0.10, 0.20]
     # This ensures at least 10% perturbation magnitude
     magnitude = rng.uniform(0.10, 0.20)
@@ -134,6 +155,10 @@ def _perturb_numeric(
         perturbed = _snap_to_step(perturbed, min_val, step)
         # Re-clamp after snapping (edge case: snapping pushed beyond bounds)
         perturbed = max(min_val, min(max_val, perturbed))
+
+    # Return int for integer-typed parameters (e.g., N=3, confirmation_window_bars=3)
+    if is_int:
+        return int(round(perturbed))
 
     return perturbed
 

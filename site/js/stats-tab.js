@@ -130,7 +130,10 @@ function renderStatsContent() {
   // ── 5. Pairwise comparison stats ──
   html += renderPairwiseStats(prim, tf);
 
-  // ── 6. Ground Truth / Scored section ──
+  // ── 6. Search provenance (when winner fixture loaded) ──
+  html += renderSearchProvenance();
+
+  // ── 7. Ground Truth / Scored section ──
   html += renderGroundTruthSection();
 
   container.innerHTML = html;
@@ -541,6 +544,42 @@ function deltaColor(v) {
   if (v > 0.01) return 'var(--teal)';
   if (v < -0.01) return 'var(--red)';
   return 'var(--muted)';
+}
+
+/** Render Search Provenance section (shown when a search winner fixture is loaded). */
+function renderSearchProvenance() {
+  const prov = app.evalData ? app.evalData.search_provenance : null;
+  if (!prov) return '';
+
+  const winnerScore = prov.winner_score != null ? prov.winner_score.toFixed(4) : '—';
+  const baselineScore = prov.baseline_score != null ? prov.baseline_score.toFixed(4) : '—';
+  const improvement = prov.improvement != null ? prov.improvement.toFixed(4) : '—';
+  const improvementSign = prov.improvement > 0 ? '+' : '';
+  const improvColor = prov.improvement > 0 ? 'var(--teal)' : prov.improvement < 0 ? 'var(--red)' : 'var(--muted)';
+
+  let html = '<div class="stats-section">';
+  html += '<h3 class="stats-section-title">Search Provenance</h3>';
+  html += '<table class="stats-kv-table" style="width:100%;max-width:500px">';
+  html += '<tbody>';
+  html += `<tr><td>Winner Rank</td><td style="font-weight:600">#${prov.winner_rank || '?'}</td></tr>`;
+  html += `<tr><td>Winner Iteration</td><td>${prov.winner_iteration || '?'} / ${prov.total_iterations || '?'}</td></tr>`;
+  html += `<tr><td>Baseline Fitness</td><td>${baselineScore}</td></tr>`;
+  html += `<tr><td>Winner Fitness</td><td style="font-weight:600">${winnerScore}</td></tr>`;
+  html += `<tr><td>Improvement</td><td style="color:${improvColor};font-weight:600">${improvementSign}${improvement}</td></tr>`;
+
+  // Show config overrides
+  const overrides = prov.winner_config_overrides;
+  if (overrides && Object.keys(overrides).length > 0) {
+    html += `<tr><td colspan="2" style="padding-top:12px;font-weight:600">Parameter Overrides</td></tr>`;
+    for (const [param, value] of Object.entries(overrides)) {
+      const displayVal = typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(4)) : value;
+      html += `<tr><td style="font-size:11px;font-family:var(--mono)">${param}</td><td>${displayVal}</td></tr>`;
+    }
+  }
+
+  html += '</tbody></table>';
+  html += '</div>';
+  return html;
 }
 
 /** Render the full Ground Truth section */

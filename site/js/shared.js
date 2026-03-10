@@ -292,6 +292,7 @@ async function fetchJSON(url) {
 const FIXTURE_FILES = [
   { key: 'default',  url: 'eval/evaluation_run.json',         label: 'Default (Phase 3)' },
   { key: 'variant',  url: 'eval/evaluation_run_variant.json',  label: 'Variant Comparison' },
+  { key: 'winner',   url: 'eval/search_winner.json',           label: 'Search Winner' },
 ];
 
 /**

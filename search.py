@@ -79,24 +79,27 @@ def build_parser() -> argparse.ArgumentParser:
         prog="search.py",
         description=(
             "RA Parameter Search — autonomous config perturbation, "
-            "scoring against ground truth, and candidate ranking."
+            "scoring against ground truth, and candidate ranking.\n\n"
+            "Export winner: --export-winner <search_results.json> produces a "
+            "Schema 4A comparison fixture (baseline vs winner) loadable by compare.html."
         ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
-        "--config", required=True,
+        "--config", required=False, default=None,
         help="Path to base YAML config file (e.g., configs/locked_baseline.yaml)",
     )
     parser.add_argument(
-        "--search-space", required=True,
+        "--search-space", required=False, default=None,
         help="Path to YAML/JSON file defining parameter sweep ranges and bounds",
     )
     parser.add_argument(
-        "--labels", required=True,
+        "--labels", required=False, default=None,
         help="Path to ground truth labels JSON file or labels directory",
     )
     parser.add_argument(
-        "--iterations", required=True, type=_positive_int,
+        "--iterations", required=False, type=_positive_int, default=None,
         help="Number of search iterations (positive integer)",
     )
     parser.add_argument(
@@ -122,6 +125,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--end", default=None,
         help="End date for River data (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--export-winner", default=None, metavar="RESULTS_JSON",
+        help=(
+            "Export top candidate as a comparison fixture (Schema 4A) "
+            "loadable by compare.html. Requires --config and --data/--river."
+        ),
     )
 
     return parser
@@ -557,7 +567,227 @@ def _print_summary(
     )
 
 
+# ── Export winner as comparison fixture ────────────────────────────────────────
+
+
+def export_winner(args: argparse.Namespace) -> int:
+    """Export top candidate from search results as a Schema 4A comparison fixture.
+
+    Reads the search results JSON, loads baseline config and data, runs the
+    cascade with both baseline and winner params, and writes a Schema 4A
+    comparison fixture loadable by compare.html.
+
+    Args:
+        args: Parsed argparse namespace with export_winner, config, data, output.
+
+    Returns:
+        Exit code (0 for success).
+    """
+    import copy
+    import pandas as pd
+    from ra.config.loader import load_config
+    from ra.data.csv_loader import load_csv
+    from ra.data.tf_aggregator import aggregate
+    from ra.evaluation.runner import _build_all_locked_params
+    from ra.engine.cascade import CascadeEngine, build_default_registry
+    from ra.output.json_export import serialize_evaluation_run, write_json
+
+    # ── Load search results ───────────────────────────────────────────────
+
+    results_path = Path(args.export_winner)
+    if not results_path.exists():
+        print(
+            f"Error: Search results file not found: {results_path}",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        search_data = json.loads(results_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in {results_path}: {e}", file=sys.stderr)
+        return 1
+
+    candidates = search_data.get("candidates", [])
+    if not candidates:
+        print("Error: No candidates in search results.", file=sys.stderr)
+        return 1
+
+    # Get top candidate (rank 1)
+    winner = candidates[0]  # Already sorted by rank
+    winner_rank = winner.get("rank", 1)
+    winner_score = winner.get("score", 0.0)
+    winner_iteration = winner.get("iteration", 0)
+    winner_config = winner.get("config", {})
+
+    print(
+        f"Winner: rank {winner_rank}, score {winner_score:.4f}, "
+        f"iteration {winner_iteration}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    # ── Validate required flags ───────────────────────────────────────────
+
+    if not args.config:
+        print("Error: --config is required for --export-winner", file=sys.stderr)
+        return 1
+
+    # ── Load config ───────────────────────────────────────────────────────
+
+    print("Loading config...", file=sys.stderr, flush=True)
+    config = _load_config(args.config)
+
+    # ── Load data ─────────────────────────────────────────────────────────
+
+    print("Loading data...", file=sys.stderr, flush=True)
+    bars_by_tf, bars_1m_count = _load_bars(args)
+
+    # ── Infer date range ──────────────────────────────────────────────────
+
+    ts = pd.to_datetime(bars_by_tf["1m"]["timestamp_ny"])
+    date_range = (ts.min().date().isoformat(), ts.max().date().isoformat())
+
+    # ── Dependency graph ──────────────────────────────────────────────────
+
+    dep_graph = {
+        name: node.upstream
+        for name, node in config.dependency_graph.items()
+    }
+    raw_dep_graph = {
+        name: node.model_dump()
+        for name, node in config.dependency_graph.items()
+    }
+
+    # ── Run baseline cascade ──────────────────────────────────────────────
+
+    print("Running baseline cascade...", file=sys.stderr, flush=True)
+    base_params = _build_all_locked_params(config)
+    registry = build_default_registry()
+    engine_baseline = CascadeEngine(registry, raw_dep_graph, variant="a8ra_v1")
+    results_baseline = engine_baseline.run(bars_by_tf, base_params)
+
+    # ── Run winner cascade ────────────────────────────────────────────────
+
+    print("Running winner cascade...", file=sys.stderr, flush=True)
+    winner_params = copy.deepcopy(base_params)
+
+    # Apply winner's perturbed params
+    for param_path, value in winner_config.items():
+        parts = param_path.split(".")
+        if len(parts) >= 2:
+            primitive = parts[0]
+            if primitive in winner_params:
+                _set_nested_param(winner_params[primitive], parts[1:], value)
+
+    engine_winner = CascadeEngine(registry, raw_dep_graph, variant="a8ra_v1")
+    results_winner = engine_winner.run(bars_by_tf, winner_params)
+
+    # ── Build config names ────────────────────────────────────────────────
+
+    baseline_name = "baseline"
+    winner_name = f"winner_rank{winner_rank}_score{winner_score:.3f}"
+
+    # ── Log detection count comparison ────────────────────────────────────
+
+    check_prims = [
+        "swing_points", "displacement", "fvg", "mss",
+        "order_block", "liquidity_sweep",
+    ]
+    for prim in check_prims:
+        for tf in ["5m", "15m"]:
+            r_b = results_baseline.get(prim, {}).get(tf)
+            r_w = results_winner.get(prim, {}).get(tf)
+            cnt_b = len(r_b.detections) if r_b else 0
+            cnt_w = len(r_w.detections) if r_w else 0
+            diff = "SAME" if cnt_b == cnt_w else f"DIFF({cnt_w - cnt_b:+d})"
+            logger.info(
+                "  %s/%s: baseline=%d, winner=%d  [%s]",
+                prim, tf, cnt_b, cnt_w, diff,
+            )
+
+    # ── Serialize to Schema 4A ────────────────────────────────────────────
+
+    print("Serializing Schema 4A comparison fixture...", file=sys.stderr, flush=True)
+
+    results_by_config = {
+        baseline_name: results_baseline,
+        winner_name: results_winner,
+    }
+
+    search_meta = search_data.get("metadata", {})
+    run_id = (
+        f"search_winner_rank{winner_rank}_"
+        f"score{winner_score:.3f}_"
+        f"iter{winner_iteration}"
+    )
+
+    output = serialize_evaluation_run(
+        results_by_config=results_by_config,
+        dataset_name=str(args.data or "River"),
+        bars_1m_count=bars_1m_count,
+        date_range=date_range,
+        dep_graph=dep_graph,
+        run_id=run_id,
+    )
+
+    # ── Enrich with search provenance ─────────────────────────────────────
+
+    output["search_provenance"] = {
+        "source_results": str(results_path),
+        "winner_rank": winner_rank,
+        "winner_score": winner_score,
+        "winner_iteration": winner_iteration,
+        "winner_config_overrides": winner_config,
+        "baseline_score": search_meta.get("baseline_score"),
+        "total_iterations": search_meta.get("iterations_completed"),
+        "improvement": round(
+            winner_score - search_meta.get("baseline_score", 0.0), 6
+        ),
+    }
+
+    # ── Write output ──────────────────────────────────────────────────────
+
+    output_path = (
+        Path(args.output)
+        if args.output
+        else Path("site/eval/search_winner.json")
+    )
+    write_json(output, output_path)
+
+    print(f"\nWinner fixture exported to: {output_path}", file=sys.stderr, flush=True)
+    print(
+        f"  Configs: {baseline_name}, {winner_name}",
+        file=sys.stderr,
+        flush=True,
+    )
+    print(
+        f"  Load in compare.html via fixture switcher or direct URL",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    return 0
+
+
 # ── Main search loop ─────────────────────────────────────────────────────────
+
+
+def _validate_search_args(args: argparse.Namespace) -> Optional[str]:
+    """Validate that all required args for search mode are present.
+
+    Returns:
+        Error message string if validation fails, None if OK.
+    """
+    if not args.config:
+        return "the following arguments are required: --config"
+    if not args.search_space:
+        return "the following arguments are required: --search-space"
+    if not args.labels:
+        return "the following arguments are required: --labels"
+    if args.iterations is None:
+        return "the following arguments are required: --iterations"
+    return None
 
 
 def main() -> int:
@@ -566,6 +796,17 @@ def main() -> int:
 
     parser = build_parser()
     args = parser.parse_args()
+
+    # ── Export winner mode ────────────────────────────────────────────────
+
+    if args.export_winner:
+        return export_winner(args)
+
+    # ── Search mode: validate required flags ──────────────────────────────
+
+    validation_error = _validate_search_args(args)
+    if validation_error:
+        parser.error(validation_error)
 
     # Resolve output path
     output_path = Path(args.output) if args.output else Path("results/search_results.json")
