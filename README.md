@@ -52,7 +52,7 @@ Results land as one JSON file per primitive per timeframe in `results/`.
 python -m pytest tests/ -v
 ```
 
-631 tests total (378 Phase 1 + 253 Phase 2) covering every detector, the evaluation engine, and a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
+965+ tests total (378 Phase 1 + 587 Phase 2–4) covering every detector, the evaluation engine, variant detectors, ground truth scoring, parameter search, and a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
 
 ### Config
 
@@ -202,6 +202,59 @@ Public deployment: https://slimwojak.github.io/ra-tools/ (read-only, no label pe
 
 ---
 
+## Phase 4: Variant Comparison, Ground Truth Scoring & Parameter Search
+
+External algorithm benchmarking, quantitative ground truth evaluation, and automated parameter optimization.
+
+### 4a. Variant Architecture
+
+Alternative detector implementations that plug into the same CascadeEngine for side-by-side comparison with the baseline a8ra detectors.
+
+| Detector | File | Notes |
+|----------|------|-------|
+| **LuxAlgo MSS** | `src/ra/detectors/luxalgo_mss.py` | BOS/CHoCH detection — no displacement gate. Fires ~2× more structure breaks than a8ra (484 vs 243 on 5-day data). |
+| **LuxAlgo OB** | `src/ra/detectors/luxalgo_ob.py` | Wick-to-wick order block zones. |
+
+- `variant_by_primitive` config field selects which detector implementation runs per primitive
+- `compare.html` variant selector for visual A/B comparison
+- `eval.py --variant-a / --variant-b` flags for CLI comparison
+- 22–37% agreement rate between a8ra and LuxAlgo MSS on same data
+
+### 4b. Ground Truth Scoring
+
+Quantitative evaluation of detection quality against human-labeled ground truth.
+
+- **Label ingestion** from validate-mode disk labels + compare-mode export (`src/ra/evaluation/label_ingestion.py`)
+- **Scoring pipeline**: precision / recall / F1 per primitive, per-session, per-variant (`src/ra/evaluation/scoring.py`)
+- **Scored comparison output** via `eval.py compare --labels <path>`
+- **Ground Truth dashboard** in `compare.html` Stats tab — per-primitive P/R/F1 bars, per-variant scores, delta table
+
+### 4c. Parameter Search
+
+Automated parameter optimization with walk-forward stability validation.
+
+```bash
+python3 search.py --config configs/locked_baseline.yaml \
+                  --search-space configs/search_space.yaml \
+                  --labels site/data/labels/ \
+                  --iterations 50 --seed 42 \
+                  --export-winner results/winner.json
+```
+
+| Component | Description |
+|-----------|-------------|
+| **Perturbation engine** | Numeric ±10–20%, categorical swap, seed-reproducible (`src/ra/evaluation/perturbation.py`) |
+| **Fitness scoring** | P+R composite metric with walk-forward stability check on top candidates (`src/ra/evaluation/fitness.py`) |
+| **Provenance recording** | JSON + human-readable summary of search history and winning config lineage |
+| **Winner export** | Schema 4A comparison fixture loadable by `compare.html` with search provenance display |
+
+### Key Numbers
+
+- **965+ tests** (378 Phase 1 + 587 Phase 2–4), **65 validation assertions** — all passing
+- **3 milestones**: variant-architecture, ground-truth-scoring, parameter-search
+
+---
+
 ## Calibration Visual Bible (`site/`)
 
 Interactive threshold calibration tool for visual review of L1.5 parameter tuning on EURUSD data.
@@ -224,12 +277,12 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── src/ra/                        # Detection engine package
 │   ├── config/                    # YAML loader + Pydantic v2 schema
 │   ├── data/                      # CSV loader, TF aggregator, session tagger
-│   ├── detectors/                 # 12 PrimitiveDetector modules
+│   ├── detectors/                 # 12 PrimitiveDetector modules + LuxAlgo variants
 │   ├── engine/                    # PrimitiveDetector ABC, CascadeEngine, registry
-│   ├── evaluation/                # EvaluationRunner, comparison, cascade stats, walk-forward
+│   ├── evaluation/                # EvaluationRunner, comparison, walk-forward, scoring, perturbation, fitness
 │   └── output/                    # JSON export (schemas 4A–4E)
 │
-├── tests/                         # 631 pytest tests (378 Phase 1 + 253 Phase 2)
+├── tests/                         # 965+ pytest tests (378 Phase 1 + 587 Phase 2–4)
 │   ├── fixtures/baseline_output/  # 32 golden-file regression fixtures
 │   └── test_*.py                  # Per-module + cascade + regression + evaluation suites
 │
@@ -237,7 +290,8 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 │   └── locked_baseline.yaml       # Production config (locked params, dep graph)
 │
 ├── run.py                         # CLI entry point for cascade pipeline (Phase 1)
-├── eval.py                        # CLI entry point for evaluation engine (Phase 2)
+├── eval.py                        # CLI entry point for evaluation engine (Phase 2+4)
+├── search.py                      # CLI entry point for parameter search (Phase 4)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
 ├── site/                          # Static calibration charts + comparison + validation

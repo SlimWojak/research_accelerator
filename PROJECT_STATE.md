@@ -1,5 +1,5 @@
 # PROJECT_STATE.md — a8ra Research Accelerator
-## Checkpoint: 2026-03-09 ~21:00 NY
+## Checkpoint: 2026-03-10
 
 > **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
@@ -25,10 +25,10 @@
 | **Phase 2: Evaluation Runner** | ✅ COMPLETE | Comparison, sweep, walk-forward, cascade stats, JSON schemas 4A–4E, 253 tests |
 | **Phase 3: Comparison Interface** | ✅ COMPLETE | `compare.html` — 4 tabs (Chart, Stats, Heatmap, Walk-Forward), ground truth, lock panel, divergence navigator |
 | **Phase 3.5: Validation Mode** | ✅ COMPLETE | `validate.html` — week-by-week detection browser, 25 weeks EURUSD (Sep 2025–Feb 2026), disk-persisted ground truth |
-| **Phase 4: External Algo Integration** | ⬜ NOT STARTED | PineScript transpilation, external variant benchmarking |
+| **Phase 4: Variant Comparison, Ground Truth Scoring & Parameter Search** | ✅ COMPLETE | LuxAlgo MSS/OB variants, P/R/F1 scoring pipeline, `search.py` parameter optimizer, 65 validation assertions |
 | **Phase 5: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
 
-**Total: 631 tests across 25 test files.**
+**Total: 965+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search).**
 
 ---
 
@@ -65,6 +65,8 @@
 | 10 | **HTFLiquidity** | `htf_liquidity.py` | LOCKED | `min_touches: 2`, per-TF tolerance/rotation/lookback |
 | 11 | **OTE** | `ote.py` | PROPOSED | `fib: [0.618, 0.705, 0.79]`, `kill_zone_gate: true` |
 | 12 | **LiquiditySweep** | `liquidity_sweep.py` | LOCKED | `rejection_wick_pct: 0.40`, `return_window_bars: 1`, multi-source level pooling |
+| 13 | **LuxAlgo MSS** *(variant)* | `luxalgo_mss.py` | VARIANT | BOS/CHoCH, no displacement gate — fires ~2× more than a8ra |
+| 14 | **LuxAlgo OB** *(variant)* | `luxalgo_ob.py` | VARIANT | Wick-to-wick order block zones |
 
 **Dependency graph** (14 nodes including virtual IFVG/BPR):
 - Roots (no upstream): FVG, SwingPoints, Displacement, SessionLiquidity, AsiaRange, ReferenceLevels
@@ -122,6 +124,12 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 | `evaluation/cascade_stats.py` | Cascade funnel, completion rates |
 | `evaluation/walk_forward.py` | `WalkForwardRunner` — sliding-window train/test validation |
 | `evaluation/param_extraction.py` | Config → param combos resolver |
+| `evaluation/label_ingestion.py` | Ground truth label loading from disk/export |
+| `evaluation/scoring.py` | Precision/recall/F1 computation per primitive/session/variant |
+| `evaluation/perturbation.py` | Config perturbation engine (numeric ±10–20%, categorical, seed-reproducible) |
+| `evaluation/fitness.py` | Fitness scoring (P+R) + walk-forward stability + provenance |
+| `detectors/luxalgo_mss.py` | LuxAlgo MSS variant detector (BOS/CHoCH) |
+| `detectors/luxalgo_ob.py` | LuxAlgo OB variant detector (wick-to-wick zones) |
 | `output/json_export.py` | JSON export (schemas 4A–4E) |
 
 ### `site/` — Frontend
@@ -151,6 +159,7 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 | Path | Description |
 |---|---|
 | `locked_baseline.yaml` | Single source of truth — all locked params, sweep ranges, dependency graph, per-TF overrides |
+| `search_space.yaml` | Parameter search space definition for `search.py` |
 
 ### `tests/` — 631 Tests
 
@@ -169,7 +178,8 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 | Path | Description |
 |---|---|
 | `run.py` | CLI entry point for cascade pipeline (Phase 1) |
-| `eval.py` | CLI entry point for evaluation engine — `sweep`, `compare`, `walk-forward` (Phase 2) |
+| `eval.py` | CLI entry point for evaluation engine — `sweep`, `compare`, `walk-forward` + `--variant-a/b`, `--labels` (Phase 2+4) |
+| `search.py` | CLI entry point for parameter search — `--search-space`, `--iterations`, `--export-winner` (Phase 4) |
 | `detect.py` | CLI entry point for validation data generation (Phase 3.5) |
 | `serve.py` | HTTP server with label persistence (Phase 3.5) |
 | `pyproject.toml` | Package metadata (Python ≥3.12, deps) |
@@ -195,26 +205,27 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 ## 9. What's Next
 
 - **Olya explores validation tool** independently via deployed GitHub Pages
-- **Algo tuning** via validation mode + TradingView cross-reference — threshold refinement based on real-market visual review
-- **Future**: External algo integration (Phase 4), regime tagging, forensic case runner
+- **Algo tuning** via parameter search (`search.py`) + validation mode + TradingView cross-reference
+- **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods using ground truth scoring
+- **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
 
 ---
 
 ## 10. Recent Git History
 
 ```
-4822d6e Filter detections to locked thresholds in detect.py
-46e35c5 Update README with Phase 3.5 validation mode documentation
-afac7bf Add user testing validation for validation-mode milestone — all 47 assertions pass
-a75a9de Add scrutiny validation for validation-mode milestone — all 5 features pass, 378 tests pass
-9d1a3d0 Add Validation Mode card to index.html
-379faa4 Add validate-gt.js — ground truth labeling system with disk persistence
-8ad4045 Add validate.html, validate-app.js, validate-chart.js — Phase 3.5 validation mode
-3276bb1 Add serve.py — minimal write server for Phase 3.5 validation mode
-8279a00 Add detect.py CLI batch generator for Phase 3.5 validation mode
-3368e43 Add Phase 3.5 mission infrastructure
+d433dbe Add user testing validation for parameter-search milestone: all 17 assertions pass
+2e4bca6 Add scrutiny validation for parameter-search milestone: all 4 features pass review, 965+ tests pass
+06ef5c6 Add search output ranking and winner export: --export-winner flag produces Schema 4A comparison fixture
+b5c375b Add fitness scoring module: walk-forward stability, provenance recording, human-readable summary
+bca99ad Add dedicated perturbation engine tests: 33 tests covering VAL-PERT-001/002/003
+489e589 Add search.py CLI with argparse, perturbation engine, fitness scoring, and comprehensive tests
+24970fa Add ground-truth-scoring user testing synthesis: all 21 assertions pass
+9032df3 Add ground-truth-scoring scrutiny synthesis: all 4 features pass, Schema 4F documented
+69d0156 Add Ground Truth dashboard to compare.html Stats tab
+fbf5c11 Add scored comparison output: --labels flag in eval.py compare, precision/recall/F1
 ```
 
 ---
 
-*Last updated: 2026-03-09 ~21:00 NY*
+*Last updated: 2026-03-10*
