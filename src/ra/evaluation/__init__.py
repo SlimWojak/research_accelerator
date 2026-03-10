@@ -11,6 +11,13 @@ from ra.evaluation.label_ingestion import (
     normalize_label,
     compute_label_summary,
 )
+from ra.evaluation.scoring import (
+    compute_precision,
+    compute_recall,
+    compute_f1,
+    score_labels,
+    session_from_detection_id,
+)
 
 __all__ = [
     "EvaluationRunner",
@@ -27,4 +34,9 @@ __all__ = [
     "load_all_labels",
     "normalize_label",
     "compute_label_summary",
+    "compute_precision",
+    "compute_recall",
+    "compute_f1",
+    "score_labels",
+    "session_from_detection_id",
 ]
