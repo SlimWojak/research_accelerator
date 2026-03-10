@@ -28,6 +28,10 @@ from ra.evaluation.fitness import (
     compute_fitness,
     evaluate_candidate,
     rank_candidates,
+    walk_forward_stability_check,
+    build_provenance,
+    format_provenance_json,
+    format_summary,
 )
 
 __all__ = [
@@ -57,4 +61,8 @@ __all__ = [
     "compute_fitness",
     "evaluate_candidate",
     "rank_candidates",
+    "walk_forward_stability_check",
+    "build_provenance",
+    "format_provenance_json",
+    "format_summary",
 ]
