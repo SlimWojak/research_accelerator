@@ -1,0 +1,39 @@
+{
+  "featureId": "ground-truth-dashboard",
+  "reviewedAt": "2026-03-10T17:05:00.000Z",
+  "commitId": "69d0156208a15e17ec621062041ce17589ca35a3",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Clean, well-structured implementation of the Ground Truth dashboard section in stats-tab.js. The 265-line addition correctly renders aggregate P/R/F1, per-primitive breakdown with per-variant sub-rows, per-config side-by-side cards, and a color-coded delta table. Data structure access aligns precisely with the scoring section produced by _build_scoring_section() in json_export.py — field names (label_count for global per_primitive, labelled_count/detection_count for per-config scoring, precision_delta/recall_delta/f1_delta for delta) all match their respective data sources. The no-label graceful state shows a clear message with no broken layout. Helper functions (fmtScore, fmtDelta, deltaColor) handle null values defensively. HTML structure is balanced (all opened divs properly closed). CSS uses existing design tokens and class patterns (stats-section, stats-config-card, stats-kv-table, stats-empty) consistent with the rest of the Stats tab. The section is correctly integrated at position 6 in renderStatsContent(), below pairwise comparison.",
+    "issues": [
+      {
+        "file": "site/js/stats-tab.js",
+        "line": 524,
+        "severity": "non_blocking",
+        "description": "fmtScore, fmtDelta, and deltaColor are defined as global functions. While this follows the project's vanilla-JS-global-scope pattern, these are generic names that could theoretically conflict with future modules. A minor naming prefix (e.g., gtFmtScore) would reduce collision risk, but this matches the existing convention used by fmtNum/fmtPct in shared.js."
+      },
+      {
+        "file": "site/js/stats-tab.js",
+        "line": 619,
+        "severity": "non_blocking",
+        "description": "Inline styles are used extensively for padding, font-size, and color in the per-primitive table and delta table HTML. While this works and matches some existing patterns in the file, extracting reusable CSS classes (e.g., .gt-score-cell, .gt-delta-cell) would improve maintainability. Non-blocking since the existing stats-tab.js also uses inline styles in similar ways."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker's skillFeedback.suggestedChanges notes that the skill should mention site/eval/ is gitignored and generated fixture data won't appear in git status. This caused a brief investigation. The ra-comparison-worker SKILL.md Step 3 mentions generating fixture data but doesn't note the gitignore status of site/eval/.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The skill could mention that site/eval/ is gitignored and generated fixture data won't be committed — this caused a brief investigation when the modified fixture didn't appear in git status.'"
+    },
+    {
+      "area": "conventions",
+      "observation": "Schema 4F (scored comparison output) is referenced in scoring.py docstrings and the architecture.md library doc, but is not documented in output_schemas.md alongside Schemas 4A-4E. The ground-truth-dashboard and scored-comparison-output features depend on this schema structure. Adding a Schema 4F section to output_schemas.md would help future workers understand the scoring data contract.",
+      "evidence": "src/ra/evaluation/scoring.py:14 says 'Output follows Schema 4F' but .factory/library/output_schemas.md only documents Schemas 4A through 4E. The actual structure (label_source, per_primitive, aggregate, per_config, delta) is only discoverable by reading the Python source."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The ground-truth-dashboard feature passes review. The implementation correctly adds a Ground Truth section to the Stats tab with aggregate scores, per-primitive P/R/F1 table (with per-variant sub-rows), per-config side-by-side cards, and a color-coded delta table. All data field accesses match the scoring data structure produced by eval.py compare --labels. The no-label graceful state works correctly. The code follows existing project conventions (dark theme, CSS custom properties, global-scope JS functions). Two non-blocking style observations noted (global function names, inline styles). Two shared-state observations: the skill should note site/eval/ gitignore status, and Schema 4F should be documented in output_schemas.md."
+}

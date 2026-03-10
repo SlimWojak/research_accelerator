@@ -371,6 +371,117 @@ Rolling train/test validation results with regime cross-reference.
 
 ---
 
+## Schema 4F: Scored Comparison Output (Ground Truth Scoring)
+
+Ground truth scoring results — precision, recall, F1 per primitive computed from labelled detections. Produced by `score_labels()` in `src/ra/evaluation/scoring.py` and embedded in evaluation run output via `_build_scoring_section()` in `src/ra/output/json_export.py`.
+
+### Global Scoring (from `score_labels()`)
+
+```json
+{
+  "schema_version": "1.0",
+  "scored_at": "2026-03-10T12:00:00+00:00",
+  "label_source": {
+    "validate_count": 50,
+    "compare_count": 12,
+    "total": 62
+  },
+  "per_primitive": {
+    "mss": {
+      "precision": 0.78,
+      "recall": 1.0,
+      "f1": 0.877,
+      "label_count": 30,
+      "correct": 18,
+      "noise": 5,
+      "borderline": 7,
+      "missed": 0,
+      "per_session": {
+        "asia":  { "precision": 0.80, "recall": 1.0, "f1": 0.889, "label_count": 5 },
+        "lokz":  { "precision": 0.75, "recall": 1.0, "f1": 0.857, "label_count": 8 },
+        "nyokz": { "precision": 0.82, "recall": 1.0, "f1": 0.901, "label_count": 12 },
+        "other": { "precision": null, "recall": null, "f1": null, "label_count": 0 }
+      },
+      "per_variant": {
+        "a8ra_v1":   { "precision": 0.85, "recall": 1.0, "f1": 0.919, "label_count": 15 },
+        "luxalgo_v1": { "precision": 0.71, "recall": 1.0, "f1": 0.830, "label_count": 15 }
+      }
+    }
+  },
+  "aggregate": {
+    "precision": 0.78,
+    "recall": 1.0,
+    "f1": 0.877,
+    "total_labels": 62
+  }
+}
+```
+
+**Key notes:**
+- `precision = correct / (correct + noise)` — BORDERLINE excluded from denominator.
+- `recall = correct / (correct + missed)` — missed defaults to 0 when only labelled detections exist (recall = 1.0).
+- `f1 = 2 * (precision * recall) / (precision + recall)` — null when either P or R is null.
+- `per_session` uses 4 categories: `asia`, `lokz`, `nyokz`, `other` — matching `session_tagger.py`.
+- `per_variant` only present when `variant_map` is provided to `score_labels()`.
+- Returns `null` for precision/recall/f1 when no CORRECT/NOISE labels exist for a primitive.
+
+### Embedded in Evaluation Run (via `_build_scoring_section()`)
+
+When `eval.py compare --labels` is used, the top-level evaluation output gains a `scoring` key:
+
+```json
+{
+  "schema_version": "1.0",
+  "scoring": {
+    "schema_version": "1.0",
+    "scored_at": "2026-03-10T12:00:00+00:00",
+    "label_source": { "validate_count": 50, "compare_count": 12, "total": 62 },
+    "per_primitive": { "...": "same as global scoring above" },
+    "aggregate": { "precision": 0.78, "recall": 1.0, "f1": 0.877, "total_labels": 62 },
+    "per_config": {
+      "config_a": {
+        "mss": {
+          "precision": 0.85, "recall": 1.0, "f1": 0.919,
+          "labelled_count": 15, "detection_count": 44,
+          "correct": 11, "noise": 2, "borderline": 2
+        }
+      },
+      "config_b": {
+        "mss": {
+          "precision": 0.71, "recall": 1.0, "f1": 0.830,
+          "labelled_count": 15, "detection_count": 58,
+          "correct": 10, "noise": 4, "borderline": 1
+        }
+      }
+    },
+    "delta": {
+      "per_primitive": {
+        "mss": {
+          "precision_delta": -0.14,
+          "recall_delta": 0.0,
+          "f1_delta": -0.089,
+          "detection_count_a": 44,
+          "detection_count_b": 58
+        }
+      },
+      "aggregate": {
+        "precision_delta": -0.14,
+        "recall_delta": 0.0,
+        "f1_delta": -0.089
+      }
+    }
+  }
+}
+```
+
+**Key notes:**
+- `per_config` keys match the config names from the evaluation run.
+- Per-config scoring uses `labelled_count` (labels matched to this config) and `detection_count` (total detections from results).
+- `delta = config_b - config_a` for precision, recall, f1. Null when either side is null.
+- Without `--labels` or with empty labels, the `scoring` key is absent entirely (clean degradation).
+
+---
+
 ## Quick Reference: Schema Nesting
 
 ```
@@ -383,7 +494,14 @@ Schema 4A (top-level envelope)
 │   └── divergence_index[]                             (per-detection diff)
 ├── grid_sweep            → Schema 4D (parameter stability heatmap)
 │   └── grid[][]                                       (row-major 2D metric values)
-└── walk_forward          → Schema 4E (walk-forward validation)
-    ├── windows[]                                      (per-window results)
-    └── summary                                        (aggregate verdict)
+├── walk_forward          → Schema 4E (walk-forward validation)
+│   ├── windows[]                                      (per-window results)
+│   └── summary                                        (aggregate verdict)
+└── scoring               → Schema 4F (ground truth scoring, when --labels used)
+    ├── per_primitive.{p}.{precision,recall,f1}        (global scores)
+    ├── per_primitive.{p}.per_session                   (per-session breakdown)
+    ├── per_primitive.{p}.per_variant                   (per-variant breakdown)
+    ├── per_config.{name}.{p}.{precision,recall,f1}    (per-config scores)
+    ├── delta.per_primitive.{p}                         (B - A deltas)
+    └── aggregate                                       (overall P/R/F1)
 ```

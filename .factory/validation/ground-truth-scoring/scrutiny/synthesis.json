@@ -1,0 +1,107 @@
+{
+  "milestone": "ground-truth-scoring",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "python3 -m pytest tests/ -v --tb=short -x -q --no-header -p no:cacheprovider", "exitCode": 0, "detail": "834 passed in 868.60s" },
+    "typecheck": { "passed": true, "command": "", "exitCode": null, "detail": "No typecheck command configured in services.yaml" },
+    "lint": { "passed": true, "command": "", "exitCode": null, "detail": "No lint command configured in services.yaml" }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "nonBlockingIssues": [
+    {
+      "featureId": "label-ingestion-module",
+      "severity": "non_blocking",
+      "description": "_VALID_LABELS set defined but never referenced in label_ingestion.py (dead constant). Labels with unexpected values could pass through normalization unchecked."
+    },
+    {
+      "featureId": "label-ingestion-module",
+      "severity": "non_blocking",
+      "description": "normalize_label() calls raw['label'].upper() without verifying raw['label'] is a string. AttributeError/TypeError would propagate on None/int values."
+    },
+    {
+      "featureId": "scoring-pipeline",
+      "severity": "non_blocking",
+      "description": "Unused import: Counter from collections imported but never used in scoring.py."
+    },
+    {
+      "featureId": "scoring-pipeline",
+      "severity": "non_blocking",
+      "description": "Dead constant: _SCORING_LABELS set defined but never referenced in scoring.py."
+    },
+    {
+      "featureId": "scoring-pipeline",
+      "severity": "non_blocking",
+      "description": "Session field naming inconsistency: scoring.py uses per_session/per_variant while comparison.py uses by_session. Both are correct for their respective schemas but could confuse future workers."
+    },
+    {
+      "featureId": "scored-comparison-output",
+      "severity": "non_blocking",
+      "description": "Import inside loop body in json_export.py _score_per_config(): 'from ra.evaluation.scoring import ...' placed inside for loop. Should be moved to function/module level."
+    },
+    {
+      "featureId": "scored-comparison-output",
+      "severity": "non_blocking",
+      "description": "Weak test assertion in test_delta_precision_value: only checks key existence, not actual delta value."
+    },
+    {
+      "featureId": "scored-comparison-output",
+      "severity": "non_blocking",
+      "description": "test_compare_parser_has_labels_arg creates its own argparse parser rather than testing eval.py's actual parser."
+    },
+    {
+      "featureId": "scored-comparison-output",
+      "severity": "non_blocking",
+      "description": "Hardcoded absolute path in detect.py tests. Non-portable across machines."
+    },
+    {
+      "featureId": "scored-comparison-output",
+      "severity": "non_blocking",
+      "description": "Dead MISSED-counting code path in _score_per_config(): label_ingestion never produces MISSED labels, so missed count is always 0."
+    },
+    {
+      "featureId": "ground-truth-dashboard",
+      "severity": "non_blocking",
+      "description": "fmtScore, fmtDelta, deltaColor are defined as global functions with generic names in stats-tab.js. Minor collision risk with future modules."
+    },
+    {
+      "featureId": "ground-truth-dashboard",
+      "severity": "non_blocking",
+      "description": "Extensive inline styles used in Ground Truth section HTML. Extracting CSS classes would improve maintainability."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Added Schema 4F documentation to .factory/library/output_schemas.md — documents the scored comparison output format (global scoring, per-config scoring, delta computation) produced by score_labels() and _build_scoring_section(). Updated Quick Reference nesting diagram.",
+      "sourceFeature": "scoring-pipeline, scored-comparison-output, ground-truth-dashboard"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Update ra-eval-worker skill TDD step: note that for integration features built on top of previous workers' completed modules, tests may pass immediately in the red phase because the underlying modules are already implemented. The strict 'tests must fail' requirement should allow for this scenario.",
+      "evidence": "scored-comparison-output worker feedback: the skill's Step 3 says tests must FAIL (red), but integration features wiring existing scoring.py + label_ingestion.py may have tests that pass immediately.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills",
+      "suggestion": "Update ra-comparison-worker skill Step 3: note that site/eval/ directory is gitignored and generated fixture data won't appear in git status. Workers should not be confused when modified fixtures don't show in git diff.",
+      "evidence": "ground-truth-dashboard worker feedback: 'The skill could mention that site/eval/ is gitignored and generated fixture data won't be committed — this caused a brief investigation.'",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Session field naming inconsistency (per_session in scoring.py vs by_session in comparison.py) should be standardized",
+      "reason": "Both are correct for their respective schemas (4B uses by_session, 4F uses per_session). Downstream consumers (stats-tab.js) already handle both conventions correctly. Changing either would break existing code for no functional gain."
+    }
+  ],
+  "previousRound": null
+}

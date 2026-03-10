@@ -1,0 +1,45 @@
+{
+  "featureId": "scoring-pipeline",
+  "reviewedAt": "2026-03-10T12:30:00.000Z",
+  "commitId": "367546d43c22afd80b5a1fe4b109093b60352b00",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid implementation of the scoring pipeline. All 6 VAL-SCORE assertions (001-006) are covered by 48 well-structured tests. Precision/recall/F1 formulas are correct, BORDERLINE exclusion is properly handled, session classification matches the 4-category convention from comparison.py, per-variant breakdown works correctly with optional variant_map, and Schema 4F output structure is complete. Two minor dead code issues (unused import, unused constant) are the only findings — no blocking issues.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/scoring.py",
+        "line": 19,
+        "severity": "non_blocking",
+        "description": "Unused import: `Counter` from collections is imported but never used. Only `defaultdict` is needed."
+      },
+      {
+        "file": "src/ra/evaluation/scoring.py",
+        "line": 38,
+        "severity": "non_blocking",
+        "description": "Dead constant: `_SCORING_LABELS = {\"CORRECT\", \"NOISE\", \"MISSED\"}` is defined but never referenced anywhere in the module."
+      },
+      {
+        "file": "src/ra/evaluation/scoring.py",
+        "line": 291,
+        "severity": "non_blocking",
+        "description": "Field naming discrepancy with build plan: VAL-SCORE-009 specifies `by_session`/`by_variant` as field names (matching comparison.py's `by_session` convention for Schema 4B/4C), but the implementation uses `per_session`/`per_variant`. The feature description and the downstream consumer (stats-tab.js line 640) both use `per_session`/`per_variant`, so this is consistent with actual usage — but the build plan assertion text is out of sync."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Schema 4F is referenced in AGENTS.md, architecture.md, and the build plan but is NOT formally documented in `.factory/library/output_schemas.md` (which only defines Schemas 4A-4E). Future workers looking up Schema 4F in the canonical schema reference will find nothing. The actual structure is: {schema_version, scored_at, label_source: {validate_count, compare_count, total}, per_primitive: {name: {precision, recall, f1, label_count, correct, noise, borderline, missed, per_session, per_variant}}, aggregate: {precision, recall, f1, total_labels}}.",
+      "evidence": ".factory/library/output_schemas.md ends after Schema 4E. The scoring.py docstring and build_plan/VALIDATION_ASSERTIONS_M2_GROUND_TRUTH_SCORING.md VAL-SCORE-009 both reference Schema 4F but neither links to a formal schema definition."
+    },
+    {
+      "area": "conventions",
+      "observation": "Session field naming inconsistency between modules: comparison.py (Schema 4B/4C) uses `by_session` and `by_session_agreement`, while scoring.py (Schema 4F) uses `per_session`. Similarly, build plan VAL-SCORE-009 says `by_session`/`by_variant` but the implementation uses `per_session`/`per_variant`. The downstream consumer stats-tab.js uses both conventions (by_session for 4B, per_variant for 4F), so both are correct for their respective schemas, but the inconsistency could confuse future workers.",
+      "evidence": "comparison.py:93 uses `by_session`, scoring.py:291 uses `per_session`, stats-tab.js:209 reads `by_session`, stats-tab.js:640 reads `per_variant`"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The scoring-pipeline feature is well-implemented with correct precision/recall/F1 computation, proper BORDERLINE exclusion, session classification matching the 4-category convention, and comprehensive test coverage (48 tests). Two minor dead code issues (unused Counter import and unused _SCORING_LABELS constant) are non-blocking. The main shared state gap is that Schema 4F is not formally documented in output_schemas.md, and there is a minor naming inconsistency (per_session vs by_session) between the scoring module and the existing comparison module. Overall: PASS."
+}

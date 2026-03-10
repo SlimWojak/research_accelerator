@@ -1,0 +1,57 @@
+{
+  "featureId": "scored-comparison-output",
+  "reviewedAt": "2026-03-10T12:30:00Z",
+  "commitId": "fbf5c11",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Feature is well-implemented. eval.py compare --labels flag correctly integrates scoring into comparison output via _build_scoring_section() in json_export.py. Graceful degradation without labels is clean (no scoring key at all). Delta computation between configs works correctly via _compute_scoring_delta(). detect.py date range support was pre-existing. 23 tests cover all 5 validation assertions (VAL-SCOMP-001/002/003, VAL-LGEN-001/002). 838 lines added across 3 files. No regressions (834 tests pass).",
+    "issues": [
+      {
+        "file": "src/ra/output/json_export.py",
+        "line": 438,
+        "severity": "non_blocking",
+        "description": "Import inside loop body: 'from ra.evaluation.scoring import compute_precision, compute_recall, compute_f1' is placed inside the 'for primitive in sorted(by_primitive.keys())' loop in _score_per_config(). Python caches imports so this works, but it should be moved to the function top level or module level for clarity and convention."
+      },
+      {
+        "file": "tests/test_scored_comparison.py",
+        "line": 380,
+        "severity": "non_blocking",
+        "description": "Weak assertion in test_delta_precision_value: the test docstring calculates expected delta of +0.5 (Config A precision=0.5, Config B precision=1.0), but the actual assertion only checks 'precision_delta in disp_delta' (key existence). Should assert the actual value with pytest.approx(0.5) to truly verify delta correctness."
+      },
+      {
+        "file": "tests/test_scored_comparison.py",
+        "line": 560,
+        "severity": "non_blocking",
+        "description": "test_compare_parser_has_labels_arg creates its own argparse parser rather than testing eval.py's actual parser. While it verifies the module loads without error, the argparse test is independent and doesn't confirm that the real eval.py CLI accepts --labels. A stronger test would invoke eval.py's actual parser or check the parser actions."
+      },
+      {
+        "file": "tests/test_scored_comparison.py",
+        "line": 494,
+        "severity": "non_blocking",
+        "description": "Hardcoded absolute path '/Users/echopeso/research_accelerator/site/detect.py' in TestDetectDateRanges tests. Non-portable across machines. Consistent with repo patterns but could use a relative path derived from __file__ or project root."
+      },
+      {
+        "file": "src/ra/output/json_export.py",
+        "line": 417,
+        "severity": "non_blocking",
+        "description": "_score_per_config counts MISSED labels (line 437) but label_ingestion._VALID_LABELS = {'CORRECT', 'NOISE', 'BORDERLINE'} excludes MISSED. Labels loaded via load_all_labels() will never include MISSED entries, making the missed count code path effectively dead code. Not a bug (recall correctly defaults to 1.0 for labelled-only data), but the MISSED counting adds misleading complexity."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md references 'Schema 4F (new): scored comparison output with precision/recall/F1' but output_schemas.md does not document Schema 4F. New scored comparison output structure (scoring.per_primitive, scoring.aggregate, scoring.per_config, scoring.delta) has no formal schema spec for future workers or the comparison UI to reference.",
+      "evidence": "AGENTS.md line in 'Coding Conventions > Output Schemas' section mentions Schema 4F. .factory/library/output_schemas.md only documents Schemas 4A-4E. The actual scoring section structure is only defined implicitly in json_export.py _build_scoring_section()."
+    },
+    {
+      "area": "skills",
+      "observation": "Worker feedback suggests TDD red phase may not apply when building on previous workers' completed modules. The skill's Step 3 says 'Run tests — they must FAIL (red). If they pass, the test is wrong.' But for integration features like scored-comparison-output that wire together existing scoring.py + label_ingestion.py, tests may pass immediately because the underlying modules are already implemented.",
+      "evidence": "Handoff skillFeedback.suggestedChanges: 'The skill could note that for features built on top of previous workers output... the TDD red phase may not apply if tests already pass because the implementation was done by previous workers as part of their feature scope.'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Feature passes review. eval.py compare --labels flag correctly integrates ground truth scoring into comparison output with per-config P/R/F1, delta computation, and clean degradation without labels. 23 tests cover all 5 validation assertions. Five non-blocking issues identified: import placement in loop, one weak test assertion, one test that doesn't exercise the real parser, hardcoded paths in detect tests, and dead MISSED-counting code path. One shared state gap: Schema 4F is referenced but not documented in output_schemas.md."
+}

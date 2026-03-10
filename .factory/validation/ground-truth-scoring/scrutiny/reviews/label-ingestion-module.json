@@ -1,0 +1,34 @@
+{
+  "featureId": "label-ingestion-module",
+  "reviewedAt": "2026-03-10T17:00:00.000Z",
+  "commitId": "05e0079",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Solid, well-structured implementation that meets all feature requirements. Module correctly loads validate-mode disk labels (site/data/labels/*.json) and compare-mode export labels (ground_truth_labels.json), normalizes to canonical 5-field format {detection_id, primitive, timeframe, label, labelled_by}, deduplicates with validate-mode precedence, and computes summary counts. Error handling is thorough (malformed JSON, missing dirs, non-array files, missing required fields). 36 tests cover all VAL-LING assertions plus edge cases. Full suite 763/763 green. Two minor non-blocking observations noted.",
+    "issues": [
+      {
+        "file": "src/ra/evaluation/label_ingestion.py",
+        "line": 28,
+        "severity": "non_blocking",
+        "description": "_VALID_LABELS set is defined but never referenced anywhere in the module. It was likely intended for validation in normalize_label() or _is_valid_raw_label() but was not wired up. As a result, labels with unexpected values (e.g., 'MAYBE') would pass through normalization unchecked. In practice this is harmless since the UI only emits CORRECT/NOISE/BORDERLINE, but the dead constant should either be used or removed."
+      },
+      {
+        "file": "src/ra/evaluation/label_ingestion.py",
+        "line": 44,
+        "severity": "non_blocking",
+        "description": "normalize_label() calls raw['label'].upper() without verifying that raw['label'] is a string. The _is_valid_raw_label() guard only checks key presence, not value types. If a malformed label has 'label': None or 'label': 123, an AttributeError/TypeError would propagate. This is an unlikely edge case given the controlled input sources, but a type check or try/except would be more defensive."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "No gaps observed. Worker followed TDD procedure (red-green), used pathlib, type hints, logging, and pytest fixtures consistent with project conventions documented in AGENTS.md.",
+      "evidence": "Transcript shows test creation before implementation. Code uses Path types, logging module, Counter from collections — all consistent with existing evaluation modules (comparison.py, runner.py)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The label ingestion module is a clean, well-tested implementation that covers all 9 expected behaviors from the feature spec. The 5 public functions (normalize_label, load_validate_labels, load_compare_labels, load_all_labels, compute_label_summary) are correctly exported via __init__.py. The module handles both real data formats (validate-mode 7-field disk JSON with direction/forex_day/labeled_at, and compare-mode 5-field export JSON with labelled_date) by stripping to canonical 5 fields. Edge cases (malformed JSON, missing fields, empty dirs, None paths, non-array files, non-JSON files) are all gracefully handled. Two non-blocking issues: an unused _VALID_LABELS constant and a missing type guard on raw['label'] before calling .upper(). Neither affects correctness for actual production inputs."
+}
