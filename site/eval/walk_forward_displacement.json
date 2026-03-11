@@ -2,128 +2,23 @@
   "schema_version": "1.0",
   "config": "current_locked",
   "primitive": "displacement",
-  "metric": "cascade_to_mss_rate",
+  "metric": "detection_count",
   "window_config": {
     "train_months": 3,
     "test_months": 1,
     "step_months": 1
   },
-  "windows": [
-    {
-      "window_index": 0,
-      "train_period": { "start": "2024-01-01", "end": "2024-03-31" },
-      "test_period": { "start": "2024-04-01", "end": "2024-04-30" },
-      "train_metric": 0.74,
-      "test_metric": 0.71,
-      "delta": -0.03,
-      "delta_pct": -4.1,
-      "regime_tags": ["trending", "normal_vol"],
-      "passed": true
-    },
-    {
-      "window_index": 1,
-      "train_period": { "start": "2024-02-01", "end": "2024-04-30" },
-      "test_period": { "start": "2024-05-01", "end": "2024-05-31" },
-      "train_metric": 0.72,
-      "test_metric": 0.68,
-      "delta": -0.04,
-      "delta_pct": -5.6,
-      "regime_tags": ["trending"],
-      "passed": true
-    },
-    {
-      "window_index": 2,
-      "train_period": { "start": "2024-03-01", "end": "2024-05-31" },
-      "test_period": { "start": "2024-06-01", "end": "2024-06-30" },
-      "train_metric": 0.70,
-      "test_metric": 0.65,
-      "delta": -0.05,
-      "delta_pct": -7.1,
-      "regime_tags": ["ranging", "normal_vol"],
-      "passed": true
-    },
-    {
-      "window_index": 3,
-      "train_period": { "start": "2024-04-01", "end": "2024-06-30" },
-      "test_period": { "start": "2024-07-01", "end": "2024-07-31" },
-      "train_metric": 0.71,
-      "test_metric": 0.42,
-      "delta": -0.29,
-      "delta_pct": -40.8,
-      "regime_tags": ["ranging", "low_vol", "summer"],
-      "passed": false
-    },
-    {
-      "window_index": 4,
-      "train_period": { "start": "2024-05-01", "end": "2024-07-31" },
-      "test_period": { "start": "2024-08-01", "end": "2024-08-31" },
-      "train_metric": 0.65,
-      "test_metric": 0.61,
-      "delta": -0.04,
-      "delta_pct": -6.2,
-      "regime_tags": ["ranging"],
-      "passed": true
-    },
-    {
-      "window_index": 5,
-      "train_period": { "start": "2024-06-01", "end": "2024-08-31" },
-      "test_period": { "start": "2024-09-01", "end": "2024-09-30" },
-      "train_metric": 0.63,
-      "test_metric": 0.66,
-      "delta": 0.03,
-      "delta_pct": 4.8,
-      "regime_tags": ["trending", "high_vol"],
-      "passed": true
-    },
-    {
-      "window_index": 6,
-      "train_period": { "start": "2024-07-01", "end": "2024-09-30" },
-      "test_period": { "start": "2024-10-01", "end": "2024-10-31" },
-      "train_metric": 0.66,
-      "test_metric": 0.69,
-      "delta": 0.03,
-      "delta_pct": 4.5,
-      "regime_tags": ["trending", "normal_vol"],
-      "passed": true
-    },
-    {
-      "window_index": 7,
-      "train_period": { "start": "2024-08-01", "end": "2024-10-31" },
-      "test_period": { "start": "2024-11-01", "end": "2024-11-30" },
-      "train_metric": 0.68,
-      "test_metric": 0.64,
-      "delta": -0.04,
-      "delta_pct": -5.9,
-      "regime_tags": ["trending"],
-      "passed": true
-    },
-    {
-      "window_index": 8,
-      "train_period": { "start": "2024-09-01", "end": "2024-11-30" },
-      "test_period": { "start": "2024-12-01", "end": "2024-12-31" },
-      "train_metric": 0.67,
-      "test_metric": 0.62,
-      "delta": -0.05,
-      "delta_pct": -7.5,
-      "regime_tags": ["ranging", "holiday"],
-      "passed": true
-    }
-  ],
+  "windows": [],
   "summary": {
-    "windows_total": 9,
-    "windows_passed": 8,
-    "windows_failed": 1,
-    "mean_test_metric": 0.631,
-    "std_test_metric": 0.087,
-    "mean_delta": -0.049,
-    "worst_window": {
-      "window_index": 3,
-      "test_period": "Jul 2024",
-      "test_metric": 0.42,
-      "regime": "low_vol_summer"
-    },
-    "degradation_flag": true,
+    "windows_total": 0,
+    "windows_passed": 0,
+    "windows_failed": 0,
+    "mean_test_metric": 0.0,
+    "std_test_metric": 0.0,
+    "mean_delta": 0.0,
+    "worst_window": null,
+    "degradation_flag": false,
     "pass_threshold_pct": 15.0,
-    "verdict": "CONDITIONALLY_STABLE"
+    "verdict": "STABLE"
   }
 }
