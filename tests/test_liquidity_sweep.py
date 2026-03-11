@@ -47,7 +47,7 @@ def sweep_baseline_15m():
 def _get_locked_params():
     """Return locked sweep params matching config."""
     return {
-        "return_window_bars": 1,
+        "return_window_bars": {"per_tf": {"1m": 2, "5m": 3, "15m": 4}},
         "rejection_wick_pct": {"locked": 0.40},
         "min_breach_pips": {"per_tf": {"1m": 0.5, "5m": 0.5, "15m": 1.0}},
         "min_reclaim_pips": {"per_tf": {"1m": 0.5, "5m": 0.5, "15m": 1.0}},
@@ -77,9 +77,7 @@ def _get_locked_params():
             "displacement_after_forward": 5,
         },
         "delayed_sweep": {
-            "enabled": True,
-            "min_delayed_wick_pct": 0.30,
-            "max_delay_bars": 1,
+            "enabled": False,
         },
     }
 

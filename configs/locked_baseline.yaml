@@ -268,7 +268,11 @@ primitives:
     variant: a8ra_v1
     status: LOCKED
     params:
-      return_window_bars: 1
+      return_window_bars:
+        per_tf:
+          1m: 2
+          5m: 3
+          15m: 4
       rejection_wick_pct:
         locked: 0.40
         sweep_range: [0.30, 0.35, 0.40, 0.45, 0.50]
@@ -305,9 +309,7 @@ primitives:
         displacement_before_lookback: 10
         displacement_after_forward: 5
       delayed_sweep:
-        enabled: true
-        min_delayed_wick_pct: 0.30
-        max_delay_bars: 1
+        enabled: false
 
   htf_liquidity:
     variant: a8ra_v1

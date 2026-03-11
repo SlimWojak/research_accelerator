@@ -25,7 +25,7 @@ let _divInitialized = false;
  */
 function getSessionFromTime(timeStr) {
   if (!timeStr) return 'other';
-  const clean = timeStr.replace(/-05:00$/, '').replace(/\+00:00$/, '');
+  const clean = timeStr.replace(/[+-]\d{2}:\d{2}$/, '');
   const match = clean.match(/T(\d{2}):(\d{2})/);
   if (!match) return 'other';
   const hour = parseInt(match[1], 10);
@@ -41,7 +41,7 @@ function getSessionFromTime(timeStr) {
  */
 function fmtDivTime(timeStr) {
   if (!timeStr) return '—';
-  const clean = timeStr.replace(/-05:00$/, '').replace(/\+00:00$/, '');
+  const clean = timeStr.replace(/[+-]\d{2}:\d{2}$/, '');
   const d = new Date(clean + (clean.includes('Z') ? '' : 'Z'));
   if (isNaN(d.getTime())) return timeStr.slice(0, 16);
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -144,7 +144,7 @@ function computeDivCounts(entries) {
 function scrollChartToTime(timeStr) {
   if (!app.chart) return;
 
-  const ts = toTS(timeStr.replace(/-05:00$/, '').replace(/\+00:00$/, ''));
+  const ts = toTS(timeStr.replace(/[+-]\d{2}:\d{2}$/, ''));
   if (ts == null) return;
 
   const timeScale = app.chart.timeScale();

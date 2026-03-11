@@ -129,9 +129,8 @@ function filterDetectionsByDay(detections, dayKey) {
  * Returns the bar time (already toTS'd) or null.
  */
 function findNearestCandleTime(detTime, candleTimeSet, candleTimes) {
-  // Try exact match first (strip timezone suffix if any)
-  const cleanTime = detTime.includes('-05:00') ? detTime.replace('-05:00', '') :
-                    detTime.includes('+00:00') ? detTime.replace('+00:00', '') : detTime;
+  // Strip any timezone offset (e.g. -04:00, -05:00, +00:00) to get naive NY time
+  const cleanTime = detTime.replace(/[+-]\d{2}:\d{2}$/, '');
   const ts = toTS(cleanTime);
   if (ts != null && candleTimeSet.has(ts)) return ts;
   // Find nearest candle time (within 15 min)
@@ -175,19 +174,56 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
       const dayDets = filterDetectionsByDay(tfData.detections, app.day);
 
       for (const det of dayDets) {
+        // Filter displacement to VALID+ grades only (WEAK/None are tagged but not display-worthy)
+        if (prim === 'displacement') {
+          const grade = det.properties && det.properties.quality_grade;
+          if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
+        }
+
+        // CONSUMED records are audit trail only — never render as markers
+        const detType = det.properties && det.properties.type;
+        if (prim === 'liquidity_sweep' && detType === 'CONSUMED') continue;
+
+        // Split liquidity_sweep continuations into their own toggle
+        const isContinuation = (prim === 'liquidity_sweep' && detType === 'CONTINUATION');
+        const effectivePrim = isContinuation ? 'sweep_continuation' : prim;
+
         const barTime = findNearestCandleTime(det.time, candleTimesSet, candleTimesArr);
         if (barTime == null) continue;
 
-        const isBullish = det.direction === 'bullish';
+        const dir = det.direction;
+        let position, shape, markerColor, text;
+
+        if (prim === 'swing_points') {
+          const isHigh = dir === 'high';
+          position = isHigh ? 'aboveBar' : 'belowBar';
+          shape = isHigh ? 'arrowDown' : 'arrowUp';
+          markerColor = isHigh ? colors.light : colors.base;
+          text = isHigh ? 'SWH' : 'SWL';
+        } else if (isContinuation) {
+          // Continuations: square markers, muted color
+          const isBullish = dir === 'bullish' || dir === 'high';
+          position = isBullish ? 'belowBar' : 'aboveBar';
+          shape = 'square';
+          markerColor = isBullish ? colors.base : colors.light;
+          text = 'C';
+        } else {
+          const isBullish = dir === 'bullish' || dir === 'high';
+          position = isBullish ? 'belowBar' : 'aboveBar';
+          shape = isBullish ? 'arrowUp' : 'arrowDown';
+          markerColor = isBullish ? colors.base : colors.light;
+          text = '';
+        }
+
         markers.push({
           time: barTime,
-          position: isBullish ? 'belowBar' : 'aboveBar',
-          shape: isBullish ? 'arrowUp' : 'arrowDown',
-          color: isBullish ? colors.base : colors.light,
+          position,
+          shape,
+          color: markerColor,
           size: 1,
-          text: '',
+          text,
           _config: configName,
-          _primitive: prim,
+          _primitive: effectivePrim,
           _detId: det.id,
         });
       }
@@ -359,7 +395,9 @@ function getDetectionCountsForDay() {
     }
 
     for (const prim of PRIMITIVES) {
-      const primData = configData.per_primitive[prim];
+      // sweep_continuation is a virtual primitive — counts from liquidity_sweep CONTINUATION type
+      const dataPrim = (prim === 'sweep_continuation') ? 'liquidity_sweep' : prim;
+      const primData = configData.per_primitive[dataPrim];
       if (!primData || !primData.per_tf) {
         result[configName][prim] = 0;
         continue;
@@ -369,7 +407,20 @@ function getDetectionCountsForDay() {
         result[configName][prim] = 0;
         continue;
       }
-      const dayDets = filterDetectionsByDay(tfData.detections, app.day);
+      let dayDets = filterDetectionsByDay(tfData.detections, app.day);
+      if (prim === 'displacement') {
+        dayDets = dayDets.filter(det => {
+          const g = det.properties && det.properties.quality_grade;
+          return g === 'VALID' || g === 'STRONG' || g === 'DECISIVE';
+        });
+      } else if (prim === 'sweep_continuation') {
+        dayDets = dayDets.filter(det => det.properties && det.properties.type === 'CONTINUATION');
+      } else if (prim === 'liquidity_sweep') {
+        dayDets = dayDets.filter(det => {
+          const t = det.properties && det.properties.type;
+          return t !== 'CONTINUATION' && t !== 'CONSUMED';
+        });
+      }
       result[configName][prim] = dayDets.length;
     }
   }
@@ -690,7 +741,7 @@ function renderVariantSelector(container) {
     html += '<select id="fixture-select" class="variant-select">';
     for (const f of fixtures) {
       const selected = f.key === (app.activeVariantFixture || 'default') ? ' selected' : '';
-      html += `<option value="${f.key}"${selected}>${f.label}</option>`;
+      html += `<option value="${f.key}"${selected}>${f.displayLabel || f.label}</option>`;
     }
     html += '</select>';
   }

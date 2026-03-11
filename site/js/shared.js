@@ -35,10 +35,90 @@ const app = {
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
 
-/* Day keys for the 5-day EURUSD dataset (Jan 8-12, 2024) */
-const DAY_KEYS = ['2024-01-08','2024-01-09','2024-01-10','2024-01-11','2024-01-12'];
-const DAY_LABELS = ['Mon Jan 8','Tue Jan 9','Wed Jan 10','Thu Jan 11','Fri Jan 12'];
-const DAYS = DAY_KEYS.map((k, i) => ({ key: k, label: DAY_LABELS[i] }));
+/* Day keys / labels — derived dynamically from fixture data via deriveDaysFromData() */
+let DAY_KEYS = [];
+let DAY_LABELS = [];
+let DAYS = [];
+
+/**
+ * Derive DAY_KEYS, DAY_LABELS, and DAYS from loaded evaluation data.
+ * Scans all detections across configs/primitives/tfs for unique forex_day values,
+ * filters to weekdays (Mon–Fri), sorts chronologically, and formats labels.
+ * Also sets app.day to the second day key (matching the original default index)
+ * or the first if only one day exists.
+ */
+function deriveDaysFromData(evalData) {
+  if (!evalData || !evalData.per_config) return;
+
+  const SHORT_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Collect unique forex_day values from all detections
+  const fdSet = new Set();
+  for (const cfgData of Object.values(evalData.per_config)) {
+    const pp = cfgData.per_primitive;
+    if (!pp) continue;
+    for (const primData of Object.values(pp)) {
+      const ptf = primData.per_tf;
+      if (!ptf) continue;
+      for (const tfData of Object.values(ptf)) {
+        const dets = tfData.detections;
+        if (!dets) continue;
+        for (const det of dets) {
+          const fd = (det.tags && det.tags.forex_day) ||
+                     (det.properties && det.properties.forex_day);
+          if (fd) fdSet.add(fd);
+        }
+      }
+    }
+  }
+
+  // Sort chronologically
+  let days = Array.from(fdSet).sort();
+
+  // Filter to weekdays (Mon=1 .. Fri=5). Parse "YYYY-MM-DD" treating as UTC.
+  days = days.filter(d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    const dow = dt.getUTCDay(); // 0=Sun, 6=Sat
+    return dow >= 1 && dow <= 5;
+  });
+
+  if (days.length === 0) {
+    // Fallback: generate weekdays from dataset.range
+    const range = (evalData.dataset && evalData.dataset.range) || [];
+    if (range.length === 2) {
+      const start = new Date(range[0] + 'T00:00:00Z');
+      const end = new Date(range[1] + 'T00:00:00Z');
+      for (let dt = new Date(start); dt <= end; dt.setUTCDate(dt.getUTCDate() + 1)) {
+        const dow = dt.getUTCDay();
+        if (dow >= 1 && dow <= 5) {
+          days.push(dt.toISOString().slice(0, 10));
+        }
+      }
+    }
+  }
+
+  // Build DAY_KEYS, DAY_LABELS, DAYS
+  DAY_KEYS = days;
+  DAY_LABELS = days.map(d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    const dow = SHORT_DAYS[dt.getUTCDay()];
+    const mon = SHORT_MONTHS[dt.getUTCMonth()];
+    const day = dt.getUTCDate();
+    return `${dow} ${mon} ${day}`;
+  });
+  DAYS = DAY_KEYS.map((k, i) => ({ key: k, label: DAY_LABELS[i] }));
+
+  // Set app.day to a valid day from the derived set.
+  // Default to second day (index 1) if available, matching the original pattern.
+  if (DAYS.length > 0) {
+    const currentDayValid = DAY_KEYS.includes(app.day);
+    if (!currentDayValid) {
+      app.day = DAY_KEYS.length > 1 ? DAY_KEYS[1] : DAY_KEYS[0];
+    }
+  }
+}
 
 const SES_LABELS = {
   asia:  'Asia 19:00–00:00',
@@ -47,9 +127,48 @@ const SES_LABELS = {
   other: 'Other',
 };
 
-const PRIMITIVES = [
+/**
+ * Primitives available for the chart. Derived dynamically from fixture data
+ * via derivePrimitivesFromData(). Only includes primitives that have per-TF
+ * detections (excludes global-only like asia_range, reference_levels).
+ */
+let PRIMITIVES = [
   'displacement', 'fvg', 'mss', 'order_block', 'liquidity_sweep'
 ];
+
+const TF_KEYS = new Set(['1m', '5m', '15m']);
+
+function derivePrimitivesFromData(evalData) {
+  if (!evalData || !evalData.per_config) return;
+  const primSet = new Set();
+  let hasContinuations = false;
+  for (const cfgData of Object.values(evalData.per_config)) {
+    const pp = cfgData.per_primitive;
+    if (!pp) continue;
+    for (const [prim, primData] of Object.entries(pp)) {
+      const ptf = primData.per_tf;
+      if (!ptf) continue;
+      for (const tf of Object.keys(ptf)) {
+        if (TF_KEYS.has(tf) && ptf[tf].detections && ptf[tf].detections.length > 0) {
+          primSet.add(prim);
+          // Check if liquidity_sweep has any CONTINUATION type detections
+          if (prim === 'liquidity_sweep' && !hasContinuations) {
+            hasContinuations = ptf[tf].detections.some(
+              d => d.properties && d.properties.type === 'CONTINUATION'
+            );
+          }
+          break;
+        }
+      }
+    }
+  }
+  if (hasContinuations) {
+    primSet.add('sweep_continuation');
+  }
+  if (primSet.size > 0) {
+    PRIMITIVES = Array.from(primSet).sort();
+  }
+}
 
 /* ── Multi-Config Color Palettes ───────────────────────────────────────────── */
 
@@ -273,7 +392,8 @@ function hideError() {
  */
 async function fetchJSON(url) {
   try {
-    const resp = await fetch(url);
+    const sep = url.includes('?') ? '&' : '?';
+    const resp = await fetch(url + sep + '_cb=' + Date.now());
     if (!resp.ok) {
       console.warn(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
       return null;
@@ -290,9 +410,10 @@ async function fetchJSON(url) {
  * Each entry has a url and label. Populated during boot.
  */
 const FIXTURE_FILES = [
-  { key: 'default',  url: 'eval/evaluation_run.json',         label: 'Default (Phase 3)' },
-  { key: 'variant',  url: 'eval/evaluation_run_variant.json',  label: 'Variant Comparison' },
-  { key: 'winner',   url: 'eval/search_winner.json',           label: 'Search Winner' },
+  { key: 'default',      url: 'eval/evaluation_run.json',              label: 'Default (Phase 3)' },
+  { key: 'calibration',  url: 'eval/evaluation_run_calibration.json',  label: 'Calibration Week (Olya Locked)' },
+  { key: 'variant',      url: 'eval/evaluation_run_variant.json',      label: 'Variant Comparison' },
+  { key: 'winner',       url: 'eval/search_winner.json',               label: 'Search Winner' },
 ];
 
 /**
@@ -355,6 +476,10 @@ async function switchFixture(fixtureKey) {
   app.activeVariantFixture = fixtureKey;
   app.selectedConfigs = [...(data.configs || [])];
 
+  // Re-derive day tabs and primitives from the new fixture data
+  deriveDaysFromData(data);
+  derivePrimitivesFromData(data);
+
   // Re-extract variant info
   extractVariantInfo();
 
@@ -374,21 +499,37 @@ async function switchFixture(fixtureKey) {
 
 /**
  * Probe which fixture files are actually available on disk.
- * Marks unavailable fixtures so the UI can hide them.
+ * Fetches each fixture to check availability and extract date range for display.
  */
 async function probeAvailableFixtures() {
-  for (const fixture of FIXTURE_FILES) {
-    if (fixture.key === 'default') {
-      fixture.available = true; // Already loaded
-      continue;
+  // Default fixture is already loaded — extract its date range
+  const defaultFixture = FIXTURE_FILES.find(f => f.key === 'default');
+  if (defaultFixture && app.evalData) {
+    defaultFixture.available = true;
+    const range = app.evalData.dataset && app.evalData.dataset.range;
+    if (range && range.length === 2) {
+      defaultFixture.displayLabel = `${defaultFixture.label} [${range[0]} → ${range[1]}]`;
     }
+  }
+
+  // Probe other fixtures with a full fetch to extract date range
+  const others = FIXTURE_FILES.filter(f => f.key !== 'default');
+  await Promise.all(others.map(async (fixture) => {
     try {
-      const resp = await fetch(fixture.url, { method: 'HEAD' });
-      fixture.available = resp.ok;
+      const data = await fetchJSON(fixture.url);
+      if (data && data.schema_version && data.per_config) {
+        fixture.available = true;
+        const range = data.dataset && data.dataset.range;
+        if (range && range.length === 2) {
+          fixture.displayLabel = `${fixture.label} [${range[0]} → ${range[1]}]`;
+        }
+      } else {
+        fixture.available = false;
+      }
     } catch {
       fixture.available = false;
     }
-  }
+  }));
 }
 
 /**
@@ -485,6 +626,10 @@ async function bootApp() {
 
     // Set selected configs from evalData
     app.selectedConfigs = [...(evalData.configs || [])];
+
+    // Derive day tabs and primitives from fixture data
+    deriveDaysFromData(evalData);
+    derivePrimitivesFromData(evalData);
 
     // Extract variant info from loaded data
     extractVariantInfo();

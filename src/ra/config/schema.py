@@ -4,7 +4,7 @@ Mirrors the structure of build_plan/01_RUNTIME_CONFIG_SCHEMA.yaml.
 Uses extra='forbid' to reject unknown parameters.
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -371,12 +371,16 @@ class QualifiedSweepConfig(StrictModel):
 
 class DelayedSweepConfig(StrictModel):
     enabled: bool
-    min_delayed_wick_pct: float
-    max_delay_bars: int
+    min_delayed_wick_pct: Optional[float] = None
+    max_delay_bars: Optional[int] = None
+
+
+class ReturnWindowConfig(StrictModel):
+    per_tf: dict[str, int]
 
 
 class LiquiditySweepParams(StrictModel):
-    return_window_bars: int
+    return_window_bars: Union[int, ReturnWindowConfig]
     rejection_wick_pct: dict[str, Any]
     min_breach_pips: dict[str, Any]
     min_reclaim_pips: dict[str, Any]

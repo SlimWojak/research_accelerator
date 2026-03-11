@@ -8,13 +8,14 @@ Implements:
   - swing_points (promoted swings: strength>=10, height>=10pip, current forex day)
 - Temporal gating per source (canonical rules from advisory synthesis)
 - Level merge within 1.0 pip tolerance
-- Detection: breach + close back within return_window + rejection wick >= 40%
-- Continuation: breach > 1.5x ATR (no reclaim)
-- Qualified sweep: displacement before (10 bars) or after (5 bars)
-- Delayed sweep: bar+1 reclaim, wick >= 30%
+- Detection: breach + close back within per-TF return window + rejection wick >= 40%
+  Return windows: M1=2, M5=3, M15=4
+  Reclaim checked BEFORE ATR cap — a large breach that rejects is a sweep, not breakout
+- Continuation: breach > 1.5x ATR AND no reclaim within window (true breakout)
+- Qualified sweep: displacement tag (before 10 bars / after 5 bars), NOT a gate
 
 Reference: pipeline/preprocess_data_v2.py detect_liquidity_sweeps(),
-           qualify_sweeps(), detect_delayed_sweeps()
+           qualify_sweeps()
 """
 
 import logging
@@ -467,23 +468,23 @@ def _detect_base_sweeps(
     params: dict,
     tf_label: str,
 ) -> tuple:
-    """Detect base sweeps and continuations (return window = 1,2,3).
+    """Detect sweeps and continuations using per-TF return window.
+
+    Return windows: M1=2, M5=3, M15=4 (configurable via params).
+    Wick rejection (0.40) checked across the full window (best wick of any bar).
 
     Returns:
-        (results_dict, swept_levels_set)
+        (sweeps_list, continuations_list, swept_levels_set)
     """
-    return_windows = [1, 2, 3]
     min_breach_cfg = params.get("min_breach_pips", {}).get("per_tf", {})
     min_reclaim_cfg = params.get("min_reclaim_pips", {}).get("per_tf", {})
 
-    # TF floors
     tf_floors = {
         "1m": {"min_breach": 0.5, "min_reclaim": 0.5},
         "5m": {"min_breach": 0.5, "min_reclaim": 0.5},
         "15m": {"min_breach": 1.0, "min_reclaim": 1.0},
     }
     floors = tf_floors.get(tf_label, tf_floors["5m"])
-    # Override from config if available
     if tf_label in min_breach_cfg:
         floors["min_breach"] = min_breach_cfg[tf_label]
     if tf_label in min_reclaim_cfg:
@@ -495,11 +496,23 @@ def _detect_base_sweeps(
     MIN_REJ_WICK = params.get("rejection_wick_pct", {}).get("locked", 0.40)
     SWING_STALENESS = params.get("level_sources", {}).get("promoted_swing", {}).get("staleness_bars", 20)
 
-    max_rw = max(return_windows)
-    results = {rw: {"sweeps": [], "continuations": []} for rw in return_windows}
+    # Per-TF return window
+    rw_cfg = params.get("return_window_bars", {})
+    if isinstance(rw_cfg, dict) and "per_tf" in rw_cfg:
+        rw_map = rw_cfg["per_tf"]
+    elif isinstance(rw_cfg, dict):
+        rw_map = rw_cfg
+    else:
+        rw_map = {}
+    rw_defaults = {"1m": 2, "5m": 3, "15m": 4}
+    RETURN_WINDOW = rw_map.get(tf_label, rw_defaults.get(tf_label, 3))
+
+    sweeps = []
+    continuations = []
     cont_seen = set()
     swept_levels = set()
     n = len(bars)
+    tf_minutes = {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5)
 
     for i in range(n):
         row = bars.iloc[i]
@@ -509,8 +522,7 @@ def _detect_base_sweeps(
         if atr_val is None:
             continue
         max_breach = MAX_ATR_MULT * atr_val
-        candle_range = row["high"] - row["low"]
-        bar_time = bar_time_str(row["timestamp_ny"], {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5))
+        bar_time = bar_time_str(row["timestamp_ny"], tf_minutes)
 
         for lv in levels:
             lv_key = (lv["id"], lv["side"])
@@ -531,17 +543,83 @@ def _detect_base_sweeps(
                 if vf and bar_time < vf:
                     continue
 
-            # BEARISH sweep candidate
+            # BEARISH sweep candidate (wick above high-side level)
             if lv["side"] == "high" and row["high"] > lv["price"]:
                 breach = row["high"] - lv["price"]
                 if breach < MIN_BREACH:
                     continue
+
+                # Check reclaim FIRST — a reclaim within the window means
+                # it's a sweep regardless of breach size. A large breach
+                # that rejects quickly is a strong sweep, not a breakout.
+                closed_back = False
+                return_bar_idx = i
+                for j in range(i, min(i + RETURN_WINDOW, n)):
+                    if bars.iloc[j]["close"] < lv["price"]:
+                        closed_back = True
+                        return_bar_idx = j
+                        break
+
+                if closed_back:
+                    actual_rw = return_bar_idx - i + 1
+                    confirm_bar = bars.iloc[return_bar_idx]
+                    reclaim = lv["price"] - confirm_bar["close"]
+                    if reclaim < MIN_RECLAIM:
+                        pass
+                    else:
+                        # Wick rejection — geometry depends on pattern type
+                        if actual_rw == 1:
+                            # Same-bar: standard pin bar upper wick test
+                            cr = row["high"] - row["low"]
+                            best_rej = (row["high"] - max(row["open"], row["close"])) / cr if cr > 0 else 0.0
+                        else:
+                            # Multi-bar: synthetic wick across the window
+                            # (peak above level) / (peak above level + reclaim below level)
+                            peak_above = row["high"] - lv["price"]
+                            reclaim_below = lv["price"] - confirm_bar["close"]
+                            total_range = peak_above + reclaim_below
+                            best_rej = reclaim_below / total_range if total_range > 0 else 0.0
+                        if best_rej >= MIN_REJ_WICK:
+                            confirm_time = bar_time_str(confirm_bar["timestamp_ny"], tf_minutes)
+                            session_name = map_session(confirm_bar.get("session", "other"))
+                            kill_zone = (
+                                "LOKZ" if session_name == "lokz"
+                                else "NYOKZ" if session_name == "nyokz"
+                                else "NONE"
+                            )
+                            sweeps.append({
+                                "type": "SWEEP",
+                                "direction": "BEARISH",
+                                "bar_index": return_bar_idx,
+                                "time": confirm_time,
+                                "breach_bar": i,
+                                "breach_time": bar_time,
+                                "level_price": lv["price"],
+                                "source": lv["source"],
+                                "source_id": lv["id"],
+                                "tf_class": lv.get("tf_class", "LTF"),
+                                "sources_merged": lv.get("sources_merged", [lv["source"]]),
+                                "touch_count": lv.get("touch_count", 1),
+                                "breach_pips": round(breach / PIP, 1),
+                                "reclaim_pips": round(reclaim / PIP, 1),
+                                "rejection_wick_pct": round(best_rej, 3),
+                                "return_window_used": actual_rw,
+                                "return_bar": return_bar_idx,
+                                "forex_day": row.get("forex_day", ""),
+                                "session": session_name,
+                                "kill_zone": kill_zone,
+                                "tf": tf_label,
+                            })
+                            swept_levels.add(lv_key)
+                            continue
+
+                # No valid reclaim — check ATR cap for continuation
                 if breach > max_breach:
                     cont_key = (lv["id"], "BEARISH")
                     if cont_key not in cont_seen:
                         cont_seen.add(cont_key)
                         session_name = map_session(row.get("session", "other"))
-                        results[1]["continuations"].append({
+                        continuations.append({
                             "type": "CONTINUATION",
                             "direction": "BEARISH",
                             "bar_index": i,
@@ -553,71 +631,80 @@ def _detect_base_sweeps(
                             "forex_day": row.get("forex_day", ""),
                             "tf": tf_label,
                         })
-                    continue
-
-                for rw in return_windows:
-                    closed_back = False
-                    return_bar_idx = i
-                    for j in range(i, min(i + rw, n)):
-                        if bars.iloc[j]["close"] < lv["price"]:
-                            closed_back = True
-                            return_bar_idx = j
-                            break
-                    if not closed_back:
-                        continue
-
-                    actual_rw = return_bar_idx - i + 1
-                    confirm_bar = bars.iloc[return_bar_idx]
-                    reclaim = lv["price"] - confirm_bar["close"]
-                    if reclaim < MIN_RECLAIM:
-                        continue
-                    rej_pct = 0.0
-                    if actual_rw == 1 and candle_range > 0:
-                        rej_wick = row["high"] - max(row["open"], row["close"])
-                        rej_pct = rej_wick / candle_range
-                        if rej_pct < MIN_REJ_WICK:
-                            continue
-
-                    session_name = map_session(row.get("session", "other"))
-                    kill_zone = (
-                        "LOKZ" if session_name == "lokz"
-                        else "NYOKZ" if session_name == "nyokz"
-                        else "NONE"
-                    )
-                    results[rw]["sweeps"].append({
-                        "type": "SWEEP",
-                        "direction": "BEARISH",
-                        "bar_index": i,
-                        "time": bar_time,
-                        "level_price": lv["price"],
-                        "source": lv["source"],
-                        "source_id": lv["id"],
-                        "tf_class": lv.get("tf_class", "LTF"),
-                        "sources_merged": lv.get("sources_merged", [lv["source"]]),
-                        "touch_count": lv.get("touch_count", 1),
-                        "breach_pips": round(breach / PIP, 1),
-                        "reclaim_pips": round(reclaim / PIP, 1),
-                        "rejection_wick_pct": round(rej_pct, 3),
-                        "return_window_used": actual_rw,
-                        "return_bar": return_bar_idx,
-                        "forex_day": row.get("forex_day", ""),
-                        "session": session_name,
-                        "kill_zone": kill_zone,
-                        "tf": tf_label,
-                    })
                     swept_levels.add(lv_key)
 
-            # BULLISH sweep candidate
+            # BULLISH sweep candidate (wick below low-side level)
             if lv["side"] == "low" and row["low"] < lv["price"]:
                 breach = lv["price"] - row["low"]
                 if breach < MIN_BREACH:
                     continue
+
+                # Check reclaim FIRST — reclaim within window = sweep,
+                # regardless of breach size.
+                closed_back = False
+                return_bar_idx = i
+                for j in range(i, min(i + RETURN_WINDOW, n)):
+                    if bars.iloc[j]["close"] > lv["price"]:
+                        closed_back = True
+                        return_bar_idx = j
+                        break
+
+                if closed_back:
+                    actual_rw = return_bar_idx - i + 1
+                    confirm_bar = bars.iloc[return_bar_idx]
+                    reclaim = confirm_bar["close"] - lv["price"]
+                    if reclaim < MIN_RECLAIM:
+                        pass
+                    else:
+                        if actual_rw == 1:
+                            cr = row["high"] - row["low"]
+                            best_rej = (min(row["open"], row["close"]) - row["low"]) / cr if cr > 0 else 0.0
+                        else:
+                            peak_below = lv["price"] - row["low"]
+                            reclaim_above = confirm_bar["close"] - lv["price"]
+                            total_range = peak_below + reclaim_above
+                            best_rej = reclaim_above / total_range if total_range > 0 else 0.0
+                        if best_rej >= MIN_REJ_WICK:
+                            confirm_time = bar_time_str(confirm_bar["timestamp_ny"], tf_minutes)
+                            session_name = map_session(confirm_bar.get("session", "other"))
+                            kill_zone = (
+                                "LOKZ" if session_name == "lokz"
+                                else "NYOKZ" if session_name == "nyokz"
+                                else "NONE"
+                            )
+                            sweeps.append({
+                                "type": "SWEEP",
+                                "direction": "BULLISH",
+                                "bar_index": return_bar_idx,
+                                "time": confirm_time,
+                                "breach_bar": i,
+                                "breach_time": bar_time,
+                                "level_price": lv["price"],
+                                "source": lv["source"],
+                                "source_id": lv["id"],
+                                "tf_class": lv.get("tf_class", "LTF"),
+                                "sources_merged": lv.get("sources_merged", [lv["source"]]),
+                                "touch_count": lv.get("touch_count", 1),
+                                "breach_pips": round(breach / PIP, 1),
+                                "reclaim_pips": round(reclaim / PIP, 1),
+                                "rejection_wick_pct": round(best_rej, 3),
+                                "return_window_used": actual_rw,
+                                "return_bar": return_bar_idx,
+                                "forex_day": row.get("forex_day", ""),
+                                "session": session_name,
+                                "kill_zone": kill_zone,
+                                "tf": tf_label,
+                            })
+                            swept_levels.add(lv_key)
+                            continue
+
+                # No valid reclaim — check ATR cap for continuation
                 if breach > max_breach:
                     cont_key = (lv["id"], "BULLISH")
                     if cont_key not in cont_seen:
                         cont_seen.add(cont_key)
                         session_name = map_session(row.get("session", "other"))
-                        results[1]["continuations"].append({
+                        continuations.append({
                             "type": "CONTINUATION",
                             "direction": "BULLISH",
                             "bar_index": i,
@@ -629,259 +716,201 @@ def _detect_base_sweeps(
                             "forex_day": row.get("forex_day", ""),
                             "tf": tf_label,
                         })
-                    continue
-
-                for rw in return_windows:
-                    closed_back = False
-                    return_bar_idx = i
-                    for j in range(i, min(i + rw, n)):
-                        if bars.iloc[j]["close"] > lv["price"]:
-                            closed_back = True
-                            return_bar_idx = j
-                            break
-                    if not closed_back:
-                        continue
-
-                    actual_rw = return_bar_idx - i + 1
-                    confirm_bar = bars.iloc[return_bar_idx]
-                    reclaim = confirm_bar["close"] - lv["price"]
-                    if reclaim < MIN_RECLAIM:
-                        continue
-                    rej_pct = 0.0
-                    if actual_rw == 1 and candle_range > 0:
-                        rej_wick = min(row["open"], row["close"]) - row["low"]
-                        rej_pct = rej_wick / candle_range
-                        if rej_pct < MIN_REJ_WICK:
-                            continue
-
-                    session_name = map_session(row.get("session", "other"))
-                    kill_zone = (
-                        "LOKZ" if session_name == "lokz"
-                        else "NYOKZ" if session_name == "nyokz"
-                        else "NONE"
-                    )
-                    results[rw]["sweeps"].append({
-                        "type": "SWEEP",
-                        "direction": "BULLISH",
-                        "bar_index": i,
-                        "time": bar_time,
-                        "level_price": lv["price"],
-                        "source": lv["source"],
-                        "source_id": lv["id"],
-                        "tf_class": lv.get("tf_class", "LTF"),
-                        "sources_merged": lv.get("sources_merged", [lv["source"]]),
-                        "touch_count": lv.get("touch_count", 1),
-                        "breach_pips": round(breach / PIP, 1),
-                        "reclaim_pips": round(reclaim / PIP, 1),
-                        "rejection_wick_pct": round(rej_pct, 3),
-                        "return_window_used": actual_rw,
-                        "return_bar": return_bar_idx,
-                        "forex_day": row.get("forex_day", ""),
-                        "session": session_name,
-                        "kill_zone": kill_zone,
-                        "tf": tf_label,
-                    })
                     swept_levels.add(lv_key)
 
-    return results, swept_levels
+    return sweeps, continuations, swept_levels
 
 
-def _qualify_sweeps(
-    sweep_results: dict,
-    displacements: list,
-    params: dict,
-) -> dict:
-    """Tag each sweep with qualified_sweep if displacement context exists."""
-    lookback = params.get("qualified_sweep", {}).get("displacement_before_lookback", 10)
-    forward = params.get("qualified_sweep", {}).get("displacement_after_forward", 5)
-    disp_key = "atr1.5_br0.6"
-
-    disp_by_idx = {}
-    for d in displacements:
-        q = d.get("qualifies", {}).get(disp_key, {})
-        if q.get("and") or q.get("and_close") or q.get("override"):
-            disp_by_idx[d["bar_index"]] = d
-
-    for rw_key, rw_data in sweep_results.items():
-        if not isinstance(rw_data, dict) or "sweeps" not in rw_data:
-            continue
-        for sw in rw_data["sweeps"]:
-            si = sw["bar_index"]
-            sw_dir = sw["direction"]
-            qualified = False
-            qual_type = None
-
-            # A: displacement BEFORE sweep moving INTO level
-            opp_dir = "bearish" if sw_dir == "BULLISH" else "bullish"
-            for j in range(max(0, si - lookback), si):
-                d = disp_by_idx.get(j)
-                if d and d["direction"] == opp_dir:
-                    qualified = True
-                    qual_type = "DISP_BEFORE"
-                    break
-
-            # B: displacement AFTER sweep moving AWAY from level
-            if not qualified:
-                same_dir = sw_dir.lower()
-                for j in range(si, si + forward + 1):
-                    d = disp_by_idx.get(j)
-                    if d and d["direction"] == same_dir:
-                        qualified = True
-                        qual_type = "DISP_AFTER"
-                        break
-
-            sw["qualified_sweep"] = qualified
-            sw["qualification_type"] = qual_type
-
-    return sweep_results
-
-
-def _detect_delayed_sweeps(
+def _consume_dwelling_levels(
     bars: pd.DataFrame,
     levels: list,
-    atrs: list,
-    base_sweeps: list,
     swept_levels: set,
+    displacements: list,
     params: dict,
     tf_label: str,
 ) -> list:
-    """Detect 2-bar delayed sweeps where same-bar sweep did NOT fire."""
-    tf_floors = {
-        "1m": {"min_breach": 0.5, "min_reclaim": 0.5},
-        "5m": {"min_breach": 0.5, "min_reclaim": 0.5},
-        "15m": {"min_breach": 1.0, "min_reclaim": 1.0},
-    }
-    floors = tf_floors.get(tf_label, tf_floors["5m"])
-    MIN_BREACH = floors["min_breach"] * PIP
-    MIN_RECLAIM = floors["min_reclaim"] * PIP
-    MAX_ATR_MULT = params.get("max_sweep_size_atr_mult", 1.5)
-    MIN_DELAYED_WICK = params.get("delayed_sweep", {}).get("min_delayed_wick_pct", 0.30)
-    SWING_STALENESS = params.get("level_sources", {}).get("promoted_swing", {}).get("staleness_bars", 20)
+    """Consume levels where price breaches and dwells beyond without reclaiming.
 
-    base_keys = set()
-    for sw in base_sweeps:
-        base_keys.add((sw["bar_index"], sw["source_id"], sw["direction"]))
+    After sweep/continuation detection, some levels are breached but fall through
+    both paths (breach too small for continuation, reclaim too thin for sweep).
+    This pass catches those by checking for consecutive closes beyond the level.
 
-    tf_minutes = {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5)
-    delayed = []
+    A displacement override cancels consumption: if an opposite-direction
+    displacement fires after the breach, the level stays alive (rejection signal).
+
+    Returns list of CONSUMED records for audit trail.
+    """
+    dwell_cfg = params.get("dwell_consumption", {})
+    dwell_counts = dwell_cfg.get("consecutive_closes", {})
+    dwell_defaults = {"1m": 3, "5m": 3, "15m": 2}
+    DWELL_BARS = dwell_counts.get(tf_label, dwell_defaults.get(tf_label, 2))
+
+    min_reclaim_cfg = params.get("min_reclaim_pips", {}).get("per_tf", {})
+    reclaim_defaults = {"1m": 0.5, "5m": 0.5, "15m": 1.0}
+    MIN_RECLAIM_DWELL = min_reclaim_cfg.get(
+        tf_label, reclaim_defaults.get(tf_label, 0.5)
+    ) * PIP
+    MIN_REJ_WICK = params.get("rejection_wick_pct", {}).get("locked", 0.40)
+
+    disp_key = "atr1.5_br0.6"
+    disp_by_idx = {}
+    for d in displacements:
+        q = d.get("qualifies", {}).get(disp_key, {})
+        if q.get("and") or q.get("and_close") or q.get("override"):
+            disp_by_idx[d["bar_index"]] = d
+
+    MIN_BREACH = 0.5 * PIP
     n = len(bars)
+    tf_minutes = {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5)
+    consumed = []
 
-    for i in range(n - 1):
-        row = bars.iloc[i]
-        row1 = bars.iloc[i + 1]
-        if row.get("is_ghost", False) or row1.get("is_ghost", False):
+    for lv in levels:
+        lv_key = (lv["id"], lv["side"])
+        if lv_key in swept_levels:
             continue
-        atr_val = atrs[i] if i < len(atrs) and atrs[i] else None
-        if atr_val is None:
-            continue
-        max_breach = MAX_ATR_MULT * atr_val
-        bar_time = bar_time_str(row["timestamp_ny"], tf_minutes)
-        bar1_time = bar_time_str(row1["timestamp_ny"], tf_minutes)
-        cr = row["high"] - row["low"]
-        cr1 = row1["high"] - row1["low"]
 
-        for lv in levels:
-            lv_key = (lv["id"], lv["side"])
+        vf = lv.get("valid_from", "")
+
+        for i in range(n):
             if lv_key in swept_levels:
+                break
+            row = bars.iloc[i]
+            if row.get("is_ghost", False):
+                continue
+            bar_time = bar_time_str(row["timestamp_ny"], tf_minutes)
+            if vf and bar_time < vf:
                 continue
 
-            # Temporal gate (same as base sweeps)
-            if lv["source"] == "PROMOTED_SWING":
-                if lv["bar_index"] >= i or (i - lv["bar_index"]) > SWING_STALENESS:
-                    continue
-                bar_fd = row.get("forex_day", "")
-                if bar_fd and lv.get("forex_day", "") and lv["forex_day"] != bar_fd:
-                    continue
-            else:
-                vf = lv.get("valid_from", "")
-                if vf and bar_time < vf:
-                    continue
-
-            # BEARISH: bar.high > level, bar.close >= level (no same-bar return)
-            if lv["side"] == "high" and row["high"] > lv["price"] and row["close"] >= lv["price"]:
+            if lv["side"] == "high" and row["high"] > lv["price"]:
                 breach = row["high"] - lv["price"]
-                if breach < MIN_BREACH or breach > max_breach:
+                if breach < MIN_BREACH:
                     continue
-                if (i, lv["id"], "BEARISH") in base_keys:
+                # Start condition: no qualifying sweep would fire for this breach.
+                # A reclaim must pass MIN_RECLAIM + wick rejection to be valid.
+                sweep_would_fire = False
+                for j in range(i, min(i + DWELL_BARS + 2, n)):
+                    cb = bars.iloc[j]
+                    if cb["close"] < lv["price"]:
+                        reclaim = lv["price"] - cb["close"]
+                        if reclaim >= MIN_RECLAIM_DWELL:
+                            rw = j - i + 1
+                            if rw == 1:
+                                cr = row["high"] - row["low"]
+                                rej = (row["high"] - max(row["open"], row["close"])) / cr if cr > 0 else 0
+                            else:
+                                pa = row["high"] - lv["price"]
+                                rb = lv["price"] - cb["close"]
+                                rej = rb / (pa + rb) if (pa + rb) > 0 else 0
+                            if rej >= MIN_REJ_WICK:
+                                sweep_would_fire = True
+                        break
+                if sweep_would_fire:
                     continue
-                if row1["close"] < lv["price"]:
-                    reclaim = lv["price"] - row1["close"]
-                    if reclaim < MIN_RECLAIM:
-                        continue
-                    rej_b = (row["high"] - max(row["open"], row["close"])) / cr if cr > 0 else 0
-                    rej_r = (row1["high"] - max(row1["open"], row1["close"])) / cr1 if cr1 > 0 else 0
-                    rej_best = max(rej_b, rej_r)
-                    if rej_best < MIN_DELAYED_WICK:
-                        continue
-                    session_name = map_session(row.get("session", "other"))
-                    kz = "LOKZ" if session_name == "lokz" else "NYOKZ" if session_name == "nyokz" else "NONE"
-                    delayed.append({
-                        "type": "DELAYED_SWEEP",
-                        "direction": "BEARISH",
-                        "bar_index": i,
-                        "time": bar_time,
-                        "return_bar_time": bar1_time,
-                        "level_price": lv["price"],
-                        "source": lv["source"],
-                        "source_id": lv["id"],
-                        "tf_class": lv.get("tf_class", "LTF"),
-                        "sources_merged": lv.get("sources_merged", [lv["source"]]),
-                        "touch_count": lv.get("touch_count", 1),
-                        "breach_pips": round(breach / PIP, 1),
-                        "reclaim_pips": round(reclaim / PIP, 1),
-                        "rejection_wick_pct": round(rej_best, 3),
-                        "forex_day": row.get("forex_day", ""),
-                        "session": session_name,
-                        "kill_zone": kz,
-                        "tf": tf_label,
-                    })
-                    swept_levels.add(lv_key)
+                # Check dwell: DWELL_BARS consecutive closes ABOVE level
+                if i + DWELL_BARS > n:
+                    continue
+                dwell_ok = True
+                for j in range(i, i + DWELL_BARS):
+                    if bars.iloc[j]["close"] <= lv["price"]:
+                        dwell_ok = False
+                        break
+                if not dwell_ok:
+                    continue
+                # Displacement override: opposite-direction displacement
+                # after breach cancels consumption (level stays alive)
+                opp_dir = "bearish"
+                override = False
+                for j in range(i, min(i + DWELL_BARS + 2, n)):
+                    d = disp_by_idx.get(j)
+                    if d and d["direction"] == opp_dir:
+                        override = True
+                        break
+                if override:
+                    continue
+                swept_levels.add(lv_key)
+                consumed.append({
+                    "type": "CONSUMED",
+                    "direction": "BEARISH",
+                    "bar_index": i,
+                    "time": bar_time,
+                    "level_price": lv["price"],
+                    "source": lv["source"],
+                    "source_id": lv["id"],
+                    "breach_pips": round(breach / PIP, 1),
+                    "dwell_bars": DWELL_BARS,
+                    "reason": "dwell_without_reclaim",
+                    "forex_day": row.get("forex_day", ""),
+                    "tf": tf_label,
+                })
 
-            # BULLISH: bar.low < level, bar.close <= level (no same-bar return)
-            if lv["side"] == "low" and row["low"] < lv["price"] and row["close"] <= lv["price"]:
+            elif lv["side"] == "low" and row["low"] < lv["price"]:
                 breach = lv["price"] - row["low"]
-                if breach < MIN_BREACH or breach > max_breach:
+                if breach < MIN_BREACH:
                     continue
-                if (i, lv["id"], "BULLISH") in base_keys:
+                sweep_would_fire = False
+                for j in range(i, min(i + DWELL_BARS + 2, n)):
+                    cb = bars.iloc[j]
+                    if cb["close"] > lv["price"]:
+                        reclaim = cb["close"] - lv["price"]
+                        if reclaim >= MIN_RECLAIM_DWELL:
+                            rw = j - i + 1
+                            if rw == 1:
+                                cr = row["high"] - row["low"]
+                                rej = (min(row["open"], row["close"]) - row["low"]) / cr if cr > 0 else 0
+                            else:
+                                pb = lv["price"] - row["low"]
+                                ra = cb["close"] - lv["price"]
+                                rej = ra / (pb + ra) if (pb + ra) > 0 else 0
+                            if rej >= MIN_REJ_WICK:
+                                sweep_would_fire = True
+                        break
+                if sweep_would_fire:
                     continue
-                if row1["close"] > lv["price"]:
-                    reclaim = row1["close"] - lv["price"]
-                    if reclaim < MIN_RECLAIM:
-                        continue
-                    rej_b = (min(row["open"], row["close"]) - row["low"]) / cr if cr > 0 else 0
-                    rej_r = (min(row1["open"], row1["close"]) - row1["low"]) / cr1 if cr1 > 0 else 0
-                    rej_best = max(rej_b, rej_r)
-                    if rej_best < MIN_DELAYED_WICK:
-                        continue
-                    session_name = map_session(row.get("session", "other"))
-                    kz = "LOKZ" if session_name == "lokz" else "NYOKZ" if session_name == "nyokz" else "NONE"
-                    delayed.append({
-                        "type": "DELAYED_SWEEP",
-                        "direction": "BULLISH",
-                        "bar_index": i,
-                        "time": bar_time,
-                        "return_bar_time": bar1_time,
-                        "level_price": lv["price"],
-                        "source": lv["source"],
-                        "source_id": lv["id"],
-                        "tf_class": lv.get("tf_class", "LTF"),
-                        "sources_merged": lv.get("sources_merged", [lv["source"]]),
-                        "touch_count": lv.get("touch_count", 1),
-                        "breach_pips": round(breach / PIP, 1),
-                        "reclaim_pips": round(reclaim / PIP, 1),
-                        "rejection_wick_pct": round(rej_best, 3),
-                        "forex_day": row.get("forex_day", ""),
-                        "session": session_name,
-                        "kill_zone": kz,
-                        "tf": tf_label,
-                    })
-                    swept_levels.add(lv_key)
+                # Check dwell: DWELL_BARS consecutive closes BELOW level
+                if i + DWELL_BARS > n:
+                    continue
+                dwell_ok = True
+                for j in range(i, i + DWELL_BARS):
+                    if bars.iloc[j]["close"] >= lv["price"]:
+                        dwell_ok = False
+                        break
+                if not dwell_ok:
+                    continue
+                # Displacement override
+                opp_dir = "bullish"
+                override = False
+                for j in range(i, min(i + DWELL_BARS + 2, n)):
+                    d = disp_by_idx.get(j)
+                    if d and d["direction"] == opp_dir:
+                        override = True
+                        break
+                if override:
+                    continue
+                swept_levels.add(lv_key)
+                consumed.append({
+                    "type": "CONSUMED",
+                    "direction": "BULLISH",
+                    "bar_index": i,
+                    "time": bar_time,
+                    "level_price": lv["price"],
+                    "source": lv["source"],
+                    "source_id": lv["id"],
+                    "breach_pips": round(breach / PIP, 1),
+                    "dwell_bars": DWELL_BARS,
+                    "reason": "dwell_without_reclaim",
+                    "forex_day": row.get("forex_day", ""),
+                    "tf": tf_label,
+                })
 
-    return delayed
+    return consumed
 
 
-def _qualify_delayed(delayed: list, displacements: list, bars_len: int, params: dict) -> None:
-    """Qualify delayed sweeps with displacement context (same logic as base)."""
+def _qualify_sweeps(
+    sweeps: list,
+    displacements: list,
+    params: dict,
+) -> None:
+    """Tag each sweep with qualified_sweep (displacement context). Tag only, not a gate."""
     lookback = params.get("qualified_sweep", {}).get("displacement_before_lookback", 10)
     forward = params.get("qualified_sweep", {}).get("displacement_after_forward", 5)
     disp_key = "atr1.5_br0.6"
@@ -892,27 +921,31 @@ def _qualify_delayed(delayed: list, displacements: list, bars_len: int, params: 
         if q.get("and") or q.get("and_close") or q.get("override"):
             disp_by_idx[d["bar_index"]] = d
 
-    for sw in delayed:
+    for sw in sweeps:
         si = sw["bar_index"]
         sw_dir = sw["direction"]
         qualified = False
+        qual_type = None
 
         opp_dir = "bearish" if sw_dir == "BULLISH" else "bullish"
         for j in range(max(0, si - lookback), si):
-            dd = disp_by_idx.get(j)
-            if dd and dd["direction"] == opp_dir:
+            d = disp_by_idx.get(j)
+            if d and d["direction"] == opp_dir:
                 qualified = True
+                qual_type = "DISP_BEFORE"
                 break
 
         if not qualified:
             same_dir = sw_dir.lower()
-            for j in range(si, min(si + forward + 1, bars_len)):
-                dd = disp_by_idx.get(j)
-                if dd and dd["direction"] == same_dir:
+            for j in range(si, si + forward + 1):
+                d = disp_by_idx.get(j)
+                if d and d["direction"] == same_dir:
                     qualified = True
+                    qual_type = "DISP_AFTER"
                     break
 
         sw["qualified_sweep"] = qualified
+        sw["qualification_type"] = qual_type
 
 
 class LiquiditySweepDetector(PrimitiveDetector):
@@ -968,33 +1001,43 @@ class LiquiditySweepDetector(PrimitiveDetector):
         # Compute ATR
         atrs = compute_atr(bars, period=14)
 
-        # Phase 1: Base sweep detection (rw=1,2,3)
-        sweep_results, swept_levels = _detect_base_sweeps(
+        # Phase 1: Sweep + continuation detection
+        sweeps, continuations, swept_levels = _detect_base_sweeps(
             bars, all_levels, atrs, params, tf_label,
         )
 
-        # Phase 2: Qualify base sweeps
-        sweep_results = _qualify_sweeps(sweep_results, displacements, params)
-
-        # Phase 3: Delayed sweep detection — using swept set from rw=1 base only
-        base_sweeps_1 = sweep_results[1]["sweeps"]
-        swept_by_base = set()
-        for sw in base_sweeps_1:
-            swept_by_base.add(
-                (sw["source_id"], "high" if sw["direction"] == "BEARISH" else "low")
-            )
-        delayed = _detect_delayed_sweeps(
-            bars, all_levels, atrs, base_sweeps_1, swept_by_base, params, tf_label,
+        # Phase 1b: Dwell consumption — catch levels breached but not
+        # classified as sweep or continuation. Pass empty set so dwell
+        # scans ALL levels independently. Prune phantoms in post-step.
+        dwell_consumed = set()
+        consumed = _consume_dwelling_levels(
+            bars, all_levels, dwell_consumed, displacements, params, tf_label,
         )
+        if consumed:
+            dwell_events = {}
+            for c in consumed:
+                key = (c["source_id"], c["direction"])
+                dwell_events[key] = c["bar_index"]
+            before = len(sweeps)
+            sweeps = [
+                sw for sw in sweeps
+                if (sw["source_id"], sw["direction"]) not in dwell_events
+                or sw["bar_index"] <= dwell_events[(sw["source_id"], sw["direction"])]
+            ]
+            pruned = before - len(sweeps)
+            if pruned:
+                import logging
+                logging.getLogger(__name__).info(
+                    "Dwell pruned %d phantom sweep(s) on %s", pruned, tf_label,
+                )
 
-        # Phase 4: Qualify delayed sweeps
-        _qualify_delayed(delayed, displacements, len(bars), params)
+        # Phase 2: Tag sweeps with displacement qualification (tag, not gate)
+        _qualify_sweeps(sweeps, displacements, params)
 
-        # Build DetectionResult with all detections
+        # Build DetectionResult
         detections = []
 
-        # Add base sweeps (rw=1) as primary
-        for sw in sweep_results[1]["sweeps"]:
+        for sw in sweeps:
             det_dir = sw["direction"].lower()
             det = Detection(
                 id=make_detection_id("sweep", tf_label, datetime.strptime(sw["time"], "%Y-%m-%dT%H:%M:%S"), det_dir),
@@ -1011,8 +1054,7 @@ class LiquiditySweepDetector(PrimitiveDetector):
             )
             detections.append(det)
 
-        # Add continuations
-        for cont in sweep_results[1]["continuations"]:
+        for cont in continuations:
             det_dir = cont["direction"].lower()
             det = Detection(
                 id=make_detection_id("sweep_cont", tf_label, datetime.strptime(cont["time"], "%Y-%m-%dT%H:%M:%S"), det_dir),
@@ -1025,35 +1067,29 @@ class LiquiditySweepDetector(PrimitiveDetector):
             )
             detections.append(det)
 
-        # Add delayed sweeps
-        for dsw in delayed:
-            det_dir = dsw["direction"].lower()
+        for cons in consumed:
+            det_dir = cons["direction"].lower()
             det = Detection(
-                id=make_detection_id("sweep_delayed", tf_label, datetime.strptime(dsw["time"], "%Y-%m-%dT%H:%M:%S"), det_dir),
-                time=datetime.strptime(dsw["time"], "%Y-%m-%dT%H:%M:%S"),
+                id=make_detection_id("sweep_consumed", tf_label, datetime.strptime(cons["time"], "%Y-%m-%dT%H:%M:%S"), det_dir),
+                time=datetime.strptime(cons["time"], "%Y-%m-%dT%H:%M:%S"),
                 direction=det_dir,
-                type="sweep_delayed",
-                price=dsw["level_price"],
-                properties=dsw,
-                tags={
-                    "forex_day": dsw.get("forex_day", ""),
-                    "session": dsw.get("session", ""),
-                    "kill_zone": dsw.get("kill_zone", ""),
-                },
+                type="sweep_consumed",
+                price=cons["level_price"],
+                properties=cons,
+                tags={"forex_day": cons.get("forex_day", "")},
             )
             detections.append(det)
 
-        # Compute stats
-        base_count = len(sweep_results[1]["sweeps"])
-        qual_count = sum(1 for s in sweep_results[1]["sweeps"] if s.get("qualified_sweep"))
-        delayed_count = len(delayed)
-        cont_count = len(sweep_results[1]["continuations"])
+        # Stats
+        base_count = len(sweeps)
+        qual_count = sum(1 for s in sweeps if s.get("qualified_sweep"))
+        cont_count = len(continuations)
+        consumed_count = len(consumed)
 
         by_src = {}
-        for sw in sweep_results[1]["sweeps"]:
+        for sw in sweeps:
             by_src[sw["source"]] = by_src.get(sw["source"], 0) + 1
 
-        # Build pool info for metadata
         pool_info = []
         for lv in all_levels:
             pool_info.append({
@@ -1070,19 +1106,12 @@ class LiquiditySweepDetector(PrimitiveDetector):
             timeframe=tf_label,
             detections=detections,
             metadata={
-                "base_sweep_count": base_count,
+                "sweep_count": base_count,
                 "qualified_count": qual_count,
-                "delayed_count": delayed_count,
                 "continuation_count": cont_count,
+                "consumed_count": consumed_count,
                 "source_distribution": by_src,
                 "level_pool": pool_info,
-                "return_windows": {
-                    str(rw): {
-                        "sweep_count": len(sweep_results[rw]["sweeps"]),
-                        "continuation_count": len(sweep_results[rw].get("continuations", [])),
-                    }
-                    for rw in [1, 2, 3]
-                },
             },
             params_used=params,
         )
