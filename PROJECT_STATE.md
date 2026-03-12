@@ -13,7 +13,7 @@
 - **Repo (GitHub)**: `SlimWojak/ra-tools` (deployment target)
 - **Public URL**: https://slimwojak.github.io/ra-tools/validate.html (read-only, no label persistence)
 - **Python**: ≥3.12 — pandas, duckdb, pyarrow, pydantic v2, pyyaml
-- **Spec source**: `SYNTHETIC_OLYA_METHOD_v0.5.yaml`
+- **Spec source**: `SYNTHETIC_OLYA_METHOD_v0.6.yaml`
 
 ---
 

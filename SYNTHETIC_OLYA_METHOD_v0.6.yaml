@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# SYNTHETIC OLYA METHOD v0.5
+# SYNTHETIC OLYA METHOD v0.6
 # Algorithmic Method Specification — L1 / L1.5 / L2 Separated
 # ═══════════════════════════════════════════════════════════════════════════════
 # Design: Machine-parseable detection logic. Pseudocode over prose.
@@ -23,9 +23,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # OLYA REVIEW REQUIRED — Calibration Session Agenda
 # Date proposed: 2026-03-05
-# Method: Open validation mode (http://localhost:8200/validate.html) or
-#         calibration comparison mode (http://localhost:8100/).
-#         Review each item visually. One at a time. Confirm or adjust each proposal.
+# Method: Open calibration tool (http://localhost:8787/), review each item
+#         visually. One at a time. Confirm or adjust each proposal.
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # [x] 1. SWING POINTS — LOCKED
@@ -75,12 +74,12 @@
 metadata:
   version: "0.5"
   date: "2026-03-05"
-  status: "ACTIVE — L1.5 parameters locked for core primitives (displacement, FVG, swings, MSS, OB, liquidity sweep, HTF liquidity). Validation mode deployed at slimwojak.github.io/ra-tools/"
+  status: DRAFT — all L15 proposals complete, pending Olya review
   supersedes: "v0.4"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
   changelog:
-    v0.5: |
+    v0.6: |
       Complete architectural rewrite. L1/L1.5/L2 separation enforced.
       Pseudocode replaces prose. Native multi-TF detection.
       VI removed entirely (IBKR data feed workaround, not ICT primitive).
@@ -1553,24 +1552,58 @@ LIQUIDITY_SWEEP:
       classification: "Separate from sweep — no return expected"
       dedup: "One continuation per level per direction (first breach only)"
 
+    evaluation_order: |
+      Reclaim checked FIRST, ATR cap SECOND.
+      1. Breach occurs (bar.high > level for bearish, bar.low < level for bullish)
+      2. Check return window — does any bar close back inside within N bars?
+      3. If YES → validate reclaim (min_reclaim + wick rejection) → SWEEP
+         Regardless of breach size. A large breach that rejects = strong sweep.
+      4. If NO valid reclaim → check ATR cap
+         If breach > 1.5x ATR → CONTINUATION (level consumed as breakout)
+         Otherwise → level remains (may be caught by dwell consumption)
+
+    wick_measurement:
+      same_bar_sweep: |
+        Standard pin bar wick test (rw=1):
+        bearish: (bar.high - max(bar.open, bar.close)) / (bar.high - bar.low)
+        bullish: (min(bar.open, bar.close) - bar.low) / (bar.high - bar.low)
+      multi_bar_sweep: |
+        Synthetic wick (rw>1):
+        synthetic_wick = reclaim_distance / (breach_distance + reclaim_distance)
+        Measures "how much of the breach was given back" across the full pattern.
+        Example: 03:00 breach 11.6pip, 03:15 reclaim 13.4pip → 13.4/25.0 = 53.6%
+      threshold: 0.40
+      status: "LOCKED — Olya confirmed 2026-03-11"
+
+    marker_placement: |
+      Sweep marker placed on the CONFIRMATION bar (the bar whose close
+      proves the sweep), NOT the breach bar. At breach time, the system
+      doesn't know if it's a sweep or continuation. The signal is actionable
+      only when the reclaim close confirms it.
+      Metadata carries both: breach_time + time (confirm bar).
+
     pseudocode: |
       for each bar in bars:
           for each level in curated_pool:
-              if bar.time < level.valid_from_time: skip  # temporal gate
-              if level.state == SWEPT: skip              # consumed
-              # BEARISH SWEEP
-              if bar.high > level.price:
-                  breach = bar.high - level.price
-                  if breach < min_breach(tf): continue
-                  if breach > 1.5 * ATR14: emit CONTINUATION; continue
-                  if bar.close < level.price:
-                      reclaim = level.price - bar.close
-                      if reclaim < min_reclaim(tf): continue
-                      rej_pct = (bar.high - max(bar.open, bar.close)) / range
-                      if rej_pct < 0.40: continue
-                      emit SWEEP(direction=BEARISH)
-                      mark level SWEPT
-              # Mirror for BULLISH SWEEP
+              if bar.time < level.valid_from_time: skip
+              if level.state == SWEPT: skip
+              if bar breaches level by < min_breach(tf): skip
+              # 1. Check reclaim FIRST
+              for j in return_window:
+                  if bars[j].close reclaims level:
+                      reclaim_distance = abs(bars[j].close - level.price)
+                      if reclaim_distance < min_reclaim(tf): break
+                      if rw == 1: wick = standard_pin_bar_wick
+                      else: wick = reclaim_distance / (breach_distance + reclaim_distance)
+                      if wick >= 0.40:
+                          emit SWEEP(time=confirm_bar, breach_time=breach_bar)
+                          mark level SWEPT
+                      break
+              # 2. No valid reclaim → check ATR cap
+              if breach > 1.5 * ATR14:
+                  emit CONTINUATION
+                  mark level SWEPT  # continuations consume levels too
+              # Mirror for opposite direction
 
     level_sources:
       curated_pool:
@@ -1600,7 +1633,10 @@ LIQUIDITY_SWEEP:
 
     level_management:
       temporal_gating: "bar.time >= level.valid_from_time required before testing"
-      level_consumption: "First sweep marks level SWEPT — liquidity is spent"
+      level_consumption:
+        sweep: "marks level SWEPT (unchanged)"
+        continuation: "marks level SWEPT (prevents phantom sweeps on blown-through levels)"
+        consumed: "marks level CONSUMED via dwell rule (see dwell_consumption below)"
       level_merging: "Nearby levels within 1.0 pip tolerance merged into single pool"
       deduplication: "Levels grouped by (source, side, price±0.1pip)"
 
@@ -1612,13 +1648,16 @@ LIQUIDITY_SWEEP:
     source_architecture_status: "LOCKED — 2026-03-07 (clean rebuild)"
 
   L15_parameters:
-    return_window:
-      default: 1
-      status: "LOCKED"
+    return_window_bars:
+      per_tf:
+        M1: 2
+        M5: 3
+        M15: 4
       note: |
-        Same-bar consensus across all reviewed production implementations.
-        Multi-bar return available as calibration toggle for analysis only.
-        Multi-bar classified as DELAYED_SWEEP at bar+1 (see delayed_sweep below).
+        Per-TF return window. Wider windows capture multi-bar sweep patterns
+        where breach and reclaim occur on separate bars.
+        Absorbs delayed_sweep (removed) — single sweep type covers all.
+      status: "LOCKED — Olya confirmed 2026-03-11"
     directional_close:
       status: "REMOVED"
       rationale: |
@@ -1640,12 +1679,20 @@ LIQUIDITY_SWEEP:
       status: "LOCKED"
     rejection_wick_pct:
       default: 0.40
-      note: "Applied to same-bar sweeps only. 40% = strong rejection."
-      status: "LOCKED"
+      note: |
+        0.40 threshold applied to both measurement types:
+        - Same-bar sweep (rw=1): standard pin bar wick test (unchanged)
+        - Multi-bar sweep (rw>1): synthetic wick = reclaim_distance / (breach_distance + reclaim_distance)
+        Synthetic wick measures "how much of the breach was given back" across the full pattern.
+      status: "LOCKED — Olya confirmed 2026-03-11"
     max_sweep_size:
       default: "1.5 x ATR(14)"
-      note: "Beyond 1.5x ATR = continuation classification, not sweep."
-      status: "LOCKED"
+      note: |
+        Beyond 1.5x ATR = continuation classification, but ONLY when no reclaim occurs.
+        Reclaim-first evaluation: if price closes back inside within return window,
+        it's a sweep regardless of breach size. ATR cap only classifies as continuation
+        when there is no reclaim. A large breach that rejects quickly is a strong sweep.
+      status: "LOCKED — Olya confirmed 2026-03-11"
     promoted_swing_gate:
       strength_min: 10
       height_pips_min: 10.0
@@ -1678,21 +1725,47 @@ LIQUIDITY_SWEEP:
     status: "LOCKED"
 
   delayed_sweep:
-    definition: |
-      Breach bar does not close back inside same bar. Next bar (bar+1)
-      closes back inside with reclaim >= min_reclaim.
-      Rejection wick on breach OR return bar >= 0.30.
-    reclaim_timing_rules:
-      allowed: ["same_bar_reclaim", "bar_plus_1_reclaim"]
-      excluded: ["bar_plus_2_or_later"]
-    min_delayed_wick: 0.30
-    level_consumption: "Delayed sweep marks level SWEPT (same rule as base)"
-    display: "Hollow markers, -D suffix label. Toggle available."
+    status: "REMOVED — absorbed by wider per-TF return window (2026-03-11)"
     note: |
-      Separate detection pass. Fires only where same-bar sweep did NOT fire.
-      Available for L2 strategy analysis. Olya decides at L2 whether
-      delayed sweeps are tradeable. bar+2 or later = MSS/displacement territory.
-    status: "LOCKED"
+      Multi-bar return now handled by return_window_bars (M1:2, M5:3, M15:4).
+      Single sweep type covers same-bar and multi-bar patterns.
+      Synthetic wick formula measures rejection quality for multi-bar sweeps.
+
+  dwell_consumption:
+    definition: |
+      Catches levels breached but not classified as sweep or continuation.
+      When price breaches a level and dwells beyond it without a qualifying
+      reclaim, the level is consumed (liquidity spent).
+    trigger:
+      breach_of_level: true
+      no_qualifying_reclaim: |
+        No bar within the dwell window closes back inside with sufficient
+        reclaim distance AND wick rejection to produce a valid sweep.
+        A ghost reclaim (close barely inside for one bar) does not save the level.
+    consecutive_closes_beyond_level:
+      M1: 3
+      M5: 3
+      M15: 2
+    displacement_override:
+      rule: |
+        If opposite-direction displacement (ATR >= 1.5x, body >= 0.60) fires
+        after breach, cancel consumption. Level stays alive for sweep detection.
+        The displacement signals rejection — the level is being defended.
+      example: |
+        Oct 1 03:00 breach of Pre-London Box High: price stays above,
+        but 03:15 bearish displacement fires override → level stays alive
+        → sweep confirms at 03:15. Displacement IS the rejection signal.
+    consume_if: "dwell threshold met AND no displacement override"
+    result:
+      level_status: CONSUMED
+      remove_from_sweep_pool: true
+    audit: "CONSUMED events logged in output JSON, hidden from chart markers"
+    execution_order: |
+      Dwell runs as POST-PASS after sweep/continuation detection.
+      If a level already has a sweep, dwell skips it.
+      If dwell finds an earlier consumption event than a sweep, the sweep
+      is pruned as a phantom (fired on a dead level).
+    status: "LOCKED — Olya confirmed 2026-03-11"
 
   event_consolidation:
     rule: |
@@ -1700,6 +1773,12 @@ LIQUIDITY_SWEEP:
       record single sweep event with multi-source labels.
     collapse_same_event_sweeps: true
     combine_liquidity_labels: true
+
+  chart_rendering:
+    SWEEP: "Rendered — arrow markers, standard liquidity_sweep toggle"
+    CONTINUATION: "Rendered — square markers with 'C' label, separate sweep_continuation toggle"
+    CONSUMED: "NOT rendered. Audit trail only (in JSON output). Hidden from chart markers and counts."
+    status: "LOCKED — 2026-03-11"
 
   calibration_data: |
     Curated pool rebuild (2026-03-07):
@@ -1987,11 +2066,20 @@ calibration_status:
     L2: PENDING
     session_date: "2026-03-07 — LOCKED. Olya + Advisor confirmed all params."
   LIQUIDITY_SWEEP:
-    L1: LOCKED       # curated pool arch, breach+reclaim+wick, no directional close
-    L15: LOCKED      # promoted swing gate, TF-specific floors, qualified_sweep, delayed_sweep
+    L1: LOCKED       # curated pool, reclaim-first evaluation, synthetic wick, dwell consumption
+    L15: LOCKED      # per-TF return windows, promoted swing gate, TF-specific floors, qualified_sweep
     L2: PENDING
     source_architecture: LOCKED
-    session_date: "2026-03-07 (CLEAN REBUILD — curated pool architecture)"
+    session_date: "2026-03-07 (initial lock), 2026-03-11 (7 logic amendments with Olya)"
+    amendments: |
+      2026-03-11 (6hr session with Olya on Oct 1 2025 EURUSD 15m):
+        1. Return window widened: M1=2, M5=3, M15=4 (was 1 for all)
+        2. Delayed_sweep REMOVED (absorbed by wider return window)
+        3. Continuations consume levels (prevents phantom sweeps)
+        4. Reclaim-first evaluation order (ATR cap secondary)
+        5. Synthetic wick for multi-bar sweeps (0.40 threshold)
+        6. Dwell consumption with displacement override
+        7. CONSUMED events hidden from chart (audit trail only)
   PREVIOUS_WEEK_HIGH_LOW:
     status: ACTIVE
     consume_in_sweep_pipeline: true
@@ -2026,5 +2114,5 @@ calibration_status:
     L2: N/A
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# END v0.5
+# END v0.6
 # ═══════════════════════════════════════════════════════════════════════════════

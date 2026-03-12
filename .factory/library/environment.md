@@ -28,7 +28,7 @@ All pre-installed:
 - CSV dataset: `data/eurusd_1m_2024-01-07_to_2024-01-12.csv` (7,177 1m bars)
 - Baseline fixtures: `tests/fixtures/baseline_output/` (32 JSON files)
 - Reference pipeline: `pipeline/preprocess_data_v2.py` (2,816 lines, read-only)
-- Canonical spec: `SYNTHETIC_OLYA_METHOD_v0.5.yaml` (read-only)
+- Canonical spec: `SYNTHETIC_OLYA_METHOD_v0.6.yaml` (read-only)
 
 ## Known Quirks
 
