@@ -1688,6 +1688,57 @@ LIQUIDITY_SWEEP:
     dependency: "[SESSION_LIQUIDITY, REFERENCE_LEVELS, HTF_LIQUIDITY_MODEL, SESSION_BOXES, SWING_POINTS]"
     source_architecture_status: "LOCKED — 2026-03-07 (clean rebuild)"
 
+    sweep_target_tiering:
+      principle: htf_liquidity_ltf_execution
+      status: "LOCKED — 2026-03-12 (Olya confirmed)"
+      description: |
+        The system defines liquidity only from higher-timeframe or
+        major reference levels. Lower timeframes are used only to
+        detect the sweep more precisely and to execute trades.
+        Lower timeframes must not generate their own liquidity pools.
+
+      liquidity_pool_sources:
+        - equal_highs
+        - equal_lows
+        - session_highs_lows
+        - pdh
+        - pdl
+        - other_major_reference_levels
+        - htf_promoted_swings
+
+      timeframe_roles:
+        htf_detection:
+          timeframe: M15
+          role:
+            - monitor_main_liquidity_levels
+            - detect_primary_sweep_events
+        ltf_detection:
+          timeframe: M5
+          role:
+            - observe_same_htf_liquidity_levels
+            - detect_sweep_more_precisely
+            - prepare_execution_context
+        execution:
+          timeframe: M2
+          role:
+            - confirm_displacement
+            - refine_entry
+
+      restrictions_on_ltf:
+        m5_must_not_create_levels: true
+        disallowed_liquidity_sources:
+          - m5_promoted_swings
+          - local_pivots
+          - micro_swings
+          - raw_candle_high_low
+
+      expected_result: |
+        Both M15 and M5 observe the same curated liquidity pool.
+        M15 provides structure and main sweep detection.
+        M5 refines the sweep and prepares execution.
+        M2 is used purely for entry timing.
+        Removing local M5 liquidity prevents noisy micro sweeps.
+
   L15_parameters:
     return_window_bars:
       per_tf:

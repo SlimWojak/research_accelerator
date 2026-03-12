@@ -1261,6 +1261,10 @@ class LiquiditySweepDetector(PrimitiveDetector):
             session_levels, session_boxes, pdh_pdl, htf_pools, pwh_pwl, swings, params,
         )
 
+        # Sweep target tiering: PROMOTED_SWING only eligible on 15m+
+        if tf_label in ("1m", "5m"):
+            all_levels = [lv for lv in all_levels if lv["source"] != "PROMOTED_SWING"]
+
         # Compute ATR
         atrs = compute_atr(bars, period=14)
 
