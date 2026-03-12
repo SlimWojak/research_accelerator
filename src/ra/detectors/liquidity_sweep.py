@@ -85,14 +85,22 @@ def _deduplicate_levels(levels: list, pip_tolerance: float = 0.1) -> list:
 
 
 def _merge_levels(levels: list, merge_tol: float) -> list:
-    """Merge nearby levels into pools (by side) within merge_tol price distance."""
+    """Merge nearby levels into pools (by side and forex_day) within merge_tol.
+
+    Levels from different forex days are never merged, because they represent
+    distinct session events with different valid_from times. HTF/PWH/PWL levels
+    with empty forex_day merge only with other empty-day levels.
+    """
     if not levels:
         return []
-    by_side = {"high": [], "low": []}
+    # Partition by (side, forex_day) before merging
+    from collections import defaultdict
+    partitions = defaultdict(list)
     for lv in levels:
-        by_side[lv["side"]].append(lv)
+        key = (lv["side"], lv.get("forex_day", ""))
+        partitions[key].append(lv)
     merged = []
-    for side, group in by_side.items():
+    for (side, _day), group in partitions.items():
         group.sort(key=lambda x: x["price"])
         pools = []
         for lv in group:

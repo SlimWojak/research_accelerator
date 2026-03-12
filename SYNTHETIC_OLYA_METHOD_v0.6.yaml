@@ -1660,7 +1660,15 @@ LIQUIDITY_SWEEP:
         sweep: "marks level SWEPT (unchanged)"
         continuation: "marks level SWEPT (prevents phantom sweeps on blown-through levels)"
         consumed: "marks level CONSUMED via dwell rule (see dwell_consumption below)"
-      level_merging: "Nearby levels within 1.0 pip tolerance merged into single pool"
+      level_merging: |
+        Nearby levels within 1.0 pip tolerance merged into single pool.
+        LOCKED — 2026-03-12: Merge partitions by (side, forex_day) before
+        proximity merge. Levels from different forex days NEVER merge, even
+        if within tolerance. Preserves distinct session events (e.g.,
+        asia_H Oct 1 at 1.17424 and asia_H Oct 2 at 1.17418 stay separate).
+        HTF/PWH/PWL levels with empty forex_day merge normally within
+        their own partition. Fixes Investigation 3 (asia_H Oct 2 missing)
+        and Investigation 4 (Pre-NY Low Oct 3 missing).
       deduplication: "Levels grouped by (source, side, price±0.1pip)"
 
     provenance_fields: |
