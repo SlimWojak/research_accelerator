@@ -1739,6 +1739,34 @@ LIQUIDITY_SWEEP:
         M2 is used purely for entry timing.
         Removing local M5 liquidity prevents noisy micro sweeps.
 
+    cross_timeframe_cascade:
+      status: "L2 — NOT in detection engine"
+      principle: |
+        L1 detection runs independently per timeframe against the curated pool.
+        Each TF correctly detects sweeps of main liquidity on its native bars.
+        Cross-TF signal flow (15m sweep triggers 5m execution) is L2 strategy,
+        not L1 detection. L2 never rewrites L1.
+
+      timeframe_roles:
+        M15:
+          role: "DETECT — primary sweep identification"
+          output: "sweep signal with full metadata (time, level, direction, displacement)"
+        M5:
+          role: "EXECUTE — monitor HTF liquidity, confirm sweep behaviour, prepare entry"
+          input: "inherits 15m sweep signal at L2"
+          restriction: "must not create new liquidity targets (promoted swings excluded)"
+        M2:
+          role: "ENTRY — displacement confirmation, precise timing"
+          input: "inherits execution context from M5"
+          restriction: "no sweep detection, no liquidity targets"
+
+      architectural_boundary: |
+        Multiple M5 signals on the same HTF liquidity move are CORRECT L1 detections.
+        Consolidating them into one setup is an L2 strategy decision (Olya's interpretation).
+        Do not build consolidation, state machines, or interaction tracking into L1.
+
+      confirmed_by: "Olya + CTO 2026-03-12"
+
   L15_parameters:
     return_window_bars:
       per_tf:
