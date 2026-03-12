@@ -1620,6 +1620,23 @@ LIQUIDITY_SWEEP:
             strength >= 10 AND height_pips >= 10.0 AND current forex day only.
           Strength 10 = vivid grade in taxonomy — swings Olya can SEE.
           Current-day-only prevents stale swings generating false sweep events.
+        SWEEP_EVENT: |
+          Sweep event levels — created dynamically when a qualified sweep confirms.
+          The sweep extreme (bar.low for bullish, bar.high for bearish) becomes
+          a new liquidity target eligible for future sweep detection.
+          Pattern: sweep A creates level → sweep B takes that level (sweep-of-a-sweep).
+          Olya confirmed this is a pattern she trades (Oct 1 06:30 investigation).
+          Config:
+            enabled: true
+            max_recursion_depth: 2  (sweep-of-sweep-of-sweep capped)
+            max_age_sessions: 3    (expires after 3 forex session boundaries)
+          Creation ordering (prevents self-consumption):
+            step 1: confirm sweep
+            step 2: consume crossed prior levels (pass-through)
+            step 3: create new SWEEP_EVENT level (enters pool AFTER consumption)
+          Temporal guard: level.valid_from = confirm bar close time.
+          Recursion: parent.depth + 1; if depth would exceed max, no level created.
+          Status: LOCKED — 2026-03-12 (Olya + CTO confirmed)
       excluded:
         raw_previous_swings: "Low-strength fractals create excessive noise"
         low_strength_fractals: "Micro-pivots not liquidity destinations"
@@ -1633,6 +1650,12 @@ LIQUIDITY_SWEEP:
 
     level_management:
       temporal_gating: "bar.time >= level.valid_from_time required before testing"
+      temporal_guard_on_consumption: |
+        LOCKED — 2026-03-12. Pass-through consumption ALSO checks
+        level.valid_from <= bar.time before consuming. Prevents
+        future-dated levels from being consumed before they exist.
+        Investigation 5 (Oct 3 10:00) revealed lokz_H_2025-10-03
+        being consumed on Sep 29 — now blocked by this guard.
       level_consumption:
         sweep: "marks level SWEPT (unchanged)"
         continuation: "marks level SWEPT (prevents phantom sweeps on blown-through levels)"

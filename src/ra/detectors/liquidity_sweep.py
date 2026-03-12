@@ -41,7 +41,11 @@ _SWEEP_SESSION_SOURCES = {"asia", "prev_asia", "lokz", "prev_lokz"}
 _SRC_PRIORITY = {
     "PROMOTED_SWING": 0, "PDH_PDL": 1, "PWH": 2, "PWL": 3,
     "HTF_EQH": 4, "HTF_EQL": 5, "LONDON_H_L": 6, "ASIA_H_L": 7, "LTF_BOX": 8,
+    "SWEEP_EVENT": 9,
 }
+
+# Forex session boundaries (NY hours) for max_age_sessions calculation
+_SESSION_BOUNDARIES_NY = [0, 5, 8, 17]  # Asia open, London open, NY open, NY close
 
 # TF rank for HTF pools
 _TF_RANK = {"MN": 5, "W1": 4, "D1": 3, "H4": 2, "H1": 1}
@@ -481,6 +485,9 @@ def _consume_pass_through_levels(
 
     The bar's full range (low to high) defines the zone. Any same-side level
     within that range (other than the target itself) was physically crossed.
+
+    Temporal guard: level.valid_from must be <= bar_time. Levels from future
+    dates cannot be consumed before they exist.
     """
     consumed = []
     direction = "BEARISH" if side == "high" else "BULLISH"
@@ -489,6 +496,10 @@ def _consume_pass_through_levels(
             continue
         lv_key = (lv["id"], lv["side"])
         if lv_key in swept_levels:
+            continue
+        # Temporal guard — level must be valid at bar time
+        vf = lv.get("valid_from", "")
+        if vf and bar_time < vf:
             continue
         lv_price = lv["price"]
         if abs(lv_price - target_price) < 1e-10:
@@ -512,6 +523,32 @@ def _consume_pass_through_levels(
     return consumed
 
 
+def _count_session_boundaries(t_start: str, t_end: str) -> int:
+    """Count how many forex session boundaries (Asia/London/NY/NYClose) passed.
+
+    Both t_start and t_end are NY-time strings like '2024-01-08T09:15:00'.
+    """
+    if not t_start or not t_end or t_end <= t_start:
+        return 0
+    try:
+        dt_s = datetime.strptime(t_start[:19], "%Y-%m-%dT%H:%M:%S")
+        dt_e = datetime.strptime(t_end[:19], "%Y-%m-%dT%H:%M:%S")
+    except (ValueError, TypeError):
+        return 0
+    count = 0
+    cur = dt_s
+    while cur < dt_e:
+        next_day = cur.replace(hour=0, minute=0, second=0) + timedelta(days=1)
+        for bh in _SESSION_BOUNDARIES_NY:
+            boundary = cur.replace(hour=bh, minute=0, second=0)
+            if boundary <= cur:
+                continue
+            if boundary <= dt_e:
+                count += 1
+        cur = next_day
+    return count
+
+
 def _detect_base_sweeps(
     bars: pd.DataFrame,
     levels: list,
@@ -525,6 +562,10 @@ def _detect_base_sweeps(
     Wick rejection (0.40) checked across the full window (best wick of any bar).
     Pass-through consumption: when a breach occurs, all same-side levels
     between the target level and the breach extreme are consumed.
+
+    Sweep event levels: when a qualified sweep confirms, the sweep extreme
+    (bar.low for bullish, bar.high for bearish) is added to the pool as a
+    new SWEEP_EVENT level eligible for future detection. Max recursion depth=2.
 
     Returns:
         (sweeps_list, continuations_list, swept_levels_set, pass_through_consumed_list)
@@ -549,6 +590,12 @@ def _detect_base_sweeps(
     MIN_REJ_WICK = params.get("rejection_wick_pct", {}).get("locked", 0.40)
     SWING_STALENESS = params.get("level_sources", {}).get("promoted_swing", {}).get("staleness_bars", 20)
 
+    # Sweep event levels config
+    se_cfg = params.get("level_sources", {}).get("sweep_event_levels", {})
+    SE_ENABLED = se_cfg.get("enabled", False)
+    SE_MAX_DEPTH = se_cfg.get("max_recursion_depth", 2)
+    SE_MAX_AGE = se_cfg.get("max_age_sessions", 3)
+
     # Per-TF return window
     rw_cfg = params.get("return_window_bars", {})
     if isinstance(rw_cfg, dict) and "per_tf" in rw_cfg:
@@ -567,6 +614,7 @@ def _detect_base_sweeps(
     swept_levels = set()
     n = len(bars)
     tf_minutes = {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5)
+    sweep_event_counter = 0
 
     for i in range(n):
         row = bars.iloc[i]
@@ -578,7 +626,11 @@ def _detect_base_sweeps(
         max_breach = MAX_ATR_MULT * atr_val
         bar_time = bar_time_str(row["timestamp_ny"], tf_minutes)
 
-        for lv in levels:
+        # Iterate over a snapshot — new SWEEP_EVENT levels appended to `levels`
+        # during this bar's iteration won't be visible until the next bar
+        # (step ordering: confirm → consume → create, then next bar sees it).
+        levels_snapshot = list(levels)
+        for lv in levels_snapshot:
             lv_key = (lv["id"], lv["side"])
             if lv_key in swept_levels:
                 continue
@@ -592,6 +644,12 @@ def _detect_base_sweeps(
                 bar_fd = row.get("forex_day", "")
                 if bar_fd and lv.get("forex_day", "") and lv["forex_day"] != bar_fd:
                     continue
+            elif lv["source"] == "SWEEP_EVENT":
+                vf = lv.get("valid_from", "")
+                if vf and bar_time <= vf:
+                    continue
+                if SE_MAX_AGE > 0 and _count_session_boundaries(vf, bar_time) > SE_MAX_AGE:
+                    continue
             else:
                 vf = lv.get("valid_from", "")
                 if vf and bar_time < vf:
@@ -603,9 +661,6 @@ def _detect_base_sweeps(
                 if breach < MIN_BREACH:
                     continue
 
-                # Check reclaim FIRST — a reclaim within the window means
-                # it's a sweep regardless of breach size. A large breach
-                # that rejects quickly is a strong sweep, not a breakout.
                 closed_back = False
                 return_bar_idx = i
                 for j in range(i, min(i + RETURN_WINDOW, n)):
@@ -621,14 +676,10 @@ def _detect_base_sweeps(
                     if reclaim < MIN_RECLAIM:
                         pass
                     else:
-                        # Wick rejection — geometry depends on pattern type
                         if actual_rw == 1:
-                            # Same-bar: standard pin bar upper wick test
                             cr = row["high"] - row["low"]
                             best_rej = (row["high"] - max(row["open"], row["close"])) / cr if cr > 0 else 0.0
                         else:
-                            # Multi-bar: synthetic wick across the window
-                            # (peak above level) / (peak above level + reclaim below level)
                             peak_above = row["high"] - lv["price"]
                             reclaim_below = lv["price"] - confirm_bar["close"]
                             total_range = peak_above + reclaim_below
@@ -641,7 +692,7 @@ def _detect_base_sweeps(
                                 else "NYOKZ" if session_name == "nyokz"
                                 else "NONE"
                             )
-                            sweeps.append({
+                            sweep_rec = {
                                 "type": "SWEEP",
                                 "direction": "BEARISH",
                                 "bar_index": return_bar_idx,
@@ -663,8 +714,10 @@ def _detect_base_sweeps(
                                 "session": session_name,
                                 "kill_zone": kill_zone,
                                 "tf": tf_label,
-                            })
+                            }
+                            sweeps.append(sweep_rec)
                             swept_levels.add(lv_key)
+                            # Step 2: consume pass-through levels
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
                                     levels, swept_levels,
@@ -673,6 +726,28 @@ def _detect_base_sweeps(
                                     row.get("forex_day", ""), tf_label,
                                 )
                             )
+                            # Step 3: create sweep event level
+                            if SE_ENABLED:
+                                parent_depth = lv.get("_recursion_depth", 0)
+                                if parent_depth < SE_MAX_DEPTH:
+                                    sweep_event_counter += 1
+                                    se_price = row["high"]
+                                    se_id = f"SE_{sweep_event_counter}_{tf_label}_high"
+                                    levels.append({
+                                        "price": se_price,
+                                        "side": "high",
+                                        "source": "SWEEP_EVENT",
+                                        "tf_class": "LTF",
+                                        "id": se_id,
+                                        "bar_index": return_bar_idx,
+                                        "forex_day": row.get("forex_day", ""),
+                                        "valid_from": confirm_time,
+                                        "sources_merged": ["SWEEP_EVENT"],
+                                        "touch_count": 1,
+                                        "_recursion_depth": parent_depth + 1,
+                                        "_parent_sweep_id": lv["id"],
+                                        "_created_at": confirm_time,
+                                    })
                             continue
 
                 # No valid reclaim — check ATR cap for continuation
@@ -709,8 +784,6 @@ def _detect_base_sweeps(
                 if breach < MIN_BREACH:
                     continue
 
-                # Check reclaim FIRST — reclaim within window = sweep,
-                # regardless of breach size.
                 closed_back = False
                 return_bar_idx = i
                 for j in range(i, min(i + RETURN_WINDOW, n)):
@@ -742,7 +815,7 @@ def _detect_base_sweeps(
                                 else "NYOKZ" if session_name == "nyokz"
                                 else "NONE"
                             )
-                            sweeps.append({
+                            sweep_rec = {
                                 "type": "SWEEP",
                                 "direction": "BULLISH",
                                 "bar_index": return_bar_idx,
@@ -764,8 +837,10 @@ def _detect_base_sweeps(
                                 "session": session_name,
                                 "kill_zone": kill_zone,
                                 "tf": tf_label,
-                            })
+                            }
+                            sweeps.append(sweep_rec)
                             swept_levels.add(lv_key)
+                            # Step 2: consume pass-through levels
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
                                     levels, swept_levels,
@@ -774,6 +849,28 @@ def _detect_base_sweeps(
                                     row.get("forex_day", ""), tf_label,
                                 )
                             )
+                            # Step 3: create sweep event level
+                            if SE_ENABLED:
+                                parent_depth = lv.get("_recursion_depth", 0)
+                                if parent_depth < SE_MAX_DEPTH:
+                                    sweep_event_counter += 1
+                                    se_price = row["low"]
+                                    se_id = f"SE_{sweep_event_counter}_{tf_label}_low"
+                                    levels.append({
+                                        "price": se_price,
+                                        "side": "low",
+                                        "source": "SWEEP_EVENT",
+                                        "tf_class": "LTF",
+                                        "id": se_id,
+                                        "bar_index": return_bar_idx,
+                                        "forex_day": row.get("forex_day", ""),
+                                        "valid_from": confirm_time,
+                                        "sources_merged": ["SWEEP_EVENT"],
+                                        "touch_count": 1,
+                                        "_recursion_depth": parent_depth + 1,
+                                        "_parent_sweep_id": lv["id"],
+                                        "_created_at": confirm_time,
+                                    })
                             continue
 
                 # No valid reclaim — check ATR cap for continuation
@@ -1184,6 +1281,8 @@ class LiquiditySweepDetector(PrimitiveDetector):
         qual_count = sum(1 for s in sweeps if s.get("qualified_sweep"))
         cont_count = len(continuations)
         consumed_count = len(consumed) + len(pass_through)
+        se_created = sum(1 for lv in all_levels if lv.get("source") == "SWEEP_EVENT")
+        se_swept = sum(1 for sw in sweeps if sw.get("source") == "SWEEP_EVENT")
 
         by_src = {}
         for sw in sweeps:
@@ -1210,6 +1309,8 @@ class LiquiditySweepDetector(PrimitiveDetector):
                 "continuation_count": cont_count,
                 "consumed_count": consumed_count,
                 "pass_through_consumed_count": len(pass_through),
+                "sweep_event_levels_created": se_created,
+                "sweep_event_levels_swept": se_swept,
                 "source_distribution": by_src,
                 "level_pool": pool_info,
             },
