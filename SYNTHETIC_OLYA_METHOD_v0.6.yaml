@@ -72,9 +72,9 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 metadata:
-  version: "0.5"
-  date: "2026-03-05"
-  status: DRAFT — all L15 proposals complete, pending Olya review
+  version: "0.6"
+  date: "2026-03-11"
+  status: DRAFT — 7 primitives LOCKED, sweep verification in progress
   supersedes: "v0.4"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
@@ -392,7 +392,7 @@ SWING_POINTS:
         window, responsive enough for kill zone moves. Height filter is the quality gate.
       note: "N=10 reserved as test oracle only (not used in production)."
       provenance: "Olya visual confirmation rounds 1-3, 2026-03-05."
-      status: "5m: CONFIRMED by Olya | 15m: PROPOSED N=2 — pending visual check"
+      status: "5m: LOCKED | 15m: LOCKED (N=2, confirmed Olya 2026-03-05)"
 
     height_filter:
       per_tf:
@@ -1774,6 +1774,15 @@ LIQUIDITY_SWEEP:
     collapse_same_event_sweeps: true
     combine_liquidity_labels: true
 
+  temporal_dedup:
+    status: "PENDING — Oct 2 cluster review with Olya 2026-03-12"
+    question: |
+      Multiple sweeps on distinct levels within N bars of each other.
+      Olya may view cascading hits as one move, not separate setups.
+      If confirmed: define cluster_radius_bars, cluster_radius_pips,
+      same_side_required, and collapse rule.
+    current_handling: "No dedup. Each level breach evaluated independently."
+
   chart_rendering:
     SWEEP: "Rendered — arrow markers, standard liquidity_sweep toggle"
     CONTINUATION: "Rendered — square markers with 'C' label, separate sweep_continuation toggle"
@@ -2035,8 +2044,8 @@ calibration_status:
     L2: PENDING
     session_date: "2026-03-05 — Olya confirmed all parameters"
   SESSION_LIQUIDITY:
-    L1: PROPOSED   # four-gate classification + interaction tracking
-    L15: PROPOSED  # ε≤0.60, mid×≥2, bal≥0.30, range per-session. Sweep detection OUT OF SCOPE.
+    L1: LOCKED     # four-gate classification + interaction tracking. Confirmed Olya 2026-03-07.
+    L15: LOCKED    # ε≤0.60, mid×≥2, bal≥0.30, range per-session. Four-gate model confirmed Olya 2026-03-07.
     L2: PENDING
     session_date: "2026-03-05 (four-gate model + interaction layer, advisor review)"
   EQUAL_HL:
