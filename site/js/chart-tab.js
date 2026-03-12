@@ -180,9 +180,9 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
           if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
         }
 
-        // CONSUMED / PASS_THROUGH_CONSUMED / PROBE_EXHAUSTED records are audit trail only — never render
+        // Only render whitelisted liquidity_sweep types — all others are audit trail
         const detType = det.properties && det.properties.type;
-        if (prim === 'liquidity_sweep' && (detType === 'CONSUMED' || detType === 'PASS_THROUGH_CONSUMED' || detType === 'PROBE_EXHAUSTED')) continue;
+        if (prim === 'liquidity_sweep' && detType !== 'SWEEP' && detType !== 'CONTINUATION') continue;
 
         // Split liquidity_sweep continuations into their own toggle
         const isContinuation = (prim === 'liquidity_sweep' && detType === 'CONTINUATION');
@@ -427,7 +427,7 @@ function getDetectionCountsForDay() {
       } else if (prim === 'liquidity_sweep') {
         dayDets = dayDets.filter(det => {
           const t = det.properties && det.properties.type;
-          return t !== 'CONTINUATION' && t !== 'CONSUMED' && t !== 'PROBE_EXHAUSTED';
+          return t === 'SWEEP';
         });
       }
       result[configName][prim] = dayDets.length;
