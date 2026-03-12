@@ -207,25 +207,25 @@ class TestSweepCounts5m:
 
     def test_pass_through_consumed_count(self, sweep_result_5m):
         ra_pt = sweep_result_5m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 40, f"5m pass-through consumed: expected 40, got {ra_pt}"
+        assert ra_pt == 44, f"5m pass-through consumed: expected 44, got {ra_pt}"
 
 
 class TestSweepCounts15m:
     def test_base_sweep_count(self, sweep_result_15m):
         ra_base = sweep_result_15m.metadata.get("sweep_count", 0)
-        assert ra_base == 11, f"15m base sweep count: expected 11, got {ra_base}"
+        assert ra_base == 9, f"15m base sweep count: expected 9, got {ra_base}"
 
     def test_qualified_count(self, sweep_result_15m):
         ra_qual = sweep_result_15m.metadata.get("qualified_count", 0)
-        assert ra_qual == 11, f"15m qualified count: expected 11, got {ra_qual}"
+        assert ra_qual == 9, f"15m qualified count: expected 9, got {ra_qual}"
 
     def test_continuation_count(self, sweep_result_15m):
         ra_cont = sweep_result_15m.metadata.get("continuation_count", 0)
-        assert ra_cont == 12, f"15m continuation count: expected 12, got {ra_cont}"
+        assert ra_cont == 6, f"15m continuation count: expected 6, got {ra_cont}"
 
     def test_pass_through_consumed_count(self, sweep_result_15m):
         ra_pt = sweep_result_15m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 43, f"15m pass-through consumed: expected 43, got {ra_pt}"
+        assert ra_pt == 52, f"15m pass-through consumed: expected 52, got {ra_pt}"
 
 
 class TestSweepCounts1m:
@@ -239,11 +239,11 @@ class TestSweepCounts1m:
 
     def test_continuation_count(self, sweep_result_1m):
         ra_cont = sweep_result_1m.metadata.get("continuation_count", 0)
-        assert ra_cont == 15, f"1m continuation count: expected 15, got {ra_cont}"
+        assert ra_cont == 13, f"1m continuation count: expected 13, got {ra_cont}"
 
     def test_pass_through_consumed_count(self, sweep_result_1m):
         ra_pt = sweep_result_1m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 32, f"1m pass-through consumed: expected 32, got {ra_pt}"
+        assert ra_pt == 44, f"1m pass-through consumed: expected 44, got {ra_pt}"
 
 
 # ── Source distribution test ──────────────────────────────────
@@ -252,9 +252,9 @@ class TestSourceDistribution:
     def test_5m_base_source_distribution(self, sweep_result_5m):
         """5m base sweeps after pass-through consumption."""
         dist = sweep_result_5m.metadata.get("source_distribution", {})
-        assert dist.get("ASIA_H_L", 0) == 2, f"ASIA_H_L: expected 2, got {dist.get('ASIA_H_L', 0)}"
+        assert dist.get("ASIA_H_L", 0) == 3, f"ASIA_H_L: expected 3, got {dist.get('ASIA_H_L', 0)}"
         assert dist.get("LONDON_H_L", 0) == 3, f"LONDON_H_L: expected 3, got {dist.get('LONDON_H_L', 0)}"
-        assert dist.get("LTF_BOX", 0) == 8, f"LTF_BOX: expected 8, got {dist.get('LTF_BOX', 0)}"
+        assert dist.get("LTF_BOX", 0) == 7, f"LTF_BOX: expected 7, got {dist.get('LTF_BOX', 0)}"
         assert dist.get("PDH_PDL", 0) == 2, f"PDH_PDL: expected 2, got {dist.get('PDH_PDL', 0)}"
         assert dist.get("PROMOTED_SWING", 0) == 2, f"PROMOTED_SWING: expected 2, got {dist.get('PROMOTED_SWING', 0)}"
         assert dist.get("HTF_EQL", 0) == 1, f"HTF_EQL: expected 1, got {dist.get('HTF_EQL', 0)}"
@@ -286,10 +286,10 @@ class TestFieldMatch5m:
         """Each pass-through consumed record has required fields."""
         ra_pt = [d for d in sweep_result_5m.detections
                  if d.properties.get("type") == "PASS_THROUGH_CONSUMED"]
-        assert len(ra_pt) == 40
+        assert len(ra_pt) == 44
         for det in ra_pt:
             assert det.properties["reason"] == "pass_through_consumption"
-            assert "breach_extreme" in det.properties
+            assert "bar_range" in det.properties
             assert "target_level" in det.properties
 
 

@@ -464,7 +464,8 @@ def _build_level_pool(
 def _consume_pass_through_levels(
     levels: list,
     swept_levels: set,
-    breach_extreme: float,
+    bar_low: float,
+    bar_high: float,
     target_price: float,
     side: str,
     bar_index: int,
@@ -472,16 +473,17 @@ def _consume_pass_through_levels(
     forex_day: str,
     tf_label: str,
 ) -> list:
-    """Consume all same-side levels between target_price and breach_extreme.
+    """Consume all same-side levels the bar physically crossed on its way to the target.
 
     Olya rule (2026-03-12): when price passes through a level on its way to a
     deeper target, the intermediate level's liquidity is taken. These levels
     are marked PASS_THROUGH_CONSUMED — hidden from chart, audit trail only.
 
-    For bearish (side="high"): consume levels where target_price < lv.price < breach_extreme
-    For bullish (side="low"): consume levels where breach_extreme < lv.price < target_price
+    The bar's full range (low to high) defines the zone. Any same-side level
+    within that range (other than the target itself) was physically crossed.
     """
     consumed = []
+    direction = "BEARISH" if side == "high" else "BULLISH"
     for lv in levels:
         if lv["side"] != side:
             continue
@@ -489,40 +491,24 @@ def _consume_pass_through_levels(
         if lv_key in swept_levels:
             continue
         lv_price = lv["price"]
-        if side == "high":
-            if target_price < lv_price < breach_extreme:
-                swept_levels.add(lv_key)
-                consumed.append({
-                    "type": "PASS_THROUGH_CONSUMED",
-                    "direction": "BEARISH",
-                    "bar_index": bar_index,
-                    "time": bar_time,
-                    "level_price": lv_price,
-                    "source": lv["source"],
-                    "source_id": lv["id"],
-                    "breach_extreme": breach_extreme,
-                    "target_level": target_price,
-                    "reason": "pass_through_consumption",
-                    "forex_day": forex_day,
-                    "tf": tf_label,
-                })
-        else:
-            if breach_extreme < lv_price < target_price:
-                swept_levels.add(lv_key)
-                consumed.append({
-                    "type": "PASS_THROUGH_CONSUMED",
-                    "direction": "BULLISH",
-                    "bar_index": bar_index,
-                    "time": bar_time,
-                    "level_price": lv_price,
-                    "source": lv["source"],
-                    "source_id": lv["id"],
-                    "breach_extreme": breach_extreme,
-                    "target_level": target_price,
-                    "reason": "pass_through_consumption",
-                    "forex_day": forex_day,
-                    "tf": tf_label,
-                })
+        if abs(lv_price - target_price) < 1e-10:
+            continue
+        if bar_low < lv_price < bar_high:
+            swept_levels.add(lv_key)
+            consumed.append({
+                "type": "PASS_THROUGH_CONSUMED",
+                "direction": direction,
+                "bar_index": bar_index,
+                "time": bar_time,
+                "level_price": lv_price,
+                "source": lv["source"],
+                "source_id": lv["id"],
+                "bar_range": [round(bar_low, 6), round(bar_high, 6)],
+                "target_level": target_price,
+                "reason": "pass_through_consumption",
+                "forex_day": forex_day,
+                "tf": tf_label,
+            })
     return consumed
 
 
@@ -681,7 +667,8 @@ def _detect_base_sweeps(
                             swept_levels.add(lv_key)
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
-                                    levels, swept_levels, row["high"],
+                                    levels, swept_levels,
+                                    row["low"], row["high"],
                                     lv["price"], "high", i, bar_time,
                                     row.get("forex_day", ""), tf_label,
                                 )
@@ -709,7 +696,8 @@ def _detect_base_sweeps(
                     swept_levels.add(lv_key)
                     pass_through_consumed.extend(
                         _consume_pass_through_levels(
-                            levels, swept_levels, row["high"],
+                            levels, swept_levels,
+                            row["low"], row["high"],
                             lv["price"], "high", i, bar_time,
                             row.get("forex_day", ""), tf_label,
                         )
@@ -780,7 +768,8 @@ def _detect_base_sweeps(
                             swept_levels.add(lv_key)
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
-                                    levels, swept_levels, row["low"],
+                                    levels, swept_levels,
+                                    row["low"], row["high"],
                                     lv["price"], "low", i, bar_time,
                                     row.get("forex_day", ""), tf_label,
                                 )
@@ -808,7 +797,8 @@ def _detect_base_sweeps(
                     swept_levels.add(lv_key)
                     pass_through_consumed.extend(
                         _consume_pass_through_levels(
-                            levels, swept_levels, row["low"],
+                            levels, swept_levels,
+                            row["low"], row["high"],
                             lv["price"], "low", i, bar_time,
                             row.get("forex_day", ""), tf_label,
                         )
