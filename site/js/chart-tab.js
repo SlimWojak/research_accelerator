@@ -180,9 +180,9 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
           if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
         }
 
-        // CONSUMED records are audit trail only — never render as markers
+        // CONSUMED / PASS_THROUGH_CONSUMED records are audit trail only — never render
         const detType = det.properties && det.properties.type;
-        if (prim === 'liquidity_sweep' && detType === 'CONSUMED') continue;
+        if (prim === 'liquidity_sweep' && (detType === 'CONSUMED' || detType === 'PASS_THROUGH_CONSUMED')) continue;
 
         // Split liquidity_sweep continuations into their own toggle
         const isContinuation = (prim === 'liquidity_sweep' && detType === 'CONTINUATION');
@@ -192,26 +192,21 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
         if (barTime == null) continue;
 
         const dir = det.direction;
+        const pm = PRIMITIVE_MARKERS[effectivePrim];
         let position, shape, markerColor, text;
 
-        if (prim === 'swing_points') {
-          const isHigh = dir === 'high';
+        if (pm) {
+          const isHigh = dir === 'high' || dir === 'bearish';
           position = isHigh ? 'aboveBar' : 'belowBar';
-          shape = isHigh ? 'arrowDown' : 'arrowUp';
-          markerColor = isHigh ? colors.light : colors.base;
-          text = isHigh ? 'SWH' : 'SWL';
-        } else if (isContinuation) {
-          // Continuations: square markers, muted color
-          const isBullish = dir === 'bullish' || dir === 'high';
-          position = isBullish ? 'belowBar' : 'aboveBar';
-          shape = 'square';
-          markerColor = isBullish ? colors.base : colors.light;
-          text = 'C';
+          shape = isHigh ? pm.shape_high : pm.shape_low;
+          markerColor = pm.color;
+          text = (prim === 'swing_points') ? (dir === 'high' ? 'SWH' : 'SWL')
+               : isContinuation ? 'C' : '';
         } else {
           const isBullish = dir === 'bullish' || dir === 'high';
           position = isBullish ? 'belowBar' : 'aboveBar';
           shape = isBullish ? 'arrowUp' : 'arrowDown';
-          markerColor = isBullish ? colors.base : colors.light;
+          markerColor = colors.base;
           text = '';
         }
 
@@ -354,11 +349,15 @@ function renderPrimitiveToggles(container) {
 
   for (const prim of PRIMITIVES) {
     const isOn = app.primitiveToggles[prim] !== false;
+    const pm = PRIMITIVE_MARKERS[prim];
+    const swatchColor = pm ? pm.color : 'var(--faint)';
+    const markerShape = pm ? _markerSymbol(pm.shape_low) : '\u25B2';
+
     const btn = document.createElement('button');
     btn.className = 'toggle-btn prim-toggle-btn' + (isOn ? ' active' : '');
     btn.dataset.primitive = prim;
     btn.title = isOn ? `Hide ${primLabel(prim)}` : `Show ${primLabel(prim)}`;
-    btn.textContent = primLabel(prim);
+    btn.innerHTML = `<span class="toggle-swatch" style="background:${isOn ? swatchColor : 'var(--faint)'}"></span><span class="prim-marker-symbol" style="color:${isOn ? swatchColor : 'var(--faint)'}">${markerShape}</span><span class="toggle-label">${primLabel(prim)}</span>`;
 
     btn.addEventListener('click', () => {
       app.primitiveToggles[prim] = !app.primitiveToggles[prim];
@@ -369,6 +368,16 @@ function renderPrimitiveToggles(container) {
   }
 
   container.appendChild(wrapper);
+}
+
+function _markerSymbol(shape) {
+  const map = {
+    'arrowUp': '\u25B2',
+    'arrowDown': '\u25BC',
+    'square': '\u25A0',
+    'circle': '\u25CF',
+  };
+  return map[shape] || '\u25CF';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

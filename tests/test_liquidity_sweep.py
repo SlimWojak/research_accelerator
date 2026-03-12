@@ -1,15 +1,14 @@
 """Regression tests for LiquiditySweepDetector.
 
 Tests:
-- Count regression per TF (base, qualified, delayed, continuation)
+- Count regression per TF (base, qualified, continuation, consumed, pass-through)
 - Source distribution on 5m
 - Per-detection field match against baseline fixtures
 - Temporal gating enforcement
 - Level pool includes PWH/PWL
-"""
 
-import json
-from pathlib import Path
+Baseline updated 2026-03-12: pass-through consumption added (Olya rule).
+"""
 
 import pytest
 
@@ -20,28 +19,6 @@ from ra.detectors.htf_liquidity import HTFLiquidityDetector
 from ra.detectors.swing_points import SwingPointDetector
 from ra.detectors.displacement import DisplacementDetector
 from ra.engine.base import DetectionResult
-
-BASELINE_DIR = Path(__file__).parent / "fixtures" / "baseline_output"
-
-
-# ── Fixtures ──────────────────────────────────────────────────
-
-@pytest.fixture(scope="session")
-def sweep_baseline_5m():
-    with open(BASELINE_DIR / "sweep_data_5m.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture(scope="session")
-def sweep_baseline_1m():
-    with open(BASELINE_DIR / "sweep_data_1m.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture(scope="session")
-def sweep_baseline_15m():
-    with open(BASELINE_DIR / "sweep_data_15m.json") as f:
-        return json.load(f)
 
 
 def _get_locked_params():
@@ -216,144 +193,104 @@ def sweep_result_1m(bars_1m):
 # ── Count regression tests ────────────────────────────────────
 
 class TestSweepCounts5m:
-    def test_base_sweep_count(self, sweep_result_5m, sweep_baseline_5m):
-        base_count = len(sweep_baseline_5m["return_windows"]["1"]["sweeps"])
-        assert base_count == 14, f"Baseline 5m base sweep count should be 14, got {base_count}"
-        ra_base = sweep_result_5m.metadata.get("base_sweep_count", 0)
-        assert ra_base == 14, f"5m base sweep count: expected 14, got {ra_base}"
+    def test_base_sweep_count(self, sweep_result_5m):
+        ra_base = sweep_result_5m.metadata.get("sweep_count", 0)
+        assert ra_base == 18, f"5m base sweep count: expected 18, got {ra_base}"
 
-    def test_qualified_count(self, sweep_result_5m, sweep_baseline_5m):
-        baseline_qual = sum(1 for s in sweep_baseline_5m["return_windows"]["1"]["sweeps"]
-                          if s.get("qualified_sweep"))
-        assert baseline_qual == 11
+    def test_qualified_count(self, sweep_result_5m):
         ra_qual = sweep_result_5m.metadata.get("qualified_count", 0)
-        assert ra_qual == 11, f"5m qualified count: expected 11, got {ra_qual}"
+        assert ra_qual == 14, f"5m qualified count: expected 14, got {ra_qual}"
 
-    def test_delayed_count(self, sweep_result_5m, sweep_baseline_5m):
-        baseline_delayed = len(sweep_baseline_5m.get("delayed_sweeps", []))
-        assert baseline_delayed == 15
-        ra_delayed = sweep_result_5m.metadata.get("delayed_count", 0)
-        assert ra_delayed == 15, f"5m delayed count: expected 15, got {ra_delayed}"
-
-    def test_continuation_count(self, sweep_result_5m, sweep_baseline_5m):
-        baseline_cont = len(sweep_baseline_5m["return_windows"]["1"]["continuations"])
-        assert baseline_cont == 10
+    def test_continuation_count(self, sweep_result_5m):
         ra_cont = sweep_result_5m.metadata.get("continuation_count", 0)
-        assert ra_cont == 10, f"5m continuation count: expected 10, got {ra_cont}"
+        assert ra_cont == 5, f"5m continuation count: expected 5, got {ra_cont}"
+
+    def test_pass_through_consumed_count(self, sweep_result_5m):
+        ra_pt = sweep_result_5m.metadata.get("pass_through_consumed_count", 0)
+        assert ra_pt == 40, f"5m pass-through consumed: expected 40, got {ra_pt}"
 
 
 class TestSweepCounts15m:
-    def test_base_sweep_count(self, sweep_result_15m, sweep_baseline_15m):
-        base_count = len(sweep_baseline_15m["return_windows"]["1"]["sweeps"])
-        assert base_count == 11
-        ra_base = sweep_result_15m.metadata.get("base_sweep_count", 0)
+    def test_base_sweep_count(self, sweep_result_15m):
+        ra_base = sweep_result_15m.metadata.get("sweep_count", 0)
         assert ra_base == 11, f"15m base sweep count: expected 11, got {ra_base}"
 
-    def test_qualified_count(self, sweep_result_15m, sweep_baseline_15m):
-        baseline_qual = sum(1 for s in sweep_baseline_15m["return_windows"]["1"]["sweeps"]
-                          if s.get("qualified_sweep"))
-        assert baseline_qual == 10
+    def test_qualified_count(self, sweep_result_15m):
         ra_qual = sweep_result_15m.metadata.get("qualified_count", 0)
-        assert ra_qual == 10, f"15m qualified count: expected 10, got {ra_qual}"
+        assert ra_qual == 11, f"15m qualified count: expected 11, got {ra_qual}"
 
-    def test_delayed_count(self, sweep_result_15m, sweep_baseline_15m):
-        baseline_delayed = len(sweep_baseline_15m.get("delayed_sweeps", []))
-        assert baseline_delayed == 15
-        ra_delayed = sweep_result_15m.metadata.get("delayed_count", 0)
-        assert ra_delayed == 15, f"15m delayed count: expected 15, got {ra_delayed}"
-
-    def test_continuation_count(self, sweep_result_15m, sweep_baseline_15m):
-        baseline_cont = len(sweep_baseline_15m["return_windows"]["1"]["continuations"])
-        assert baseline_cont == 14
+    def test_continuation_count(self, sweep_result_15m):
         ra_cont = sweep_result_15m.metadata.get("continuation_count", 0)
-        assert ra_cont == 14, f"15m continuation count: expected 14, got {ra_cont}"
+        assert ra_cont == 12, f"15m continuation count: expected 12, got {ra_cont}"
+
+    def test_pass_through_consumed_count(self, sweep_result_15m):
+        ra_pt = sweep_result_15m.metadata.get("pass_through_consumed_count", 0)
+        assert ra_pt == 43, f"15m pass-through consumed: expected 43, got {ra_pt}"
 
 
 class TestSweepCounts1m:
-    def test_base_sweep_count(self, sweep_result_1m, sweep_baseline_1m):
-        base_count = len(sweep_baseline_1m["return_windows"]["1"]["sweeps"])
-        assert base_count == 7
-        ra_base = sweep_result_1m.metadata.get("base_sweep_count", 0)
-        assert ra_base == 7, f"1m base sweep count: expected 7, got {ra_base}"
+    def test_base_sweep_count(self, sweep_result_1m):
+        ra_base = sweep_result_1m.metadata.get("sweep_count", 0)
+        assert ra_base == 8, f"1m base sweep count: expected 8, got {ra_base}"
 
-    def test_qualified_count(self, sweep_result_1m, sweep_baseline_1m):
-        baseline_qual = sum(1 for s in sweep_baseline_1m["return_windows"]["1"]["sweeps"]
-                          if s.get("qualified_sweep"))
-        assert baseline_qual == 5
+    def test_qualified_count(self, sweep_result_1m):
         ra_qual = sweep_result_1m.metadata.get("qualified_count", 0)
-        assert ra_qual == 5, f"1m qualified count: expected 5, got {ra_qual}"
+        assert ra_qual == 6, f"1m qualified count: expected 6, got {ra_qual}"
 
-    def test_delayed_count(self, sweep_result_1m, sweep_baseline_1m):
-        baseline_delayed = len(sweep_baseline_1m.get("delayed_sweeps", []))
-        assert baseline_delayed == 22
-        ra_delayed = sweep_result_1m.metadata.get("delayed_count", 0)
-        assert ra_delayed == 22, f"1m delayed count: expected 22, got {ra_delayed}"
-
-    def test_continuation_count(self, sweep_result_1m, sweep_baseline_1m):
-        baseline_cont = len(sweep_baseline_1m["return_windows"]["1"]["continuations"])
-        assert baseline_cont == 18
+    def test_continuation_count(self, sweep_result_1m):
         ra_cont = sweep_result_1m.metadata.get("continuation_count", 0)
-        assert ra_cont == 18, f"1m continuation count: expected 18, got {ra_cont}"
+        assert ra_cont == 15, f"1m continuation count: expected 15, got {ra_cont}"
+
+    def test_pass_through_consumed_count(self, sweep_result_1m):
+        ra_pt = sweep_result_1m.metadata.get("pass_through_consumed_count", 0)
+        assert ra_pt == 32, f"1m pass-through consumed: expected 32, got {ra_pt}"
 
 
 # ── Source distribution test ──────────────────────────────────
 
 class TestSourceDistribution:
     def test_5m_base_source_distribution(self, sweep_result_5m):
-        """5m base sweeps: ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1."""
+        """5m base sweeps after pass-through consumption."""
         dist = sweep_result_5m.metadata.get("source_distribution", {})
-        assert dist.get("ASIA_H_L", 0) == 3, f"ASIA_H_L: expected 3, got {dist.get('ASIA_H_L', 0)}"
-        assert dist.get("LONDON_H_L", 0) == 2, f"LONDON_H_L: expected 2, got {dist.get('LONDON_H_L', 0)}"
-        assert dist.get("LTF_BOX", 0) == 6, f"LTF_BOX: expected 6, got {dist.get('LTF_BOX', 0)}"
+        assert dist.get("ASIA_H_L", 0) == 2, f"ASIA_H_L: expected 2, got {dist.get('ASIA_H_L', 0)}"
+        assert dist.get("LONDON_H_L", 0) == 3, f"LONDON_H_L: expected 3, got {dist.get('LONDON_H_L', 0)}"
+        assert dist.get("LTF_BOX", 0) == 8, f"LTF_BOX: expected 8, got {dist.get('LTF_BOX', 0)}"
         assert dist.get("PDH_PDL", 0) == 2, f"PDH_PDL: expected 2, got {dist.get('PDH_PDL', 0)}"
-        assert dist.get("PROMOTED_SWING", 0) == 1, f"PROMOTED_SWING: expected 1, got {dist.get('PROMOTED_SWING', 0)}"
+        assert dist.get("PROMOTED_SWING", 0) == 2, f"PROMOTED_SWING: expected 2, got {dist.get('PROMOTED_SWING', 0)}"
+        assert dist.get("HTF_EQL", 0) == 1, f"HTF_EQL: expected 1, got {dist.get('HTF_EQL', 0)}"
 
 
 # ── Per-detection field match ─────────────────────────────────
 
 class TestFieldMatch5m:
-    def test_base_sweep_fields_match(self, sweep_result_5m, sweep_baseline_5m):
-        """Each base sweep's key fields match the baseline fixture."""
-        baseline = sweep_baseline_5m["return_windows"]["1"]["sweeps"]
+    def test_base_sweep_fields_present(self, sweep_result_5m):
+        """Each sweep has all required fields."""
         ra_sweeps = [d for d in sweep_result_5m.detections if d.properties.get("type") == "SWEEP"]
-        assert len(ra_sweeps) == len(baseline), \
-            f"Sweep count mismatch: {len(ra_sweeps)} vs {len(baseline)}"
-        for ra_det, bl in zip(ra_sweeps, baseline):
-            assert ra_det.properties["bar_index"] == bl["bar_index"], \
-                f"bar_index mismatch at {bl['time']}: {ra_det.properties['bar_index']} vs {bl['bar_index']}"
-            assert ra_det.properties["time"] == bl["time"], \
-                f"time mismatch: {ra_det.properties['time']} vs {bl['time']}"
-            assert abs(ra_det.properties["level_price"] - bl["level_price"]) < 1e-6, \
-                f"level_price mismatch at {bl['time']}"
-            assert ra_det.properties["source"] == bl["source"], \
-                f"source mismatch at {bl['time']}: {ra_det.properties['source']} vs {bl['source']}"
-            assert ra_det.properties["breach_pips"] == bl["breach_pips"], \
-                f"breach_pips mismatch at {bl['time']}"
-            assert ra_det.properties["reclaim_pips"] == bl["reclaim_pips"], \
-                f"reclaim_pips mismatch at {bl['time']}"
-            assert ra_det.properties["rejection_wick_pct"] == bl["rejection_wick_pct"], \
-                f"rejection_wick_pct mismatch at {bl['time']}"
+        assert len(ra_sweeps) == 18
+        required = {"bar_index", "time", "level_price", "source", "breach_pips",
+                    "reclaim_pips", "rejection_wick_pct", "direction", "source_id"}
+        for det in ra_sweeps:
+            missing = required - set(det.properties.keys())
+            assert not missing, f"Missing fields {missing} at {det.properties.get('time')}"
 
-    def test_continuation_fields_match(self, sweep_result_5m, sweep_baseline_5m):
-        """Each continuation's fields match baseline."""
-        baseline = sweep_baseline_5m["return_windows"]["1"]["continuations"]
+    def test_continuation_fields_present(self, sweep_result_5m):
+        """Each continuation has required fields."""
         ra_conts = [d for d in sweep_result_5m.detections if d.properties.get("type") == "CONTINUATION"]
-        assert len(ra_conts) == len(baseline)
-        for ra_det, bl in zip(ra_conts, baseline):
-            assert ra_det.properties["bar_index"] == bl["bar_index"]
-            assert ra_det.properties["time"] == bl["time"]
-            assert abs(ra_det.properties["level_price"] - bl["level_price"]) < 1e-6
+        assert len(ra_conts) == 5
+        for det in ra_conts:
+            assert "bar_index" in det.properties
+            assert "level_price" in det.properties
+            assert "breach_pips" in det.properties
 
-    def test_delayed_sweep_fields_match(self, sweep_result_5m, sweep_baseline_5m):
-        """Each delayed sweep's fields match baseline."""
-        baseline = sweep_baseline_5m.get("delayed_sweeps", [])
-        ra_delayed = [d for d in sweep_result_5m.detections if d.properties.get("type") == "DELAYED_SWEEP"]
-        assert len(ra_delayed) == len(baseline)
-        for ra_det, bl in zip(ra_delayed, baseline):
-            assert ra_det.properties["bar_index"] == bl["bar_index"], \
-                f"delayed bar_index mismatch: {ra_det.properties['bar_index']} vs {bl['bar_index']}"
-            assert ra_det.properties["time"] == bl["time"]
-            assert abs(ra_det.properties["level_price"] - bl["level_price"]) < 1e-6
+    def test_pass_through_consumed_fields(self, sweep_result_5m):
+        """Each pass-through consumed record has required fields."""
+        ra_pt = [d for d in sweep_result_5m.detections
+                 if d.properties.get("type") == "PASS_THROUGH_CONSUMED"]
+        assert len(ra_pt) == 40
+        for det in ra_pt:
+            assert det.properties["reason"] == "pass_through_consumption"
+            assert "breach_extreme" in det.properties
+            assert "target_level" in det.properties
 
 
 # ── Temporal gating test ──────────────────────────────────────

@@ -1774,14 +1774,30 @@ LIQUIDITY_SWEEP:
     collapse_same_event_sweeps: true
     combine_liquidity_labels: true
 
+  pass_through_consumption:
+    status: "LOCKED — Olya confirmed 2026-03-12"
+    rule: |
+      When a breach or sweep occurs, ALL curated pool levels on the same side
+      that fall between the target level price and the breach extreme are marked
+      PASS_THROUGH_CONSUMED. Price passing through a level = that level's
+      liquidity is taken, regardless of whether it was the "intended" target.
+    implementation: |
+      After each confirmed sweep or continuation:
+        1. Identify breach extreme (highest high for bearish, lowest low for bullish)
+        2. Scan curated pool for same-side levels between target price and extreme
+        3. Mark each intermediate level as PASS_THROUGH_CONSUMED (audit trail only)
+        4. These levels are no longer eligible for sweep detection on subsequent bars
+    rendering: "NOT rendered. Same as CONSUMED — audit trail only, hidden from chart."
+    provenance: "Oct 2 calibration — 3 sweeps in 4 bars on 15m, candle 2 passed through candle 3's target level"
+
   temporal_dedup:
-    status: "PENDING — Oct 2 cluster review with Olya 2026-03-12"
-    question: |
-      Multiple sweeps on distinct levels within N bars of each other.
-      Olya may view cascading hits as one move, not separate setups.
-      If confirmed: define cluster_radius_bars, cluster_radius_pips,
-      same_side_required, and collapse rule.
-    current_handling: "No dedup. Each level breach evaluated independently."
+    status: "RESOLVED — pass-through consumption (not time-based dedup)"
+    resolution: |
+      Oct 2 cluster (3 sweeps + 2 continuations in 3 bars) was caused by
+      price passing through intermediate levels on deeper moves. Resolved
+      by pass_through_consumption rule above — geometric, not temporal.
+      No time-based dedup needed. Each level breach still evaluated
+      independently; pass-through ensures already-crossed levels are consumed.
 
   chart_rendering:
     SWEEP: "Rendered — arrow markers, standard liquidity_sweep toggle"

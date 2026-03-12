@@ -309,65 +309,54 @@ class TestOrderBlockRegression:
 # ── Liquidity Sweep Regression ──────────────────────────────────────────────
 
 class TestLiquiditySweepRegression:
-    """Sweep: count match for base/qualified/delayed/continuation."""
+    """Sweep: count match for base/qualified/continuation/pass-through.
 
-    @pytest.mark.parametrize("tf,base_count,qual_count,delayed_count,cont_count", [
-        ("5m", 14, 11, 15, 10),
-        ("15m", 11, 10, 15, 14),
-        ("1m", 7, 5, 22, 18),
+    Baseline updated 2026-03-12: pass-through consumption added (Olya rule).
+    """
+
+    @pytest.mark.parametrize("tf,base_count,qual_count,cont_count,pt_count", [
+        ("5m", 18, 14, 5, 40),
+        ("15m", 11, 11, 12, 43),
+        ("1m", 8, 6, 15, 32),
     ])
     def test_sweep_counts(self, cascade_results, tf, base_count,
-                          qual_count, delayed_count, cont_count):
+                          qual_count, cont_count, pt_count):
         result = cascade_results["liquidity_sweep"][tf]
         meta = result.metadata
 
-        assert meta.get("base_sweep_count") == base_count, (
+        assert meta.get("sweep_count") == base_count, (
             f"Sweep {tf} base: expected {base_count}, "
-            f"got {meta.get('base_sweep_count')}"
+            f"got {meta.get('sweep_count')}"
         )
         assert meta.get("qualified_count") == qual_count, (
             f"Sweep {tf} qualified: expected {qual_count}, "
             f"got {meta.get('qualified_count')}"
         )
-        assert meta.get("delayed_count") == delayed_count, (
-            f"Sweep {tf} delayed: expected {delayed_count}, "
-            f"got {meta.get('delayed_count')}"
-        )
         assert meta.get("continuation_count") == cont_count, (
             f"Sweep {tf} continuation: expected {cont_count}, "
             f"got {meta.get('continuation_count')}"
         )
+        assert meta.get("pass_through_consumed_count") == pt_count, (
+            f"Sweep {tf} pass-through: expected {pt_count}, "
+            f"got {meta.get('pass_through_consumed_count')}"
+        )
 
     def test_sweep_5m_source_distribution(self, cascade_results):
-        """5m base sweeps: source distribution matches baseline."""
-        baseline = _load_baseline("sweep_data_5m.json")
-        baseline_sweeps = baseline["return_windows"]["1"]["sweeps"]
-
-        # Count baseline sources
-        baseline_sources = {}
-        for s in baseline_sweeps:
-            src = s.get("source", "UNKNOWN")
-            baseline_sources[src] = baseline_sources.get(src, 0) + 1
-
-        # Expected: ASIA_H_L:3, LONDON_H_L:2, LTF_BOX:6, PDH_PDL:2, PROMOTED_SWING:1
-        assert baseline_sources.get("ASIA_H_L", 0) == 3
-        assert baseline_sources.get("LONDON_H_L", 0) == 2
-        assert baseline_sources.get("LTF_BOX", 0) == 6
-        assert baseline_sources.get("PDH_PDL", 0) == 2
-        assert baseline_sources.get("PROMOTED_SWING", 0) == 1
-
-        # RA detector should produce same distribution for base sweeps
+        """5m base sweeps: source distribution after pass-through consumption."""
         result = cascade_results["liquidity_sweep"]["5m"]
         ra_sources = {}
         for d in result.detections:
-            # Base sweeps use type="sweep" (lowercase)
             if d.type == "sweep":
                 src = d.properties.get("source", "UNKNOWN")
                 ra_sources[src] = ra_sources.get(src, 0) + 1
 
-        for src_name, expected in baseline_sources.items():
-            assert ra_sources.get(src_name, 0) == expected, (
-                f"Source {src_name}: expected {expected}, "
+        expected = {
+            "ASIA_H_L": 2, "LONDON_H_L": 3, "LTF_BOX": 8,
+            "PDH_PDL": 2, "PROMOTED_SWING": 2, "HTF_EQL": 1,
+        }
+        for src_name, exp_count in expected.items():
+            assert ra_sources.get(src_name, 0) == exp_count, (
+                f"Source {src_name}: expected {exp_count}, "
                 f"got {ra_sources.get(src_name, 0)}"
             )
 

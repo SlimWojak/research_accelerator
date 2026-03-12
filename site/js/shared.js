@@ -170,6 +170,18 @@ function derivePrimitivesFromData(evalData) {
   }
 }
 
+/* ── Per-Primitive Marker Styles (shape + colour for chart distinguishability) ── */
+
+const PRIMITIVE_MARKERS = {
+  swing_points:        { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#00e5ff', label: 'Swing Points' },
+  liquidity_sweep:     { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ff9800', label: 'Liquidity Sweep' },
+  sweep_continuation:  { shape_high: 'square',    shape_low: 'square',   color: '#9e9e9e', label: 'Continuation' },
+  mss:                 { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ffeb3b', label: 'MSS' },
+  displacement:        { shape_high: 'square',    shape_low: 'square',   color: '#e040fb', label: 'Displacement' },
+  order_block:         { shape_high: 'square',    shape_low: 'square',   color: '#448aff', label: 'Order Block' },
+  fvg:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#69f0ae', label: 'FVG' },
+};
+
 /* ── Multi-Config Color Palettes ───────────────────────────────────────────── */
 
 const CONFIG_COLORS = [
