@@ -1,5 +1,5 @@
 # PROJECT_STATE.md — a8ra Research Accelerator
-## Checkpoint: 2026-03-10
+## Checkpoint: 2026-03-12
 
 > **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
@@ -28,7 +28,7 @@
 | **Phase 4: Variant Comparison, Ground Truth Scoring & Parameter Search** | ✅ COMPLETE | LuxAlgo MSS/OB variants, P/R/F1 scoring pipeline, `search.py` parameter optimizer, 65 validation assertions |
 | **Phase 5: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
 
-**Total: 965+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search).**
+**Total: 970+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search).**
 
 ---
 
@@ -56,7 +56,7 @@
 | 1 | **FVG** (+ IFVG, BPR) | `fvg.py` | LOCKED | `floor_threshold_pips: 0.5` |
 | 2 | **SwingPoints** | `swing_points.py` | LOCKED | `N: {1m:5, 5m:3, 15m:2}`, `height_filter_pips: {1m:0.5, 5m:3.0, 15m:3.0}` |
 | 3 | **Displacement** | `displacement.py` | LOCKED | `atr_multiplier: 1.50`, `body_ratio: 0.60`, `close_gate: 0.25`, `combination_mode: AND` |
-| 4 | **SessionLiquidity** | `session_liquidity.py` | PROPOSED | `efficiency_threshold: 0.60`, `mid_cross_min: 2`, `balance_score_min: 0.30` |
+| 4 | **SessionLiquidity** | `session_liquidity.py` | LOCKED | `efficiency_threshold: 0.60`, `mid_cross_min: 2`, `balance_score_min: 0.30` |
 | 5 | **AsiaRange** | `asia_range.py` | PROPOSED | `tight_below_pips: 10`, `max_cap_pips: 30` |
 | 6 | **ReferenceLevels** | `reference_levels.py` | LOCKED | PDH/PDL (forex day boundary), midnight open, equilibrium midpoint |
 | 7 | **EqualHL** | `equal_hl.py` | DEFERRED | `tolerance_pips: 2.0`, `atr_factor: 0.1` |
@@ -64,7 +64,7 @@
 | 9 | **OrderBlock** | `order_block.py` | LOCKED | `trigger: displacement_plus_mss`, `zone_type: body`, `min_displacement_grade: VALID` |
 | 10 | **HTFLiquidity** | `htf_liquidity.py` | LOCKED | `min_touches: 2`, per-TF tolerance/rotation/lookback |
 | 11 | **OTE** | `ote.py` | PROPOSED | `fib: [0.618, 0.705, 0.79]`, `kill_zone_gate: true` |
-| 12 | **LiquiditySweep** | `liquidity_sweep.py` | LOCKED | `rejection_wick_pct: 0.40`, `return_window_bars: 1`, multi-source level pooling |
+| 12 | **LiquiditySweep** | `liquidity_sweep.py` | LOCKED | `rejection_wick_pct: 0.40`, per-TF return windows, multi-source level pooling, probe exhaustion, sweep event levels, LTF scope restriction |
 | 13 | **LuxAlgo MSS** *(variant)* | `luxalgo_mss.py` | VARIANT | BOS/CHoCH, no displacement gate — fires ~2× more than a8ra |
 | 14 | **LuxAlgo OB** *(variant)* | `luxalgo_ob.py` | VARIANT | Wick-to-wick order block zones |
 
@@ -202,30 +202,54 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ---
 
-## 9. What's Next
+## 9. Calibration Status (as of 2026-03-12)
 
-- **Olya explores validation tool** independently via deployed GitHub Pages
-- **Algo tuning** via parameter search (`search.py`) + validation mode + TradingView cross-reference
-- **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods using ground truth scoring
+### Primitive Lock Status: 8/13 LOCKED
+
+| Status | Count | Primitives |
+|--------|-------|------------|
+| **LOCKED** | 8 | FVG, Swing Points, Displacement (LTF), MSS, Order Block, Session Liquidity, HTF EQH/EQL, Liquidity Sweep |
+| **PROPOSED** | 5 | Asia Range, HTF Displacement, HTF MSS, NY Window, OTE |
+| **DEFERRED** | 1 | Equal HL |
+
+### Mechanisms Added During 2026-03-12 Calibration Session
+
+| Mechanism | Description |
+|-----------|-------------|
+| **Pass-through consumption** | When a sweep breaches a level, all same-side levels in the bar's range are consumed |
+| **Temporal guard** | `level.valid_from <= bar.time` prevents future-dated levels being consumed |
+| **Sweep event levels** | After qualified sweep, the sweep extreme enters pool as SWEEP_EVENT (max depth=2, max age=3 sessions) |
+| **Probe exhaustion** | 5 unresolved breaches without sweep confirmation -> PROBE_EXHAUSTED (resets after 3 bars without breach) |
+| **Merge partitioning** | `_merge_levels()` partitions by `(side, forex_day)` — levels from different days never collapse |
+| **LTF sweep scope** | PROMOTED_SWING excluded from 5m/1m pool (three-tier: M15 detect, M5 execute, M2 entry) |
+| **Cross-TF cascade boundary** | L1 detects independently per TF; cross-TF signal flow is L2 strategy (annotated in YAML) |
+
+### Sprint 64 Gate Status
+
+Gate 3 (v0.6 methodology Olya-lock) pending — 5 remaining primitives (Asia Range, HTF Displacement, HTF MSS, NY Window, OTE).
+
+## 10. What's Next
+
+- **Lock remaining 5 primitives** for Sprint 64 Gate 3 completion
+- **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
 - **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
 
 ---
 
-## 10. Recent Git History
+## 11. Recent Git History
 
 ```
-d433dbe Add user testing validation for parameter-search milestone: all 17 assertions pass
-2e4bca6 Add scrutiny validation for parameter-search milestone: all 4 features pass review, 965+ tests pass
-06ef5c6 Add search output ranking and winner export: --export-winner flag produces Schema 4A comparison fixture
-b5c375b Add fitness scoring module: walk-forward stability, provenance recording, human-readable summary
-bca99ad Add dedicated perturbation engine tests: 33 tests covering VAL-PERT-001/002/003
-489e589 Add search.py CLI with argparse, perturbation engine, fitness scoring, and comprehensive tests
-24970fa Add ground-truth-scoring user testing synthesis: all 21 assertions pass
-9032df3 Add ground-truth-scoring scrutiny synthesis: all 4 features pass, Schema 4F documented
-69d0156 Add Ground Truth dashboard to compare.html Stats tab
-fbf5c11 Add scored comparison output: --labels flag in eval.py compare, precision/recall/F1
+78b50c4 YAML: cross_timeframe_cascade L1/L2 boundary annotation
+5dd9a32 Sweep target tiering: PROMOTED_SWING excluded from 5m/1m pool
+6f275b9 Whitelist renderable sweep types instead of blacklisting audit types
+f73e166 Probe exhaustion rule: consume levels after 5 unresolved breaches
+9c9063a Fix _merge_levels: partition by (side, forex_day) — resolves Inv 3+4
+d775f7a S65d: Enable sweep_event_levels in cascade locked params
+437041c S65c: Sweep event levels + pass-through temporal guard
+ab9fa96 S65b: Fix pass-through consumption — use full bar range, regenerate fixtures
+a1fa939 S65: Pass-through consumption + distinct primitive markers
 ```
 
 ---
 
-*Last updated: 2026-03-10*
+*Last updated: 2026-03-12*

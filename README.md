@@ -52,7 +52,7 @@ Results land as one JSON file per primitive per timeframe in `results/`.
 python -m pytest tests/ -v
 ```
 
-965+ tests total (378 Phase 1 + 587 Phase 2–4) covering every detector, the evaluation engine, variant detectors, ground truth scoring, parameter search, and a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
+970+ tests total (381 Phase 1 + 587 Phase 2–4) covering every detector, the evaluation engine, variant detectors, ground truth scoring, parameter search, and a **master regression suite** that replays the locked baseline config against 32 fixture files to guarantee bit-exact reproduction.
 
 ### Config
 
@@ -308,7 +308,7 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── data/                          # Source 1m EURUSD CSV
 ├── research/                      # Phase 1 research archive
 ├── PROJECT_STATE.md               # Full project checkpoint
-└── SYNTHETIC_OLYA_METHOD_v0.5.yaml
+└── SYNTHETIC_OLYA_METHOD_v0.6.yaml
 ```
 
 ## Technical Details
