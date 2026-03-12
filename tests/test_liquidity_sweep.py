@@ -51,6 +51,9 @@ def _get_locked_params():
             "sweep_event_levels": {"enabled": True, "max_recursion_depth": 2, "max_age_sessions": 3},
         },
         "level_merge_tolerance_pips": 1.0,
+        "level_exhaustion": {
+            "probe_rule": {"enabled": True, "threshold": 5, "reset_bars": 3},
+        },
         "qualified_sweep": {
             "displacement_before_lookback": 10,
             "displacement_after_forward": 5,
@@ -197,7 +200,7 @@ def sweep_result_1m(bars_1m):
 class TestSweepCounts5m:
     def test_base_sweep_count(self, sweep_result_5m):
         ra_base = sweep_result_5m.metadata.get("sweep_count", 0)
-        assert ra_base == 39, f"5m base sweep count: expected 39, got {ra_base}"
+        assert ra_base == 38, f"5m base sweep count: expected 38, got {ra_base}"
 
     def test_qualified_count(self, sweep_result_5m):
         ra_qual = sweep_result_5m.metadata.get("qualified_count", 0)
@@ -205,11 +208,11 @@ class TestSweepCounts5m:
 
     def test_continuation_count(self, sweep_result_5m):
         ra_cont = sweep_result_5m.metadata.get("continuation_count", 0)
-        assert ra_cont == 20, f"5m continuation count: expected 20, got {ra_cont}"
+        assert ra_cont == 18, f"5m continuation count: expected 18, got {ra_cont}"
 
     def test_pass_through_consumed_count(self, sweep_result_5m):
         ra_pt = sweep_result_5m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 40, f"5m pass-through consumed: expected 40, got {ra_pt}"
+        assert ra_pt == 38, f"5m pass-through consumed: expected 38, got {ra_pt}"
 
 
 class TestSweepCounts15m:
@@ -223,29 +226,29 @@ class TestSweepCounts15m:
 
     def test_continuation_count(self, sweep_result_15m):
         ra_cont = sweep_result_15m.metadata.get("continuation_count", 0)
-        assert ra_cont == 15, f"15m continuation count: expected 15, got {ra_cont}"
+        assert ra_cont == 12, f"15m continuation count: expected 12, got {ra_cont}"
 
     def test_pass_through_consumed_count(self, sweep_result_15m):
         ra_pt = sweep_result_15m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 43, f"15m pass-through consumed: expected 43, got {ra_pt}"
+        assert ra_pt == 41, f"15m pass-through consumed: expected 41, got {ra_pt}"
 
 
 class TestSweepCounts1m:
     def test_base_sweep_count(self, sweep_result_1m):
         ra_base = sweep_result_1m.metadata.get("sweep_count", 0)
-        assert ra_base == 16, f"1m base sweep count: expected 16, got {ra_base}"
+        assert ra_base == 15, f"1m base sweep count: expected 15, got {ra_base}"
 
     def test_qualified_count(self, sweep_result_1m):
         ra_qual = sweep_result_1m.metadata.get("qualified_count", 0)
-        assert ra_qual == 13, f"1m qualified count: expected 13, got {ra_qual}"
+        assert ra_qual == 12, f"1m qualified count: expected 12, got {ra_qual}"
 
     def test_continuation_count(self, sweep_result_1m):
         ra_cont = sweep_result_1m.metadata.get("continuation_count", 0)
-        assert ra_cont == 31, f"1m continuation count: expected 31, got {ra_cont}"
+        assert ra_cont == 27, f"1m continuation count: expected 27, got {ra_cont}"
 
     def test_pass_through_consumed_count(self, sweep_result_1m):
         ra_pt = sweep_result_1m.metadata.get("pass_through_consumed_count", 0)
-        assert ra_pt == 40, f"1m pass-through consumed: expected 40, got {ra_pt}"
+        assert ra_pt == 34, f"1m pass-through consumed: expected 34, got {ra_pt}"
 
 
 # ── Source distribution test ──────────────────────────────────
@@ -260,7 +263,7 @@ class TestSourceDistribution:
         assert dist.get("PDH_PDL", 0) == 2, f"PDH_PDL: expected 2, got {dist.get('PDH_PDL', 0)}"
         assert dist.get("PROMOTED_SWING", 0) == 2, f"PROMOTED_SWING: expected 2, got {dist.get('PROMOTED_SWING', 0)}"
         assert dist.get("HTF_EQL", 0) == 1, f"HTF_EQL: expected 1, got {dist.get('HTF_EQL', 0)}"
-        assert dist.get("SWEEP_EVENT", 0) == 16, f"SWEEP_EVENT: expected 16, got {dist.get('SWEEP_EVENT', 0)}"
+        assert dist.get("SWEEP_EVENT", 0) == 15, f"SWEEP_EVENT: expected 15, got {dist.get('SWEEP_EVENT', 0)}"
 
 
 # ── Per-detection field match ─────────────────────────────────
@@ -269,7 +272,7 @@ class TestFieldMatch5m:
     def test_base_sweep_fields_present(self, sweep_result_5m):
         """Each sweep has all required fields."""
         ra_sweeps = [d for d in sweep_result_5m.detections if d.properties.get("type") == "SWEEP"]
-        assert len(ra_sweeps) == 39
+        assert len(ra_sweeps) == 38
         required = {"bar_index", "time", "level_price", "source", "breach_pips",
                     "reclaim_pips", "rejection_wick_pct", "direction", "source_id"}
         for det in ra_sweeps:
@@ -279,7 +282,7 @@ class TestFieldMatch5m:
     def test_continuation_fields_present(self, sweep_result_5m):
         """Each continuation has required fields."""
         ra_conts = [d for d in sweep_result_5m.detections if d.properties.get("type") == "CONTINUATION"]
-        assert len(ra_conts) == 20
+        assert len(ra_conts) == 18
         for det in ra_conts:
             assert "bar_index" in det.properties
             assert "level_price" in det.properties
@@ -289,7 +292,7 @@ class TestFieldMatch5m:
         """Each pass-through consumed record has required fields."""
         ra_pt = [d for d in sweep_result_5m.detections
                  if d.properties.get("type") == "PASS_THROUGH_CONSUMED"]
-        assert len(ra_pt) == 40
+        assert len(ra_pt) == 38
         for det in ra_pt:
             assert det.properties["reason"] == "pass_through_consumption"
             assert "bar_range" in det.properties
@@ -328,7 +331,7 @@ class TestLevelPool:
     def test_sweep_event_levels_in_pool(self, sweep_result_5m):
         """Sweep event levels should be in pool when feature is enabled."""
         se_created = sweep_result_5m.metadata.get("sweep_event_levels_created", 0)
-        assert se_created == 36, f"Expected 36 SE levels, got {se_created}"
+        assert se_created == 33, f"Expected 33 SE levels, got {se_created}"
 
     def test_pwh_pwl_correct_prices(self, sweep_result_5m):
         """PWH=1.10001, PWL=1.09104 — check level pool contains these prices."""
@@ -354,18 +357,18 @@ class TestSweepEventLevels:
     def test_se_levels_created(self, sweep_result_5m):
         """Sweep event levels should be created when feature is enabled."""
         se = sweep_result_5m.metadata.get("sweep_event_levels_created", 0)
-        assert se == 36, f"Expected 36 SE levels created, got {se}"
+        assert se == 33, f"Expected 33 SE levels created, got {se}"
 
     def test_se_levels_swept(self, sweep_result_5m):
         """Some sweep event levels should themselves be swept."""
         se_swept = sweep_result_5m.metadata.get("sweep_event_levels_swept", 0)
-        assert se_swept == 16, f"Expected 16 SE levels swept, got {se_swept}"
+        assert se_swept == 15, f"Expected 15 SE levels swept, got {se_swept}"
 
     def test_se_in_pool(self, sweep_result_5m):
         """SWEEP_EVENT levels should appear in the pool info."""
         pool = sweep_result_5m.metadata.get("level_pool", [])
         se_pool = [lv for lv in pool if lv["source"] == "SWEEP_EVENT"]
-        assert len(se_pool) == 36, f"Expected 36 SE in pool, got {len(se_pool)}"
+        assert len(se_pool) == 33, f"Expected 33 SE in pool, got {len(se_pool)}"
 
     def test_se_sweep_has_source_metadata(self, sweep_result_5m):
         """Sweeps on SE levels carry SWEEP_EVENT as source."""
@@ -374,6 +377,31 @@ class TestSweepEventLevels:
             if d.properties.get("type") == "SWEEP"
             and d.properties.get("source") == "SWEEP_EVENT"
         ]
-        assert len(se_sweeps) == 16
+        assert len(se_sweeps) == 15
         for s in se_sweeps:
             assert s.properties["source_id"].startswith("SE_")
+
+
+# ── Probe Exhaustion tests ───────────────────────────────────
+
+class TestProbeExhaustion:
+    def test_probe_exhausted_count_5m(self, sweep_result_5m):
+        """Probe exhaustion should consume repeatedly-probed levels."""
+        pe = sweep_result_5m.metadata.get("probe_exhausted_count", 0)
+        assert pe == 6, f"Expected 6 probe exhausted on 5m, got {pe}"
+
+    def test_probe_exhausted_count_15m(self, sweep_result_15m):
+        pe = sweep_result_15m.metadata.get("probe_exhausted_count", 0)
+        assert pe == 4, f"Expected 4 probe exhausted on 15m, got {pe}"
+
+    def test_probe_exhausted_fields(self, sweep_result_5m):
+        """PROBE_EXHAUSTED records carry required fields."""
+        pe_events = [
+            d for d in sweep_result_5m.detections
+            if d.properties.get("type") == "PROBE_EXHAUSTED"
+        ]
+        assert len(pe_events) == 6
+        for d in pe_events:
+            assert d.properties["probe_count"] >= 5
+            assert d.properties["source_id"]
+            assert d.properties["direction"] in ("BEARISH", "BULLISH")

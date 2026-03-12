@@ -315,9 +315,9 @@ class TestLiquiditySweepRegression:
     """
 
     @pytest.mark.parametrize("tf,base_count,qual_count,cont_count,pt_count", [
-        ("5m", 39, 24, 20, 40),
-        ("15m", 25, 25, 15, 43),
-        ("1m", 16, 13, 31, 40),
+        ("5m", 38, 24, 18, 38),
+        ("15m", 25, 25, 12, 41),
+        ("1m", 15, 12, 27, 34),
     ])
     def test_sweep_counts(self, cascade_results, tf, base_count,
                           qual_count, cont_count, pt_count):
@@ -353,7 +353,7 @@ class TestLiquiditySweepRegression:
         expected = {
             "ASIA_H_L": 6, "LONDON_H_L": 4, "LTF_BOX": 8,
             "PDH_PDL": 2, "PROMOTED_SWING": 2, "HTF_EQL": 1,
-            "SWEEP_EVENT": 16,
+            "SWEEP_EVENT": 15,
         }
         for src_name, exp_count in expected.items():
             assert ra_sources.get(src_name, 0) == exp_count, (

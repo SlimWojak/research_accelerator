@@ -1660,6 +1660,16 @@ LIQUIDITY_SWEEP:
         sweep: "marks level SWEPT (unchanged)"
         continuation: "marks level SWEPT (prevents phantom sweeps on blown-through levels)"
         consumed: "marks level CONSUMED via dwell rule (see dwell_consumption below)"
+        probe_exhausted: |
+          LOCKED — 2026-03-12. Marks level PROBE_EXHAUSTED when breached
+          repeatedly without sweep confirmation. Complements dwell (which
+          catches price staying beyond; probe catches repeated crossing
+          without conviction).
+          - threshold: 5 unresolved breaches (breach >= min_breach, all gates fail)
+          - reset: counter resets after 3 consecutive bars without breach
+          - action: consume level, add PROBE_EXHAUSTED to output
+          - Investigation 7: Oct 1 Pre-NY High breached 7 times (08:15-09:45),
+            now consumed at 09:15 (probe=5), eliminates false sweep at 10:00
       level_merging: |
         Nearby levels within 1.0 pip tolerance merged into single pool.
         LOCKED — 2026-03-12: Merge partitions by (side, forex_day) before

@@ -829,6 +829,9 @@ def extract_locked_params_for_cascade(config) -> dict[str, dict]:
             "sweep_event_levels": {"enabled": True, "max_recursion_depth": 2, "max_age_sessions": 3},
         },
         "level_merge_tolerance_pips": 1.0,
+        "level_exhaustion": {
+            "probe_rule": {"enabled": True, "threshold": 5, "reset_bars": 3},
+        },
         "qualified_sweep": {
             "displacement_before_lookback": 10,
             "displacement_after_forward": 5,

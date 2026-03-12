@@ -575,8 +575,13 @@ def _detect_base_sweeps(
     (bar.low for bullish, bar.high for bearish) is added to the pool as a
     new SWEEP_EVENT level eligible for future detection. Max recursion depth=2.
 
+    Probe exhaustion: levels breached repeatedly without sweep confirmation
+    are consumed after threshold unresolved breaches. Resets after consecutive
+    bars without any breach.
+
     Returns:
-        (sweeps_list, continuations_list, swept_levels_set, pass_through_consumed_list)
+        (sweeps_list, continuations_list, swept_levels_set,
+         pass_through_consumed_list, probe_exhausted_list)
     """
     min_breach_cfg = params.get("min_breach_pips", {}).get("per_tf", {})
     min_reclaim_cfg = params.get("min_reclaim_pips", {}).get("per_tf", {})
@@ -604,6 +609,12 @@ def _detect_base_sweeps(
     SE_MAX_DEPTH = se_cfg.get("max_recursion_depth", 2)
     SE_MAX_AGE = se_cfg.get("max_age_sessions", 3)
 
+    # Probe exhaustion config
+    probe_cfg = params.get("level_exhaustion", {}).get("probe_rule", {})
+    PROBE_ENABLED = probe_cfg.get("enabled", True)
+    PROBE_THRESHOLD = probe_cfg.get("threshold", 5)
+    PROBE_RESET_BARS = probe_cfg.get("reset_bars", 3)
+
     # Per-TF return window
     rw_cfg = params.get("return_window_bars", {})
     if isinstance(rw_cfg, dict) and "per_tf" in rw_cfg:
@@ -618,11 +629,16 @@ def _detect_base_sweeps(
     sweeps = []
     continuations = []
     pass_through_consumed = []
+    probe_exhausted = []
     cont_seen = set()
     swept_levels = set()
     n = len(bars)
     tf_minutes = {"1m": 1, "5m": 5, "15m": 15}.get(tf_label, 5)
     sweep_event_counter = 0
+
+    # Probe exhaustion state: per-level counters and last-breach bar index
+    probe_counts: dict[tuple, int] = {}       # lv_key -> count
+    last_breach_bar: dict[tuple, int] = {}    # lv_key -> bar index of last breach
 
     for i in range(n):
         row = bars.iloc[i]
@@ -663,12 +679,20 @@ def _detect_base_sweeps(
                 if vf and bar_time < vf:
                     continue
 
+            # Probe reset: if enough bars passed without breach, reset counter
+            if PROBE_ENABLED and lv_key in last_breach_bar:
+                gap = i - last_breach_bar[lv_key]
+                if gap >= PROBE_RESET_BARS:
+                    probe_counts.pop(lv_key, None)
+                    last_breach_bar.pop(lv_key, None)
+
             # BEARISH sweep candidate (wick above high-side level)
             if lv["side"] == "high" and row["high"] > lv["price"]:
                 breach = row["high"] - lv["price"]
                 if breach < MIN_BREACH:
                     continue
 
+                resolved = False
                 closed_back = False
                 return_bar_idx = i
                 for j in range(i, min(i + RETURN_WINDOW, n)):
@@ -725,7 +749,6 @@ def _detect_base_sweeps(
                             }
                             sweeps.append(sweep_rec)
                             swept_levels.add(lv_key)
-                            # Step 2: consume pass-through levels
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
                                     levels, swept_levels,
@@ -734,7 +757,6 @@ def _detect_base_sweeps(
                                     row.get("forex_day", ""), tf_label,
                                 )
                             )
-                            # Step 3: create sweep event level
                             if SE_ENABLED:
                                 parent_depth = lv.get("_recursion_depth", 0)
                                 if parent_depth < SE_MAX_DEPTH:
@@ -756,35 +778,61 @@ def _detect_base_sweeps(
                                         "_parent_sweep_id": lv["id"],
                                         "_created_at": confirm_time,
                                     })
-                            continue
+                            resolved = True
 
-                # No valid reclaim — check ATR cap for continuation
-                if breach > max_breach:
-                    cont_key = (lv["id"], "BEARISH")
-                    if cont_key not in cont_seen:
-                        cont_seen.add(cont_key)
+                if not resolved:
+                    # No valid reclaim — check ATR cap for continuation
+                    if breach > max_breach:
+                        cont_key = (lv["id"], "BEARISH")
+                        if cont_key not in cont_seen:
+                            cont_seen.add(cont_key)
+                            session_name = map_session(row.get("session", "other"))
+                            continuations.append({
+                                "type": "CONTINUATION",
+                                "direction": "BEARISH",
+                                "bar_index": i,
+                                "time": bar_time,
+                                "level_price": lv["price"],
+                                "source": lv["source"],
+                                "source_id": lv["id"],
+                                "breach_pips": round(breach / PIP, 1),
+                                "forex_day": row.get("forex_day", ""),
+                                "tf": tf_label,
+                            })
+                        swept_levels.add(lv_key)
+                        pass_through_consumed.extend(
+                            _consume_pass_through_levels(
+                                levels, swept_levels,
+                                row["low"], row["high"],
+                                lv["price"], "high", i, bar_time,
+                                row.get("forex_day", ""), tf_label,
+                            )
+                        )
+                        resolved = True
+
+                if not resolved and PROBE_ENABLED:
+                    last_breach_bar[lv_key] = i
+                    probe_counts[lv_key] = probe_counts.get(lv_key, 0) + 1
+                    if probe_counts[lv_key] >= PROBE_THRESHOLD:
                         session_name = map_session(row.get("session", "other"))
-                        continuations.append({
-                            "type": "CONTINUATION",
+                        probe_exhausted.append({
+                            "type": "PROBE_EXHAUSTED",
                             "direction": "BEARISH",
                             "bar_index": i,
                             "time": bar_time,
                             "level_price": lv["price"],
                             "source": lv["source"],
                             "source_id": lv["id"],
-                            "breach_pips": round(breach / PIP, 1),
+                            "probe_count": probe_counts[lv_key],
                             "forex_day": row.get("forex_day", ""),
                             "tf": tf_label,
                         })
-                    swept_levels.add(lv_key)
-                    pass_through_consumed.extend(
-                        _consume_pass_through_levels(
-                            levels, swept_levels,
-                            row["low"], row["high"],
-                            lv["price"], "high", i, bar_time,
-                            row.get("forex_day", ""), tf_label,
-                        )
-                    )
+                        swept_levels.add(lv_key)
+                        probe_counts.pop(lv_key, None)
+                        last_breach_bar.pop(lv_key, None)
+
+                if resolved:
+                    continue
 
             # BULLISH sweep candidate (wick below low-side level)
             if lv["side"] == "low" and row["low"] < lv["price"]:
@@ -792,6 +840,7 @@ def _detect_base_sweeps(
                 if breach < MIN_BREACH:
                     continue
 
+                resolved = False
                 closed_back = False
                 return_bar_idx = i
                 for j in range(i, min(i + RETURN_WINDOW, n)):
@@ -848,7 +897,6 @@ def _detect_base_sweeps(
                             }
                             sweeps.append(sweep_rec)
                             swept_levels.add(lv_key)
-                            # Step 2: consume pass-through levels
                             pass_through_consumed.extend(
                                 _consume_pass_through_levels(
                                     levels, swept_levels,
@@ -857,7 +905,6 @@ def _detect_base_sweeps(
                                     row.get("forex_day", ""), tf_label,
                                 )
                             )
-                            # Step 3: create sweep event level
                             if SE_ENABLED:
                                 parent_depth = lv.get("_recursion_depth", 0)
                                 if parent_depth < SE_MAX_DEPTH:
@@ -879,37 +926,62 @@ def _detect_base_sweeps(
                                         "_parent_sweep_id": lv["id"],
                                         "_created_at": confirm_time,
                                     })
-                            continue
+                            resolved = True
 
-                # No valid reclaim — check ATR cap for continuation
-                if breach > max_breach:
-                    cont_key = (lv["id"], "BULLISH")
-                    if cont_key not in cont_seen:
-                        cont_seen.add(cont_key)
+                if not resolved:
+                    if breach > max_breach:
+                        cont_key = (lv["id"], "BULLISH")
+                        if cont_key not in cont_seen:
+                            cont_seen.add(cont_key)
+                            session_name = map_session(row.get("session", "other"))
+                            continuations.append({
+                                "type": "CONTINUATION",
+                                "direction": "BULLISH",
+                                "bar_index": i,
+                                "time": bar_time,
+                                "level_price": lv["price"],
+                                "source": lv["source"],
+                                "source_id": lv["id"],
+                                "breach_pips": round(breach / PIP, 1),
+                                "forex_day": row.get("forex_day", ""),
+                                "tf": tf_label,
+                            })
+                        swept_levels.add(lv_key)
+                        pass_through_consumed.extend(
+                            _consume_pass_through_levels(
+                                levels, swept_levels,
+                                row["low"], row["high"],
+                                lv["price"], "low", i, bar_time,
+                                row.get("forex_day", ""), tf_label,
+                            )
+                        )
+                        resolved = True
+
+                if not resolved and PROBE_ENABLED:
+                    last_breach_bar[lv_key] = i
+                    probe_counts[lv_key] = probe_counts.get(lv_key, 0) + 1
+                    if probe_counts[lv_key] >= PROBE_THRESHOLD:
                         session_name = map_session(row.get("session", "other"))
-                        continuations.append({
-                            "type": "CONTINUATION",
+                        probe_exhausted.append({
+                            "type": "PROBE_EXHAUSTED",
                             "direction": "BULLISH",
                             "bar_index": i,
                             "time": bar_time,
                             "level_price": lv["price"],
                             "source": lv["source"],
                             "source_id": lv["id"],
-                            "breach_pips": round(breach / PIP, 1),
+                            "probe_count": probe_counts[lv_key],
                             "forex_day": row.get("forex_day", ""),
                             "tf": tf_label,
                         })
-                    swept_levels.add(lv_key)
-                    pass_through_consumed.extend(
-                        _consume_pass_through_levels(
-                            levels, swept_levels,
-                            row["low"], row["high"],
-                            lv["price"], "low", i, bar_time,
-                            row.get("forex_day", ""), tf_label,
-                        )
-                    )
+                        swept_levels.add(lv_key)
+                        probe_counts.pop(lv_key, None)
+                        last_breach_bar.pop(lv_key, None)
 
-    return sweeps, continuations, swept_levels, pass_through_consumed
+                if resolved:
+                    continue
+
+    return sweeps, continuations, swept_levels, pass_through_consumed, probe_exhausted
 
 
 def _consume_dwelling_levels(
@@ -1192,8 +1264,8 @@ class LiquiditySweepDetector(PrimitiveDetector):
         # Compute ATR
         atrs = compute_atr(bars, period=14)
 
-        # Phase 1: Sweep + continuation detection (includes pass-through consumption)
-        sweeps, continuations, swept_levels, pass_through = _detect_base_sweeps(
+        # Phase 1: Sweep + continuation + probe detection (includes pass-through)
+        sweeps, continuations, swept_levels, pass_through, probe_exhausted = _detect_base_sweeps(
             bars, all_levels, atrs, params, tf_label,
         )
 
@@ -1284,11 +1356,24 @@ class LiquiditySweepDetector(PrimitiveDetector):
             )
             detections.append(det)
 
+        for pe in probe_exhausted:
+            det_dir = pe["direction"].lower()
+            det = Detection(
+                id=make_detection_id("sweep_probe_exhausted", tf_label, datetime.strptime(pe["time"], "%Y-%m-%dT%H:%M:%S"), det_dir),
+                time=datetime.strptime(pe["time"], "%Y-%m-%dT%H:%M:%S"),
+                direction=det_dir,
+                type="sweep_consumed",
+                price=pe["level_price"],
+                properties=pe,
+                tags={"forex_day": pe.get("forex_day", "")},
+            )
+            detections.append(det)
+
         # Stats
         base_count = len(sweeps)
         qual_count = sum(1 for s in sweeps if s.get("qualified_sweep"))
         cont_count = len(continuations)
-        consumed_count = len(consumed) + len(pass_through)
+        consumed_count = len(consumed) + len(pass_through) + len(probe_exhausted)
         se_created = sum(1 for lv in all_levels if lv.get("source") == "SWEEP_EVENT")
         se_swept = sum(1 for sw in sweeps if sw.get("source") == "SWEEP_EVENT")
 
@@ -1317,6 +1402,7 @@ class LiquiditySweepDetector(PrimitiveDetector):
                 "continuation_count": cont_count,
                 "consumed_count": consumed_count,
                 "pass_through_consumed_count": len(pass_through),
+                "probe_exhausted_count": len(probe_exhausted),
                 "sweep_event_levels_created": se_created,
                 "sweep_event_levels_swept": se_swept,
                 "source_distribution": by_src,
