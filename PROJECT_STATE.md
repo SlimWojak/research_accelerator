@@ -13,7 +13,7 @@
 - **Repo (GitHub)**: `SlimWojak/ra-tools` (deployment target)
 - **Public URL**: https://slimwojak.github.io/ra-tools/validate.html (read-only, no label persistence)
 - **Python**: ≥3.12 — pandas, duckdb, pyarrow, pydantic v2, pyyaml
-- **Spec source**: `SYNTHETIC_OLYA_METHOD_v0.6.yaml`
+- **Spec source**: `SYNTHETIC_OLYA_METHOD_vLOCK.yaml`
 
 ---
 
@@ -225,11 +225,13 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ### Sprint 64 Gate Status
 
-Gate 3 (v0.6 methodology Olya-lock) COMPLETE — all 13 primitives LOCKED as of 2026-03-13.
+Gate 3 (vLOCK methodology Olya-lock) COMPLETE — all 13 primitives LOCKED as of 2026-03-13.
+
+Walk-forward stability: **PASS** — 25 weeks EURUSD (Sep 2025 – Feb 2026), all 39 active primitive/TF combos stable. Report: `reports/walk_forward_stability_2025-09_2026-02.yaml`.
 
 ## 10. What's Next
 
-- **Walk-forward stability run** — next milestone after full primitive lock
+- **Walk-forward stability** — COMPLETE (PASS verdict, commit b641375)
 - **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
 - **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
 
@@ -238,15 +240,15 @@ Gate 3 (v0.6 methodology Olya-lock) COMPLETE — all 13 primitives LOCKED as of 
 ## 11. Recent Git History
 
 ```
+b641375 Walk-forward stability run — 25-week EURUSD evaluation
+8da6f3e OTE LOCKED — body-based OTE + wick-based P/D, 13/13 primitives complete
+97c4b5f HTF calibration tool — complete integration + week view
+ecec8ed Fix session box rendering — null-clamp Asia band + correct Oct 2025 NY times
+70fbed4 Lock Asia Range tiers + NY Windows — Olya confirmed 2026-03-13
+9fd1982 OTE anchor verification — surface displacement cluster extreme
 78b50c4 YAML: cross_timeframe_cascade L1/L2 boundary annotation
 5dd9a32 Sweep target tiering: PROMOTED_SWING excluded from 5m/1m pool
 6f275b9 Whitelist renderable sweep types instead of blacklisting audit types
-f73e166 Probe exhaustion rule: consume levels after 5 unresolved breaches
-9c9063a Fix _merge_levels: partition by (side, forex_day) — resolves Inv 3+4
-d775f7a S65d: Enable sweep_event_levels in cascade locked params
-437041c S65c: Sweep event levels + pass-through temporal guard
-ab9fa96 S65b: Fix pass-through consumption — use full bar range, regenerate fixtures
-a1fa939 S65: Pass-through consumption + distinct primitive markers
 ```
 
 ---

@@ -73,13 +73,18 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 metadata:
-  version: "0.6"
-  date: "2026-03-11"
-  status: DRAFT — 13 primitives LOCKED. Calibration COMPLETE. Walk-forward stability pending.
-  supersedes: "v0.4"
+  version: "LOCK"
+  date: "2026-03-13"
+  status: LOCKED — 13 primitives LOCKED. Calibration COMPLETE. Walk-forward stability PASS (25 weeks).
+  supersedes: "v0.6"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
   changelog:
+    vLOCK: |
+      All 13 primitives LOCKED. Walk-forward stability PASS (25 weeks EURUSD).
+      OTE rewritten: body-to-body OTE (0.50/0.618/0.705/0.79) + wick-to-wick P/D (0.50).
+      origin_candle + extreme_candle fields added to MSS/displacement output.
+      Renamed from v0.6 to vLOCK to signal calibration complete.
     v0.6: |
       Complete architectural rewrite. L1/L1.5/L2 separation enforced.
       Pseudocode replaces prose. Native multi-TF detection.

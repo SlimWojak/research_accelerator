@@ -1138,7 +1138,7 @@ function renderStatsPanel() {
   document.getElementById('statsPanel').innerHTML = `
     <div class="sp-blk">
       <div class="sp-title">Summary</div>
-      <div class="sr"><span class="sk">Day</span><span class="sv">${dayLabel(app.day)}</span></div>
+      <div class="sr"><span class="sk">Day</span><span class="sv">${isHTF(app.tf) ? 'All Days (Week)' : dayLabel(app.day)}</span></div>
       <div class="sr"><span class="sk">Threshold</span><span class="sv">${app.threshold.toFixed(1)} pip</span></div>
       <div class="sr"><span class="sk">FVGs shown</span><span class="sv">${count}</span></div>
       <div class="sr"><span class="sk">Median gap</span><span class="sv">${medGap}</span></div>
@@ -1157,7 +1157,7 @@ function renderStatsPanel() {
       <div class="sr"><span class="sk">Other</span><span class="sv">${sc.other || 0}</span></div>
     </div>
     <div class="sp-blk">
-      <div class="sp-title">All Thresholds · ${dayLabel(app.day)}</div>
+      <div class="sp-title">All Thresholds · ${isHTF(app.tf) ? 'Week' : dayLabel(app.day)}</div>
       ${allThreshRows}
     </div>
   `;
@@ -1165,7 +1165,9 @@ function renderStatsPanel() {
 
 function updateLabels() {
   document.getElementById('tfLabel').textContent  = app.tf;
-  document.getElementById('dayLabel').textContent = dayLabel(app.day);
+  document.getElementById('dayLabel').textContent = isHTF(app.tf)
+    ? `${DAYS[0].label} – ${DAYS[DAYS.length-1].label}`
+    : dayLabel(app.day);
   document.getElementById('detectionLabel').textContent = `Native ${app.tf} detection`;
 }
 

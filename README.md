@@ -308,7 +308,7 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── data/                          # Source 1m EURUSD CSV
 ├── research/                      # Phase 1 research archive
 ├── PROJECT_STATE.md               # Full project checkpoint
-└── SYNTHETIC_OLYA_METHOD_v0.6.yaml
+└── SYNTHETIC_OLYA_METHOD_vLOCK.yaml
 ```
 
 ## Technical Details

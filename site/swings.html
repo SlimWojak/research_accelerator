@@ -1703,7 +1703,7 @@ function updateBoxCards(dayBoxes) {
     container.innerHTML = '<div class="sb-label">No session boxes for this day</div>';
     return;
   }
-  const dayLabel = (DAYS.find(d => d.date === state.day) || {}).label || state.day;
+  const dayLabel = isHTF(state.tf) ? 'All Days (Week)' : ((DAYS.find(d => d.date === state.day) || {}).label || state.day);
   container.innerHTML = `<div class="sb-label">Session Boxes \u00b7 ${dayLabel}</div>` +
     dayBoxes.map(box => {
       const info = BOX_LABELS[box.type] || { name: box.type, color: '#787b86' };

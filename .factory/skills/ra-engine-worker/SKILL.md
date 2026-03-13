@@ -27,7 +27,7 @@ Read the relevant specification documents in this order:
 2. `build_plan/01_RUNTIME_CONFIG_SCHEMA.yaml` — config params this module consumes
 3. `build_plan/05_ADVISORY_SYNTHESIS.yaml` — resolved review feedback, temporal gating table, edge cases
 4. `pipeline/preprocess_data_v2.py` — reference implementation (this is the ground truth code)
-5. `SYNTHETIC_OLYA_METHOD_v0.6.yaml` — L1 pseudocode (canonical spec, consult for algorithm details)
+5. `SYNTHETIC_OLYA_METHOD_vLOCK.yaml` — L1 pseudocode (canonical spec, consult for algorithm details)
 
 For a8ra_v1 detector modules: find the relevant function in `preprocess_data_v2.py` and read it completely. The RA module must reproduce its behavior exactly at locked params.
 

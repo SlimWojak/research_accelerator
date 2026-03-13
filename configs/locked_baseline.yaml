@@ -7,8 +7,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 schema_version: "1.0"
-source_spec: "SYNTHETIC_OLYA_METHOD_v0.6"
-source_spec_version: "0.6"
+source_spec: "SYNTHETIC_OLYA_METHOD_vLOCK"
+source_spec_version: "LOCK"
 instrument: EURUSD
 
 # ─── CONSTANTS ────────────────────────────────────────────────────────────
