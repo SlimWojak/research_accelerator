@@ -1,0 +1,8614 @@
+walk_forward_stability_report:
+  generated_at: '2026-03-13T20:40:45.067101'
+  dataset:
+    instrument: EURUSD
+    start: '2025-09-01'
+    end: '2026-02-28'
+    weeks_processed: 25
+    weeks_skipped: 1
+    skipped_detail:
+    - week: 2026-W09
+      error: no data
+    timeframes:
+    - 1m
+    - 5m
+    - 15m
+    - 1H
+    - 4H
+    config: configs/locked_baseline.yaml
+    commit: 8da6f3e (13/13 primitives LOCKED)
+  bar_counts_per_week:
+    2025-W36:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W37:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W38:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W39:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W40:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W41:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W42:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W43:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W44:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 30
+    2025-W45:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 31
+    2025-W46:
+      1m: 7200
+      5m: 1440
+      15m: 480
+      1H: 120
+      4H: 31
+    2025-W47:
+      1m: 7080
+      5m: 1416
+      15m: 472
+      1H: 118
+      4H: 31
+    2025-W48:
+      1m: 7020
+      5m: 1404
+      15m: 468
+      1H: 118
+      4H: 31
+    2025-W49:
+      1m: 6151
+      5m: 1232
+      15m: 412
+      1H: 105
+      4H: 29
+    2025-W50:
+      1m: 5822
+      5m: 1166
+      15m: 390
+      1H: 99
+      4H: 28
+    2025-W51:
+      1m: 5822
+      5m: 1166
+      15m: 390
+      1H: 100
+      4H: 28
+    2025-W52:
+      1m: 4712
+      5m: 944
+      15m: 316
+      1H: 80
+      4H: 24
+    2026-W01:
+      1m: 5485
+      5m: 1097
+      15m: 366
+      1H: 92
+      4H: 26
+    2026-W02:
+      1m: 7020
+      5m: 1404
+      15m: 468
+      1H: 118
+      4H: 31
+    2026-W03:
+      1m: 6990
+      5m: 1398
+      15m: 466
+      1H: 118
+      4H: 31
+    2026-W04:
+      1m: 5986
+      5m: 1198
+      15m: 400
+      1H: 102
+      4H: 29
+    2026-W05:
+      1m: 5078
+      5m: 1016
+      15m: 339
+      1H: 86
+      4H: 24
+    2026-W06:
+      1m: 5986
+      5m: 1198
+      15m: 400
+      1H: 102
+      4H: 29
+    2026-W07:
+      1m: 6503
+      5m: 1301
+      15m: 434
+      1H: 110
+      4H: 30
+    2026-W08:
+      1m: 5986
+      5m: 1198
+      15m: 400
+      1H: 102
+      4H: 29
+  raw_counts:
+  - week: 2025-W36
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W36
+    primitive: displacement
+    timeframe: 15m
+    count: 270
+    notes: ''
+  - week: 2025-W36
+    primitive: displacement
+    timeframe: 1H
+    count: 64
+    notes: ''
+  - week: 2025-W36
+    primitive: displacement
+    timeframe: 1m
+    count: 4290
+    notes: ''
+  - week: 2025-W36
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W36
+    primitive: displacement
+    timeframe: 5m
+    count: 798
+    notes: ''
+  - week: 2025-W36
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W36
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W36
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W36
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W36
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W36
+    primitive: fvg
+    timeframe: 15m
+    count: 120
+    notes: ''
+  - week: 2025-W36
+    primitive: fvg
+    timeframe: 1H
+    count: 21
+    notes: ''
+  - week: 2025-W36
+    primitive: fvg
+    timeframe: 1m
+    count: 1935
+    notes: ''
+  - week: 2025-W36
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W36
+    primitive: fvg
+    timeframe: 5m
+    count: 350
+    notes: ''
+  - week: 2025-W36
+    primitive: htf_liquidity
+    timeframe: global
+    count: 1
+    notes: ''
+  - week: 2025-W36
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 120
+    notes: ''
+  - week: 2025-W36
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 79
+    notes: ''
+  - week: 2025-W36
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 79
+    notes: ''
+  - week: 2025-W36
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 56
+    notes: ''
+  - week: 2025-W36
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 75
+    notes: ''
+  - week: 2025-W36
+    primitive: mss
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W36
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W36
+    primitive: mss
+    timeframe: 1m
+    count: 171
+    notes: ''
+  - week: 2025-W36
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W36
+    primitive: mss
+    timeframe: 5m
+    count: 51
+    notes: ''
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 1m
+    count: 115
+    notes: ''
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 5m
+    count: 31
+    notes: ''
+  - week: 2025-W36
+    primitive: ote
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W36
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W36
+    primitive: ote
+    timeframe: 1m
+    count: 171
+    notes: ''
+  - week: 2025-W36
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W36
+    primitive: ote
+    timeframe: 5m
+    count: 51
+    notes: ''
+  - week: 2025-W36
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W36
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W36
+    primitive: swing_points
+    timeframe: 15m
+    count: 124
+    notes: ''
+  - week: 2025-W36
+    primitive: swing_points
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W36
+    primitive: swing_points
+    timeframe: 1m
+    count: 829
+    notes: ''
+  - week: 2025-W36
+    primitive: swing_points
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2025-W36
+    primitive: swing_points
+    timeframe: 5m
+    count: 256
+    notes: ''
+  - week: 2025-W37
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W37
+    primitive: displacement
+    timeframe: 15m
+    count: 256
+    notes: ''
+  - week: 2025-W37
+    primitive: displacement
+    timeframe: 1H
+    count: 64
+    notes: ''
+  - week: 2025-W37
+    primitive: displacement
+    timeframe: 1m
+    count: 4237
+    notes: ''
+  - week: 2025-W37
+    primitive: displacement
+    timeframe: 4H
+    count: 11
+    notes: ''
+  - week: 2025-W37
+    primitive: displacement
+    timeframe: 5m
+    count: 799
+    notes: ''
+  - week: 2025-W37
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W37
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W37
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W37
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W37
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W37
+    primitive: fvg
+    timeframe: 15m
+    count: 101
+    notes: ''
+  - week: 2025-W37
+    primitive: fvg
+    timeframe: 1H
+    count: 22
+    notes: ''
+  - week: 2025-W37
+    primitive: fvg
+    timeframe: 1m
+    count: 1874
+    notes: ''
+  - week: 2025-W37
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W37
+    primitive: fvg
+    timeframe: 5m
+    count: 326
+    notes: ''
+  - week: 2025-W37
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W37
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 120
+    notes: ''
+  - week: 2025-W37
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 80
+    notes: ''
+  - week: 2025-W37
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 81
+    notes: ''
+  - week: 2025-W37
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 56
+    notes: ''
+  - week: 2025-W37
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 75
+    notes: ''
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 1H
+    count: 7
+    notes: ''
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 1m
+    count: 175
+    notes: ''
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 5m
+    count: 52
+    notes: ''
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 15m
+    count: 12
+    notes: ''
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 1m
+    count: 122
+    notes: ''
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 5m
+    count: 44
+    notes: ''
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 1H
+    count: 7
+    notes: ''
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 1m
+    count: 175
+    notes: ''
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 5m
+    count: 52
+    notes: ''
+  - week: 2025-W37
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W37
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W37
+    primitive: swing_points
+    timeframe: 15m
+    count: 118
+    notes: ''
+  - week: 2025-W37
+    primitive: swing_points
+    timeframe: 1H
+    count: 26
+    notes: ''
+  - week: 2025-W37
+    primitive: swing_points
+    timeframe: 1m
+    count: 844
+    notes: ''
+  - week: 2025-W37
+    primitive: swing_points
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W37
+    primitive: swing_points
+    timeframe: 5m
+    count: 271
+    notes: ''
+  - week: 2025-W38
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W38
+    primitive: displacement
+    timeframe: 15m
+    count: 263
+    notes: ''
+  - week: 2025-W38
+    primitive: displacement
+    timeframe: 1H
+    count: 51
+    notes: ''
+  - week: 2025-W38
+    primitive: displacement
+    timeframe: 1m
+    count: 4210
+    notes: ''
+  - week: 2025-W38
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W38
+    primitive: displacement
+    timeframe: 5m
+    count: 815
+    notes: ''
+  - week: 2025-W38
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W38
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W38
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W38
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W38
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W38
+    primitive: fvg
+    timeframe: 15m
+    count: 105
+    notes: ''
+  - week: 2025-W38
+    primitive: fvg
+    timeframe: 1H
+    count: 26
+    notes: ''
+  - week: 2025-W38
+    primitive: fvg
+    timeframe: 1m
+    count: 1903
+    notes: ''
+  - week: 2025-W38
+    primitive: fvg
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W38
+    primitive: fvg
+    timeframe: 5m
+    count: 332
+    notes: ''
+  - week: 2025-W38
+    primitive: htf_liquidity
+    timeframe: global
+    count: 3
+    notes: ''
+  - week: 2025-W38
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 113
+    notes: ''
+  - week: 2025-W38
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 68
+    notes: ''
+  - week: 2025-W38
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 70
+    notes: ''
+  - week: 2025-W38
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 53
+    notes: ''
+  - week: 2025-W38
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 65
+    notes: ''
+  - week: 2025-W38
+    primitive: mss
+    timeframe: 15m
+    count: 22
+    notes: ''
+  - week: 2025-W38
+    primitive: mss
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W38
+    primitive: mss
+    timeframe: 1m
+    count: 169
+    notes: ''
+  - week: 2025-W38
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W38
+    primitive: mss
+    timeframe: 5m
+    count: 42
+    notes: ''
+  - week: 2025-W38
+    primitive: order_block
+    timeframe: 15m
+    count: 18
+    notes: ''
+  - week: 2025-W38
+    primitive: order_block
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W38
+    primitive: order_block
+    timeframe: 1m
+    count: 124
+    notes: ''
+  - week: 2025-W38
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W38
+    primitive: order_block
+    timeframe: 5m
+    count: 30
+    notes: ''
+  - week: 2025-W38
+    primitive: ote
+    timeframe: 15m
+    count: 22
+    notes: ''
+  - week: 2025-W38
+    primitive: ote
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W38
+    primitive: ote
+    timeframe: 1m
+    count: 169
+    notes: ''
+  - week: 2025-W38
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W38
+    primitive: ote
+    timeframe: 5m
+    count: 42
+    notes: ''
+  - week: 2025-W38
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W38
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W38
+    primitive: swing_points
+    timeframe: 15m
+    count: 123
+    notes: ''
+  - week: 2025-W38
+    primitive: swing_points
+    timeframe: 1H
+    count: 22
+    notes: ''
+  - week: 2025-W38
+    primitive: swing_points
+    timeframe: 1m
+    count: 804
+    notes: ''
+  - week: 2025-W38
+    primitive: swing_points
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2025-W38
+    primitive: swing_points
+    timeframe: 5m
+    count: 270
+    notes: ''
+  - week: 2025-W39
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W39
+    primitive: displacement
+    timeframe: 15m
+    count: 274
+    notes: ''
+  - week: 2025-W39
+    primitive: displacement
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2025-W39
+    primitive: displacement
+    timeframe: 1m
+    count: 4261
+    notes: ''
+  - week: 2025-W39
+    primitive: displacement
+    timeframe: 4H
+    count: 12
+    notes: ''
+  - week: 2025-W39
+    primitive: displacement
+    timeframe: 5m
+    count: 805
+    notes: ''
+  - week: 2025-W39
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W39
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W39
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W39
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W39
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W39
+    primitive: fvg
+    timeframe: 15m
+    count: 82
+    notes: ''
+  - week: 2025-W39
+    primitive: fvg
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W39
+    primitive: fvg
+    timeframe: 1m
+    count: 1894
+    notes: ''
+  - week: 2025-W39
+    primitive: fvg
+    timeframe: 4H
+    count: 9
+    notes: ''
+  - week: 2025-W39
+    primitive: fvg
+    timeframe: 5m
+    count: 332
+    notes: ''
+  - week: 2025-W39
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W39
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 94
+    notes: ''
+  - week: 2025-W39
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 72
+    notes: ''
+  - week: 2025-W39
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 63
+    notes: ''
+  - week: 2025-W39
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 44
+    notes: ''
+  - week: 2025-W39
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 60
+    notes: ''
+  - week: 2025-W39
+    primitive: mss
+    timeframe: 15m
+    count: 17
+    notes: ''
+  - week: 2025-W39
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W39
+    primitive: mss
+    timeframe: 1m
+    count: 175
+    notes: ''
+  - week: 2025-W39
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W39
+    primitive: mss
+    timeframe: 5m
+    count: 48
+    notes: ''
+  - week: 2025-W39
+    primitive: order_block
+    timeframe: 15m
+    count: 12
+    notes: ''
+  - week: 2025-W39
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W39
+    primitive: order_block
+    timeframe: 1m
+    count: 114
+    notes: ''
+  - week: 2025-W39
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W39
+    primitive: order_block
+    timeframe: 5m
+    count: 36
+    notes: ''
+  - week: 2025-W39
+    primitive: ote
+    timeframe: 15m
+    count: 17
+    notes: ''
+  - week: 2025-W39
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W39
+    primitive: ote
+    timeframe: 1m
+    count: 175
+    notes: ''
+  - week: 2025-W39
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W39
+    primitive: ote
+    timeframe: 5m
+    count: 48
+    notes: ''
+  - week: 2025-W39
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W39
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W39
+    primitive: swing_points
+    timeframe: 15m
+    count: 142
+    notes: ''
+  - week: 2025-W39
+    primitive: swing_points
+    timeframe: 1H
+    count: 17
+    notes: ''
+  - week: 2025-W39
+    primitive: swing_points
+    timeframe: 1m
+    count: 856
+    notes: ''
+  - week: 2025-W39
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W39
+    primitive: swing_points
+    timeframe: 5m
+    count: 279
+    notes: ''
+  - week: 2025-W40
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W40
+    primitive: displacement
+    timeframe: 15m
+    count: 264
+    notes: ''
+  - week: 2025-W40
+    primitive: displacement
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2025-W40
+    primitive: displacement
+    timeframe: 1m
+    count: 4352
+    notes: ''
+  - week: 2025-W40
+    primitive: displacement
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2025-W40
+    primitive: displacement
+    timeframe: 5m
+    count: 824
+    notes: ''
+  - week: 2025-W40
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W40
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W40
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W40
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W40
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W40
+    primitive: fvg
+    timeframe: 15m
+    count: 102
+    notes: ''
+  - week: 2025-W40
+    primitive: fvg
+    timeframe: 1H
+    count: 17
+    notes: ''
+  - week: 2025-W40
+    primitive: fvg
+    timeframe: 1m
+    count: 1897
+    notes: ''
+  - week: 2025-W40
+    primitive: fvg
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2025-W40
+    primitive: fvg
+    timeframe: 5m
+    count: 333
+    notes: ''
+  - week: 2025-W40
+    primitive: htf_liquidity
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W40
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 123
+    notes: ''
+  - week: 2025-W40
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 67
+    notes: ''
+  - week: 2025-W40
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 75
+    notes: ''
+  - week: 2025-W40
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 55
+    notes: ''
+  - week: 2025-W40
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 74
+    notes: ''
+  - week: 2025-W40
+    primitive: mss
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W40
+    primitive: mss
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: mss
+    timeframe: 1m
+    count: 171
+    notes: ''
+  - week: 2025-W40
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: mss
+    timeframe: 5m
+    count: 48
+    notes: ''
+  - week: 2025-W40
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W40
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: order_block
+    timeframe: 1m
+    count: 123
+    notes: ''
+  - week: 2025-W40
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: order_block
+    timeframe: 5m
+    count: 38
+    notes: ''
+  - week: 2025-W40
+    primitive: ote
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W40
+    primitive: ote
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: ote
+    timeframe: 1m
+    count: 171
+    notes: ''
+  - week: 2025-W40
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W40
+    primitive: ote
+    timeframe: 5m
+    count: 48
+    notes: ''
+  - week: 2025-W40
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W40
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 15m
+    count: 123
+    notes: ''
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 1H
+    count: 29
+    notes: ''
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 1m
+    count: 827
+    notes: ''
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 5m
+    count: 283
+    notes: ''
+  - week: 2025-W41
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W41
+    primitive: displacement
+    timeframe: 15m
+    count: 266
+    notes: ''
+  - week: 2025-W41
+    primitive: displacement
+    timeframe: 1H
+    count: 56
+    notes: ''
+  - week: 2025-W41
+    primitive: displacement
+    timeframe: 1m
+    count: 4229
+    notes: ''
+  - week: 2025-W41
+    primitive: displacement
+    timeframe: 4H
+    count: 9
+    notes: ''
+  - week: 2025-W41
+    primitive: displacement
+    timeframe: 5m
+    count: 774
+    notes: ''
+  - week: 2025-W41
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W41
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W41
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W41
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W41
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W41
+    primitive: fvg
+    timeframe: 15m
+    count: 108
+    notes: ''
+  - week: 2025-W41
+    primitive: fvg
+    timeframe: 1H
+    count: 30
+    notes: ''
+  - week: 2025-W41
+    primitive: fvg
+    timeframe: 1m
+    count: 1962
+    notes: ''
+  - week: 2025-W41
+    primitive: fvg
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2025-W41
+    primitive: fvg
+    timeframe: 5m
+    count: 357
+    notes: ''
+  - week: 2025-W41
+    primitive: htf_liquidity
+    timeframe: global
+    count: 1
+    notes: ''
+  - week: 2025-W41
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 89
+    notes: ''
+  - week: 2025-W41
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 55
+    notes: ''
+  - week: 2025-W41
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 57
+    notes: ''
+  - week: 2025-W41
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 47
+    notes: ''
+  - week: 2025-W41
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 56
+    notes: ''
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 15m
+    count: 20
+    notes: ''
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 1m
+    count: 165
+    notes: ''
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 5m
+    count: 66
+    notes: ''
+  - week: 2025-W41
+    primitive: order_block
+    timeframe: 15m
+    count: 18
+    notes: ''
+  - week: 2025-W41
+    primitive: order_block
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2025-W41
+    primitive: order_block
+    timeframe: 1m
+    count: 123
+    notes: ''
+  - week: 2025-W41
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W41
+    primitive: order_block
+    timeframe: 5m
+    count: 47
+    notes: ''
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 15m
+    count: 20
+    notes: ''
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 1m
+    count: 165
+    notes: ''
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 5m
+    count: 66
+    notes: ''
+  - week: 2025-W41
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W41
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W41
+    primitive: swing_points
+    timeframe: 15m
+    count: 127
+    notes: ''
+  - week: 2025-W41
+    primitive: swing_points
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W41
+    primitive: swing_points
+    timeframe: 1m
+    count: 814
+    notes: ''
+  - week: 2025-W41
+    primitive: swing_points
+    timeframe: 4H
+    count: 3
+    notes: ''
+  - week: 2025-W41
+    primitive: swing_points
+    timeframe: 5m
+    count: 276
+    notes: ''
+  - week: 2025-W42
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W42
+    primitive: displacement
+    timeframe: 15m
+    count: 258
+    notes: ''
+  - week: 2025-W42
+    primitive: displacement
+    timeframe: 1H
+    count: 54
+    notes: ''
+  - week: 2025-W42
+    primitive: displacement
+    timeframe: 1m
+    count: 4212
+    notes: ''
+  - week: 2025-W42
+    primitive: displacement
+    timeframe: 4H
+    count: 12
+    notes: ''
+  - week: 2025-W42
+    primitive: displacement
+    timeframe: 5m
+    count: 795
+    notes: ''
+  - week: 2025-W42
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W42
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W42
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W42
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W42
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W42
+    primitive: fvg
+    timeframe: 15m
+    count: 90
+    notes: ''
+  - week: 2025-W42
+    primitive: fvg
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2025-W42
+    primitive: fvg
+    timeframe: 1m
+    count: 1845
+    notes: ''
+  - week: 2025-W42
+    primitive: fvg
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W42
+    primitive: fvg
+    timeframe: 5m
+    count: 292
+    notes: ''
+  - week: 2025-W42
+    primitive: htf_liquidity
+    timeframe: global
+    count: 2
+    notes: ''
+  - week: 2025-W42
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 104
+    notes: ''
+  - week: 2025-W42
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 66
+    notes: ''
+  - week: 2025-W42
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 69
+    notes: ''
+  - week: 2025-W42
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 51
+    notes: ''
+  - week: 2025-W42
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 69
+    notes: ''
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 1H
+    count: 6
+    notes: ''
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 1m
+    count: 172
+    notes: ''
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 5m
+    count: 46
+    notes: ''
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 1H
+    count: 6
+    notes: ''
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 1m
+    count: 107
+    notes: ''
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 5m
+    count: 40
+    notes: ''
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 1H
+    count: 6
+    notes: ''
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 1m
+    count: 172
+    notes: ''
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 5m
+    count: 46
+    notes: ''
+  - week: 2025-W42
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W42
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W42
+    primitive: swing_points
+    timeframe: 15m
+    count: 126
+    notes: ''
+  - week: 2025-W42
+    primitive: swing_points
+    timeframe: 1H
+    count: 19
+    notes: ''
+  - week: 2025-W42
+    primitive: swing_points
+    timeframe: 1m
+    count: 873
+    notes: ''
+  - week: 2025-W42
+    primitive: swing_points
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W42
+    primitive: swing_points
+    timeframe: 5m
+    count: 265
+    notes: ''
+  - week: 2025-W43
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W43
+    primitive: displacement
+    timeframe: 15m
+    count: 248
+    notes: ''
+  - week: 2025-W43
+    primitive: displacement
+    timeframe: 1H
+    count: 59
+    notes: ''
+  - week: 2025-W43
+    primitive: displacement
+    timeframe: 1m
+    count: 4303
+    notes: ''
+  - week: 2025-W43
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W43
+    primitive: displacement
+    timeframe: 5m
+    count: 793
+    notes: ''
+  - week: 2025-W43
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W43
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W43
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W43
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W43
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W43
+    primitive: fvg
+    timeframe: 15m
+    count: 91
+    notes: ''
+  - week: 2025-W43
+    primitive: fvg
+    timeframe: 1H
+    count: 17
+    notes: ''
+  - week: 2025-W43
+    primitive: fvg
+    timeframe: 1m
+    count: 1864
+    notes: ''
+  - week: 2025-W43
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W43
+    primitive: fvg
+    timeframe: 5m
+    count: 297
+    notes: ''
+  - week: 2025-W43
+    primitive: htf_liquidity
+    timeframe: global
+    count: 2
+    notes: ''
+  - week: 2025-W43
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 95
+    notes: ''
+  - week: 2025-W43
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2025-W43
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 67
+    notes: ''
+  - week: 2025-W43
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 52
+    notes: ''
+  - week: 2025-W43
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 64
+    notes: ''
+  - week: 2025-W43
+    primitive: mss
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W43
+    primitive: mss
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: mss
+    timeframe: 1m
+    count: 143
+    notes: ''
+  - week: 2025-W43
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: mss
+    timeframe: 5m
+    count: 45
+    notes: ''
+  - week: 2025-W43
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W43
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: order_block
+    timeframe: 1m
+    count: 105
+    notes: ''
+  - week: 2025-W43
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: order_block
+    timeframe: 5m
+    count: 39
+    notes: ''
+  - week: 2025-W43
+    primitive: ote
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W43
+    primitive: ote
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: ote
+    timeframe: 1m
+    count: 143
+    notes: ''
+  - week: 2025-W43
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W43
+    primitive: ote
+    timeframe: 5m
+    count: 45
+    notes: ''
+  - week: 2025-W43
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W43
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W43
+    primitive: swing_points
+    timeframe: 15m
+    count: 125
+    notes: ''
+  - week: 2025-W43
+    primitive: swing_points
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2025-W43
+    primitive: swing_points
+    timeframe: 1m
+    count: 858
+    notes: ''
+  - week: 2025-W43
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W43
+    primitive: swing_points
+    timeframe: 5m
+    count: 276
+    notes: ''
+  - week: 2025-W44
+    primitive: asia_range
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W44
+    primitive: displacement
+    timeframe: 15m
+    count: 276
+    notes: ''
+  - week: 2025-W44
+    primitive: displacement
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2025-W44
+    primitive: displacement
+    timeframe: 1m
+    count: 4299
+    notes: ''
+  - week: 2025-W44
+    primitive: displacement
+    timeframe: 4H
+    count: 10
+    notes: ''
+  - week: 2025-W44
+    primitive: displacement
+    timeframe: 5m
+    count: 821
+    notes: ''
+  - week: 2025-W44
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W44
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W44
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W44
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W44
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W44
+    primitive: fvg
+    timeframe: 15m
+    count: 107
+    notes: ''
+  - week: 2025-W44
+    primitive: fvg
+    timeframe: 1H
+    count: 29
+    notes: ''
+  - week: 2025-W44
+    primitive: fvg
+    timeframe: 1m
+    count: 1975
+    notes: ''
+  - week: 2025-W44
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W44
+    primitive: fvg
+    timeframe: 5m
+    count: 351
+    notes: ''
+  - week: 2025-W44
+    primitive: htf_liquidity
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W44
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 107
+    notes: ''
+  - week: 2025-W44
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 71
+    notes: ''
+  - week: 2025-W44
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 66
+    notes: ''
+  - week: 2025-W44
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 57
+    notes: ''
+  - week: 2025-W44
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 65
+    notes: ''
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 15m
+    count: 18
+    notes: ''
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 1m
+    count: 163
+    notes: ''
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 5m
+    count: 54
+    notes: ''
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 1m
+    count: 123
+    notes: ''
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 5m
+    count: 38
+    notes: ''
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 15m
+    count: 18
+    notes: ''
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 1H
+    count: 5
+    notes: ''
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 1m
+    count: 163
+    notes: ''
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 5m
+    count: 54
+    notes: ''
+  - week: 2025-W44
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W44
+    primitive: session_liquidity
+    timeframe: global
+    count: 16
+    notes: ''
+  - week: 2025-W44
+    primitive: swing_points
+    timeframe: 15m
+    count: 124
+    notes: ''
+  - week: 2025-W44
+    primitive: swing_points
+    timeframe: 1H
+    count: 22
+    notes: ''
+  - week: 2025-W44
+    primitive: swing_points
+    timeframe: 1m
+    count: 818
+    notes: ''
+  - week: 2025-W44
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W44
+    primitive: swing_points
+    timeframe: 5m
+    count: 272
+    notes: ''
+  - week: 2025-W45
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W45
+    primitive: displacement
+    timeframe: 15m
+    count: 264
+    notes: ''
+  - week: 2025-W45
+    primitive: displacement
+    timeframe: 1H
+    count: 54
+    notes: ''
+  - week: 2025-W45
+    primitive: displacement
+    timeframe: 1m
+    count: 4259
+    notes: ''
+  - week: 2025-W45
+    primitive: displacement
+    timeframe: 4H
+    count: 10
+    notes: ''
+  - week: 2025-W45
+    primitive: displacement
+    timeframe: 5m
+    count: 791
+    notes: ''
+  - week: 2025-W45
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W45
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W45
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W45
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W45
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W45
+    primitive: fvg
+    timeframe: 15m
+    count: 89
+    notes: ''
+  - week: 2025-W45
+    primitive: fvg
+    timeframe: 1H
+    count: 25
+    notes: ''
+  - week: 2025-W45
+    primitive: fvg
+    timeframe: 1m
+    count: 1889
+    notes: ''
+  - week: 2025-W45
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W45
+    primitive: fvg
+    timeframe: 5m
+    count: 324
+    notes: ''
+  - week: 2025-W45
+    primitive: htf_liquidity
+    timeframe: global
+    count: 2
+    notes: ''
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 100
+    notes: ''
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 81
+    notes: ''
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 76
+    notes: ''
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 70
+    notes: ''
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 73
+    notes: ''
+  - week: 2025-W45
+    primitive: mss
+    timeframe: 15m
+    count: 20
+    notes: ''
+  - week: 2025-W45
+    primitive: mss
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W45
+    primitive: mss
+    timeframe: 1m
+    count: 183
+    notes: ''
+  - week: 2025-W45
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W45
+    primitive: mss
+    timeframe: 5m
+    count: 47
+    notes: ''
+  - week: 2025-W45
+    primitive: order_block
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W45
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W45
+    primitive: order_block
+    timeframe: 1m
+    count: 128
+    notes: ''
+  - week: 2025-W45
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W45
+    primitive: order_block
+    timeframe: 5m
+    count: 38
+    notes: ''
+  - week: 2025-W45
+    primitive: ote
+    timeframe: 15m
+    count: 20
+    notes: ''
+  - week: 2025-W45
+    primitive: ote
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W45
+    primitive: ote
+    timeframe: 1m
+    count: 183
+    notes: ''
+  - week: 2025-W45
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W45
+    primitive: ote
+    timeframe: 5m
+    count: 47
+    notes: ''
+  - week: 2025-W45
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W45
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W45
+    primitive: swing_points
+    timeframe: 15m
+    count: 127
+    notes: ''
+  - week: 2025-W45
+    primitive: swing_points
+    timeframe: 1H
+    count: 18
+    notes: ''
+  - week: 2025-W45
+    primitive: swing_points
+    timeframe: 1m
+    count: 855
+    notes: ''
+  - week: 2025-W45
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W45
+    primitive: swing_points
+    timeframe: 5m
+    count: 274
+    notes: ''
+  - week: 2025-W46
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W46
+    primitive: displacement
+    timeframe: 15m
+    count: 262
+    notes: ''
+  - week: 2025-W46
+    primitive: displacement
+    timeframe: 1H
+    count: 54
+    notes: ''
+  - week: 2025-W46
+    primitive: displacement
+    timeframe: 1m
+    count: 4295
+    notes: ''
+  - week: 2025-W46
+    primitive: displacement
+    timeframe: 4H
+    count: 12
+    notes: ''
+  - week: 2025-W46
+    primitive: displacement
+    timeframe: 5m
+    count: 819
+    notes: ''
+  - week: 2025-W46
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W46
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W46
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W46
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W46
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W46
+    primitive: fvg
+    timeframe: 15m
+    count: 109
+    notes: ''
+  - week: 2025-W46
+    primitive: fvg
+    timeframe: 1H
+    count: 25
+    notes: ''
+  - week: 2025-W46
+    primitive: fvg
+    timeframe: 1m
+    count: 2143
+    notes: ''
+  - week: 2025-W46
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W46
+    primitive: fvg
+    timeframe: 5m
+    count: 359
+    notes: ''
+  - week: 2025-W46
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W46
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 92
+    notes: ''
+  - week: 2025-W46
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2025-W46
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 65
+    notes: ''
+  - week: 2025-W46
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 45
+    notes: ''
+  - week: 2025-W46
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 61
+    notes: ''
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 15m
+    count: 24
+    notes: ''
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 1H
+    count: 7
+    notes: ''
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 1m
+    count: 155
+    notes: ''
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 5m
+    count: 54
+    notes: ''
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 1H
+    count: 6
+    notes: ''
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 1m
+    count: 96
+    notes: ''
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 5m
+    count: 41
+    notes: ''
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 15m
+    count: 24
+    notes: ''
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 1H
+    count: 7
+    notes: ''
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 1m
+    count: 155
+    notes: ''
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 5m
+    count: 54
+    notes: ''
+  - week: 2025-W46
+    primitive: reference_levels
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2025-W46
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W46
+    primitive: swing_points
+    timeframe: 15m
+    count: 130
+    notes: ''
+  - week: 2025-W46
+    primitive: swing_points
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2025-W46
+    primitive: swing_points
+    timeframe: 1m
+    count: 839
+    notes: ''
+  - week: 2025-W46
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W46
+    primitive: swing_points
+    timeframe: 5m
+    count: 273
+    notes: ''
+  - week: 2025-W47
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W47
+    primitive: displacement
+    timeframe: 15m
+    count: 257
+    notes: ''
+  - week: 2025-W47
+    primitive: displacement
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2025-W47
+    primitive: displacement
+    timeframe: 1m
+    count: 4153
+    notes: ''
+  - week: 2025-W47
+    primitive: displacement
+    timeframe: 4H
+    count: 11
+    notes: ''
+  - week: 2025-W47
+    primitive: displacement
+    timeframe: 5m
+    count: 770
+    notes: ''
+  - week: 2025-W47
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W47
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W47
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W47
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W47
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 15m
+    count: 100
+    notes: ''
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 1H
+    count: 23
+    notes: ''
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 1m
+    count: 1933
+    notes: ''
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 5m
+    count: 300
+    notes: ''
+  - week: 2025-W47
+    primitive: htf_liquidity
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W47
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 94
+    notes: ''
+  - week: 2025-W47
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2025-W47
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 67
+    notes: ''
+  - week: 2025-W47
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 44
+    notes: ''
+  - week: 2025-W47
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 60
+    notes: ''
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 15m
+    count: 27
+    notes: ''
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 5m
+    count: 51
+    notes: ''
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 15m
+    count: 25
+    notes: ''
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 1m
+    count: 104
+    notes: ''
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 5m
+    count: 36
+    notes: ''
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 15m
+    count: 27
+    notes: ''
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 5m
+    count: 51
+    notes: ''
+  - week: 2025-W47
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W47
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 15m
+    count: 134
+    notes: ''
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 1H
+    count: 30
+    notes: ''
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 1m
+    count: 858
+    notes: ''
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 5m
+    count: 269
+    notes: ''
+  - week: 2025-W48
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W48
+    primitive: displacement
+    timeframe: 15m
+    count: 284
+    notes: ''
+  - week: 2025-W48
+    primitive: displacement
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2025-W48
+    primitive: displacement
+    timeframe: 1m
+    count: 4161
+    notes: ''
+  - week: 2025-W48
+    primitive: displacement
+    timeframe: 4H
+    count: 10
+    notes: ''
+  - week: 2025-W48
+    primitive: displacement
+    timeframe: 5m
+    count: 848
+    notes: ''
+  - week: 2025-W48
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W48
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W48
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W48
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W48
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W48
+    primitive: fvg
+    timeframe: 15m
+    count: 95
+    notes: ''
+  - week: 2025-W48
+    primitive: fvg
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W48
+    primitive: fvg
+    timeframe: 1m
+    count: 1847
+    notes: ''
+  - week: 2025-W48
+    primitive: fvg
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W48
+    primitive: fvg
+    timeframe: 5m
+    count: 337
+    notes: ''
+  - week: 2025-W48
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W48
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 88
+    notes: ''
+  - week: 2025-W48
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 66
+    notes: ''
+  - week: 2025-W48
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 65
+    notes: ''
+  - week: 2025-W48
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 49
+    notes: ''
+  - week: 2025-W48
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 66
+    notes: ''
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 15m
+    count: 11
+    notes: ''
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 1m
+    count: 107
+    notes: ''
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 5m
+    count: 35
+    notes: ''
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2025-W48
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W48
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W48
+    primitive: swing_points
+    timeframe: 15m
+    count: 124
+    notes: ''
+  - week: 2025-W48
+    primitive: swing_points
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W48
+    primitive: swing_points
+    timeframe: 1m
+    count: 841
+    notes: ''
+  - week: 2025-W48
+    primitive: swing_points
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W48
+    primitive: swing_points
+    timeframe: 5m
+    count: 282
+    notes: ''
+  - week: 2025-W49
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W49
+    primitive: displacement
+    timeframe: 15m
+    count: 234
+    notes: ''
+  - week: 2025-W49
+    primitive: displacement
+    timeframe: 1H
+    count: 50
+    notes: ''
+  - week: 2025-W49
+    primitive: displacement
+    timeframe: 1m
+    count: 3610
+    notes: ''
+  - week: 2025-W49
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W49
+    primitive: displacement
+    timeframe: 5m
+    count: 719
+    notes: ''
+  - week: 2025-W49
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W49
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W49
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W49
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W49
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W49
+    primitive: fvg
+    timeframe: 15m
+    count: 95
+    notes: ''
+  - week: 2025-W49
+    primitive: fvg
+    timeframe: 1H
+    count: 28
+    notes: ''
+  - week: 2025-W49
+    primitive: fvg
+    timeframe: 1m
+    count: 1601
+    notes: ''
+  - week: 2025-W49
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W49
+    primitive: fvg
+    timeframe: 5m
+    count: 276
+    notes: ''
+  - week: 2025-W49
+    primitive: htf_liquidity
+    timeframe: global
+    count: 3
+    notes: ''
+  - week: 2025-W49
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 88
+    notes: ''
+  - week: 2025-W49
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2025-W49
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 71
+    notes: ''
+  - week: 2025-W49
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 48
+    notes: ''
+  - week: 2025-W49
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 70
+    notes: ''
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 1m
+    count: 154
+    notes: ''
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 5m
+    count: 26
+    notes: ''
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 1m
+    count: 111
+    notes: ''
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 5m
+    count: 19
+    notes: ''
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 1m
+    count: 154
+    notes: ''
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 5m
+    count: 26
+    notes: ''
+  - week: 2025-W49
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W49
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W49
+    primitive: swing_points
+    timeframe: 15m
+    count: 106
+    notes: ''
+  - week: 2025-W49
+    primitive: swing_points
+    timeframe: 1H
+    count: 18
+    notes: ''
+  - week: 2025-W49
+    primitive: swing_points
+    timeframe: 1m
+    count: 771
+    notes: ''
+  - week: 2025-W49
+    primitive: swing_points
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2025-W49
+    primitive: swing_points
+    timeframe: 5m
+    count: 234
+    notes: ''
+  - week: 2025-W50
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W50
+    primitive: displacement
+    timeframe: 15m
+    count: 214
+    notes: ''
+  - week: 2025-W50
+    primitive: displacement
+    timeframe: 1H
+    count: 45
+    notes: ''
+  - week: 2025-W50
+    primitive: displacement
+    timeframe: 1m
+    count: 3414
+    notes: ''
+  - week: 2025-W50
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2025-W50
+    primitive: displacement
+    timeframe: 5m
+    count: 649
+    notes: ''
+  - week: 2025-W50
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W50
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W50
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W50
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W50
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W50
+    primitive: fvg
+    timeframe: 15m
+    count: 96
+    notes: ''
+  - week: 2025-W50
+    primitive: fvg
+    timeframe: 1H
+    count: 21
+    notes: ''
+  - week: 2025-W50
+    primitive: fvg
+    timeframe: 1m
+    count: 1522
+    notes: ''
+  - week: 2025-W50
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W50
+    primitive: fvg
+    timeframe: 5m
+    count: 267
+    notes: ''
+  - week: 2025-W50
+    primitive: htf_liquidity
+    timeframe: global
+    count: 3
+    notes: ''
+  - week: 2025-W50
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 79
+    notes: ''
+  - week: 2025-W50
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 65
+    notes: ''
+  - week: 2025-W50
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 70
+    notes: ''
+  - week: 2025-W50
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 52
+    notes: ''
+  - week: 2025-W50
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 66
+    notes: ''
+  - week: 2025-W50
+    primitive: mss
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W50
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W50
+    primitive: mss
+    timeframe: 1m
+    count: 144
+    notes: ''
+  - week: 2025-W50
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W50
+    primitive: mss
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2025-W50
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W50
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2025-W50
+    primitive: order_block
+    timeframe: 1m
+    count: 91
+    notes: ''
+  - week: 2025-W50
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W50
+    primitive: order_block
+    timeframe: 5m
+    count: 32
+    notes: ''
+  - week: 2025-W50
+    primitive: ote
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2025-W50
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W50
+    primitive: ote
+    timeframe: 1m
+    count: 144
+    notes: ''
+  - week: 2025-W50
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2025-W50
+    primitive: ote
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2025-W50
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W50
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W50
+    primitive: swing_points
+    timeframe: 15m
+    count: 115
+    notes: ''
+  - week: 2025-W50
+    primitive: swing_points
+    timeframe: 1H
+    count: 19
+    notes: ''
+  - week: 2025-W50
+    primitive: swing_points
+    timeframe: 1m
+    count: 692
+    notes: ''
+  - week: 2025-W50
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W50
+    primitive: swing_points
+    timeframe: 5m
+    count: 223
+    notes: ''
+  - week: 2025-W51
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W51
+    primitive: displacement
+    timeframe: 15m
+    count: 206
+    notes: ''
+  - week: 2025-W51
+    primitive: displacement
+    timeframe: 1H
+    count: 39
+    notes: ''
+  - week: 2025-W51
+    primitive: displacement
+    timeframe: 1m
+    count: 3387
+    notes: ''
+  - week: 2025-W51
+    primitive: displacement
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2025-W51
+    primitive: displacement
+    timeframe: 5m
+    count: 643
+    notes: ''
+  - week: 2025-W51
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W51
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W51
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W51
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W51
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W51
+    primitive: fvg
+    timeframe: 15m
+    count: 78
+    notes: ''
+  - week: 2025-W51
+    primitive: fvg
+    timeframe: 1H
+    count: 18
+    notes: ''
+  - week: 2025-W51
+    primitive: fvg
+    timeframe: 1m
+    count: 1496
+    notes: ''
+  - week: 2025-W51
+    primitive: fvg
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2025-W51
+    primitive: fvg
+    timeframe: 5m
+    count: 266
+    notes: ''
+  - week: 2025-W51
+    primitive: htf_liquidity
+    timeframe: global
+    count: 3
+    notes: ''
+  - week: 2025-W51
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 89
+    notes: ''
+  - week: 2025-W51
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 70
+    notes: ''
+  - week: 2025-W51
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 74
+    notes: ''
+  - week: 2025-W51
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 55
+    notes: ''
+  - week: 2025-W51
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 67
+    notes: ''
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 1m
+    count: 141
+    notes: ''
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 5m
+    count: 40
+    notes: ''
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 1m
+    count: 106
+    notes: ''
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 5m
+    count: 37
+    notes: ''
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 1m
+    count: 141
+    notes: ''
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 5m
+    count: 40
+    notes: ''
+  - week: 2025-W51
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2025-W51
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2025-W51
+    primitive: swing_points
+    timeframe: 15m
+    count: 111
+    notes: ''
+  - week: 2025-W51
+    primitive: swing_points
+    timeframe: 1H
+    count: 20
+    notes: ''
+  - week: 2025-W51
+    primitive: swing_points
+    timeframe: 1m
+    count: 684
+    notes: ''
+  - week: 2025-W51
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W51
+    primitive: swing_points
+    timeframe: 5m
+    count: 236
+    notes: ''
+  - week: 2025-W52
+    primitive: asia_range
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 15m
+    count: 178
+    notes: ''
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 1H
+    count: 38
+    notes: ''
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 1m
+    count: 2736
+    notes: ''
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 5m
+    count: 523
+    notes: ''
+  - week: 2025-W52
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2025-W52
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2025-W52
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2025-W52
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W52
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 15m
+    count: 68
+    notes: ''
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 1H
+    count: 21
+    notes: ''
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 1m
+    count: 1205
+    notes: ''
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 5m
+    count: 189
+    notes: ''
+  - week: 2025-W52
+    primitive: htf_liquidity
+    timeframe: global
+    count: 1
+    notes: ''
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 57
+    notes: ''
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 35
+    notes: ''
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 44
+    notes: ''
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 30
+    notes: ''
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 42
+    notes: ''
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 1m
+    count: 109
+    notes: ''
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 5m
+    count: 30
+    notes: ''
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 1m
+    count: 74
+    notes: ''
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 5m
+    count: 23
+    notes: ''
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 1m
+    count: 109
+    notes: ''
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 5m
+    count: 30
+    notes: ''
+  - week: 2025-W52
+    primitive: reference_levels
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2025-W52
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    notes: ''
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 15m
+    count: 76
+    notes: ''
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 1H
+    count: 17
+    notes: ''
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 1m
+    count: 559
+    notes: ''
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 4H
+    count: 2
+    notes: ''
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 5m
+    count: 180
+    notes: ''
+  - week: 2026-W01
+    primitive: asia_range
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W01
+    primitive: displacement
+    timeframe: 15m
+    count: 209
+    notes: ''
+  - week: 2026-W01
+    primitive: displacement
+    timeframe: 1H
+    count: 48
+    notes: ''
+  - week: 2026-W01
+    primitive: displacement
+    timeframe: 1m
+    count: 3165
+    notes: ''
+  - week: 2026-W01
+    primitive: displacement
+    timeframe: 4H
+    count: 9
+    notes: ''
+  - week: 2026-W01
+    primitive: displacement
+    timeframe: 5m
+    count: 612
+    notes: ''
+  - week: 2026-W01
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W01
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: fvg
+    timeframe: 15m
+    count: 101
+    notes: ''
+  - week: 2026-W01
+    primitive: fvg
+    timeframe: 1H
+    count: 28
+    notes: ''
+  - week: 2026-W01
+    primitive: fvg
+    timeframe: 1m
+    count: 1478
+    notes: ''
+  - week: 2026-W01
+    primitive: fvg
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2026-W01
+    primitive: fvg
+    timeframe: 5m
+    count: 257
+    notes: ''
+  - week: 2026-W01
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W01
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 68
+    notes: ''
+  - week: 2026-W01
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 46
+    notes: ''
+  - week: 2026-W01
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 51
+    notes: ''
+  - week: 2026-W01
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 36
+    notes: ''
+  - week: 2026-W01
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 50
+    notes: ''
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 1m
+    count: 131
+    notes: ''
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 5m
+    count: 26
+    notes: ''
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 15m
+    count: 8
+    notes: ''
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 1m
+    count: 98
+    notes: ''
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 5m
+    count: 22
+    notes: ''
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 15m
+    count: 9
+    notes: ''
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 1m
+    count: 131
+    notes: ''
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 5m
+    count: 26
+    notes: ''
+  - week: 2026-W01
+    primitive: reference_levels
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W01
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    notes: ''
+  - week: 2026-W01
+    primitive: swing_points
+    timeframe: 15m
+    count: 97
+    notes: ''
+  - week: 2026-W01
+    primitive: swing_points
+    timeframe: 1H
+    count: 15
+    notes: ''
+  - week: 2026-W01
+    primitive: swing_points
+    timeframe: 1m
+    count: 636
+    notes: ''
+  - week: 2026-W01
+    primitive: swing_points
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2026-W01
+    primitive: swing_points
+    timeframe: 5m
+    count: 194
+    notes: ''
+  - week: 2026-W02
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W02
+    primitive: displacement
+    timeframe: 15m
+    count: 248
+    notes: ''
+  - week: 2026-W02
+    primitive: displacement
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2026-W02
+    primitive: displacement
+    timeframe: 1m
+    count: 4150
+    notes: ''
+  - week: 2026-W02
+    primitive: displacement
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2026-W02
+    primitive: displacement
+    timeframe: 5m
+    count: 776
+    notes: ''
+  - week: 2026-W02
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W02
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W02
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W02
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W02
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W02
+    primitive: fvg
+    timeframe: 15m
+    count: 93
+    notes: ''
+  - week: 2026-W02
+    primitive: fvg
+    timeframe: 1H
+    count: 23
+    notes: ''
+  - week: 2026-W02
+    primitive: fvg
+    timeframe: 1m
+    count: 1861
+    notes: ''
+  - week: 2026-W02
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W02
+    primitive: fvg
+    timeframe: 5m
+    count: 310
+    notes: ''
+  - week: 2026-W02
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W02
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 89
+    notes: ''
+  - week: 2026-W02
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2026-W02
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 62
+    notes: ''
+  - week: 2026-W02
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 53
+    notes: ''
+  - week: 2026-W02
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 57
+    notes: ''
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 5m
+    count: 42
+    notes: ''
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 15m
+    count: 14
+    notes: ''
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 1m
+    count: 119
+    notes: ''
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 5m
+    count: 33
+    notes: ''
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 15m
+    count: 15
+    notes: ''
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 1m
+    count: 168
+    notes: ''
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 5m
+    count: 42
+    notes: ''
+  - week: 2026-W02
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W02
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W02
+    primitive: swing_points
+    timeframe: 15m
+    count: 121
+    notes: ''
+  - week: 2026-W02
+    primitive: swing_points
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2026-W02
+    primitive: swing_points
+    timeframe: 1m
+    count: 843
+    notes: ''
+  - week: 2026-W02
+    primitive: swing_points
+    timeframe: 4H
+    count: 3
+    notes: ''
+  - week: 2026-W02
+    primitive: swing_points
+    timeframe: 5m
+    count: 282
+    notes: ''
+  - week: 2026-W03
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W03
+    primitive: displacement
+    timeframe: 15m
+    count: 262
+    notes: ''
+  - week: 2026-W03
+    primitive: displacement
+    timeframe: 1H
+    count: 64
+    notes: ''
+  - week: 2026-W03
+    primitive: displacement
+    timeframe: 1m
+    count: 4100
+    notes: ''
+  - week: 2026-W03
+    primitive: displacement
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2026-W03
+    primitive: displacement
+    timeframe: 5m
+    count: 784
+    notes: ''
+  - week: 2026-W03
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W03
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W03
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W03
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W03
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W03
+    primitive: fvg
+    timeframe: 15m
+    count: 84
+    notes: ''
+  - week: 2026-W03
+    primitive: fvg
+    timeframe: 1H
+    count: 16
+    notes: ''
+  - week: 2026-W03
+    primitive: fvg
+    timeframe: 1m
+    count: 1811
+    notes: ''
+  - week: 2026-W03
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W03
+    primitive: fvg
+    timeframe: 5m
+    count: 322
+    notes: ''
+  - week: 2026-W03
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W03
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 89
+    notes: ''
+  - week: 2026-W03
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 69
+    notes: ''
+  - week: 2026-W03
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 71
+    notes: ''
+  - week: 2026-W03
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 45
+    notes: ''
+  - week: 2026-W03
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 68
+    notes: ''
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 1m
+    count: 178
+    notes: ''
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 5m
+    count: 46
+    notes: ''
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 15m
+    count: 17
+    notes: ''
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 1m
+    count: 117
+    notes: ''
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 5m
+    count: 36
+    notes: ''
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 1m
+    count: 178
+    notes: ''
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 5m
+    count: 46
+    notes: ''
+  - week: 2026-W03
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W03
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W03
+    primitive: swing_points
+    timeframe: 15m
+    count: 128
+    notes: ''
+  - week: 2026-W03
+    primitive: swing_points
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2026-W03
+    primitive: swing_points
+    timeframe: 1m
+    count: 834
+    notes: ''
+  - week: 2026-W03
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W03
+    primitive: swing_points
+    timeframe: 5m
+    count: 273
+    notes: ''
+  - week: 2026-W04
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W04
+    primitive: displacement
+    timeframe: 15m
+    count: 220
+    notes: ''
+  - week: 2026-W04
+    primitive: displacement
+    timeframe: 1H
+    count: 49
+    notes: ''
+  - week: 2026-W04
+    primitive: displacement
+    timeframe: 1m
+    count: 3467
+    notes: ''
+  - week: 2026-W04
+    primitive: displacement
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W04
+    primitive: displacement
+    timeframe: 5m
+    count: 647
+    notes: ''
+  - week: 2026-W04
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W04
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W04
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W04
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W04
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 15m
+    count: 105
+    notes: ''
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 1H
+    count: 28
+    notes: ''
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 1m
+    count: 1596
+    notes: ''
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 4H
+    count: 10
+    notes: ''
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 5m
+    count: 317
+    notes: ''
+  - week: 2026-W04
+    primitive: htf_liquidity
+    timeframe: global
+    count: 1
+    notes: ''
+  - week: 2026-W04
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 82
+    notes: ''
+  - week: 2026-W04
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 63
+    notes: ''
+  - week: 2026-W04
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 56
+    notes: ''
+  - week: 2026-W04
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 51
+    notes: ''
+  - week: 2026-W04
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 56
+    notes: ''
+  - week: 2026-W04
+    primitive: mss
+    timeframe: 15m
+    count: 14
+    notes: ''
+  - week: 2026-W04
+    primitive: mss
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2026-W04
+    primitive: mss
+    timeframe: 1m
+    count: 130
+    notes: ''
+  - week: 2026-W04
+    primitive: mss
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2026-W04
+    primitive: mss
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2026-W04
+    primitive: order_block
+    timeframe: 15m
+    count: 10
+    notes: ''
+  - week: 2026-W04
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2026-W04
+    primitive: order_block
+    timeframe: 1m
+    count: 94
+    notes: ''
+  - week: 2026-W04
+    primitive: order_block
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2026-W04
+    primitive: order_block
+    timeframe: 5m
+    count: 38
+    notes: ''
+  - week: 2026-W04
+    primitive: ote
+    timeframe: 15m
+    count: 14
+    notes: ''
+  - week: 2026-W04
+    primitive: ote
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2026-W04
+    primitive: ote
+    timeframe: 1m
+    count: 130
+    notes: ''
+  - week: 2026-W04
+    primitive: ote
+    timeframe: 4H
+    count: 1
+    notes: ''
+  - week: 2026-W04
+    primitive: ote
+    timeframe: 5m
+    count: 43
+    notes: ''
+  - week: 2026-W04
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W04
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W04
+    primitive: swing_points
+    timeframe: 15m
+    count: 96
+    notes: ''
+  - week: 2026-W04
+    primitive: swing_points
+    timeframe: 1H
+    count: 19
+    notes: ''
+  - week: 2026-W04
+    primitive: swing_points
+    timeframe: 1m
+    count: 680
+    notes: ''
+  - week: 2026-W04
+    primitive: swing_points
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2026-W04
+    primitive: swing_points
+    timeframe: 5m
+    count: 216
+    notes: ''
+  - week: 2026-W05
+    primitive: asia_range
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 15m
+    count: 174
+    notes: ''
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 1H
+    count: 41
+    notes: ''
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 1m
+    count: 2860
+    notes: ''
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 4H
+    count: 9
+    notes: ''
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 5m
+    count: 560
+    notes: ''
+  - week: 2026-W05
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W05
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W05
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W05
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W05
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W05
+    primitive: fvg
+    timeframe: 15m
+    count: 91
+    notes: ''
+  - week: 2026-W05
+    primitive: fvg
+    timeframe: 1H
+    count: 16
+    notes: ''
+  - week: 2026-W05
+    primitive: fvg
+    timeframe: 1m
+    count: 1354
+    notes: ''
+  - week: 2026-W05
+    primitive: fvg
+    timeframe: 4H
+    count: 7
+    notes: ''
+  - week: 2026-W05
+    primitive: fvg
+    timeframe: 5m
+    count: 248
+    notes: ''
+  - week: 2026-W05
+    primitive: htf_liquidity
+    timeframe: global
+    count: 2
+    notes: ''
+  - week: 2026-W05
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 92
+    notes: ''
+  - week: 2026-W05
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 50
+    notes: ''
+  - week: 2026-W05
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 57
+    notes: ''
+  - week: 2026-W05
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 46
+    notes: ''
+  - week: 2026-W05
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 58
+    notes: ''
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 1m
+    count: 131
+    notes: ''
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 5m
+    count: 39
+    notes: ''
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 1H
+    count: 2
+    notes: ''
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 1m
+    count: 92
+    notes: ''
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 5m
+    count: 33
+    notes: ''
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 15m
+    count: 19
+    notes: ''
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 1H
+    count: 3
+    notes: ''
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 1m
+    count: 131
+    notes: ''
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 5m
+    count: 39
+    notes: ''
+  - week: 2026-W05
+    primitive: reference_levels
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W05
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    notes: ''
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 15m
+    count: 82
+    notes: ''
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 1H
+    count: 16
+    notes: ''
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 1m
+    count: 598
+    notes: ''
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 5m
+    count: 190
+    notes: ''
+  - week: 2026-W06
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W06
+    primitive: displacement
+    timeframe: 15m
+    count: 214
+    notes: ''
+  - week: 2026-W06
+    primitive: displacement
+    timeframe: 1H
+    count: 45
+    notes: ''
+  - week: 2026-W06
+    primitive: displacement
+    timeframe: 1m
+    count: 3454
+    notes: ''
+  - week: 2026-W06
+    primitive: displacement
+    timeframe: 4H
+    count: 9
+    notes: ''
+  - week: 2026-W06
+    primitive: displacement
+    timeframe: 5m
+    count: 676
+    notes: ''
+  - week: 2026-W06
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W06
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W06
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W06
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W06
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W06
+    primitive: fvg
+    timeframe: 15m
+    count: 67
+    notes: ''
+  - week: 2026-W06
+    primitive: fvg
+    timeframe: 1H
+    count: 23
+    notes: ''
+  - week: 2026-W06
+    primitive: fvg
+    timeframe: 1m
+    count: 1523
+    notes: ''
+  - week: 2026-W06
+    primitive: fvg
+    timeframe: 4H
+    count: 5
+    notes: ''
+  - week: 2026-W06
+    primitive: fvg
+    timeframe: 5m
+    count: 231
+    notes: ''
+  - week: 2026-W06
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W06
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 98
+    notes: ''
+  - week: 2026-W06
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 61
+    notes: ''
+  - week: 2026-W06
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 65
+    notes: ''
+  - week: 2026-W06
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 49
+    notes: ''
+  - week: 2026-W06
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 62
+    notes: ''
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 15m
+    count: 10
+    notes: ''
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 1m
+    count: 148
+    notes: ''
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 5m
+    count: 28
+    notes: ''
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 15m
+    count: 8
+    notes: ''
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 1m
+    count: 108
+    notes: ''
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 5m
+    count: 24
+    notes: ''
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 15m
+    count: 10
+    notes: ''
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 1H
+    count: 4
+    notes: ''
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 1m
+    count: 148
+    notes: ''
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 5m
+    count: 28
+    notes: ''
+  - week: 2026-W06
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W06
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W06
+    primitive: swing_points
+    timeframe: 15m
+    count: 101
+    notes: ''
+  - week: 2026-W06
+    primitive: swing_points
+    timeframe: 1H
+    count: 22
+    notes: ''
+  - week: 2026-W06
+    primitive: swing_points
+    timeframe: 1m
+    count: 744
+    notes: ''
+  - week: 2026-W06
+    primitive: swing_points
+    timeframe: 4H
+    count: 4
+    notes: ''
+  - week: 2026-W06
+    primitive: swing_points
+    timeframe: 5m
+    count: 228
+    notes: ''
+  - week: 2026-W07
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W07
+    primitive: displacement
+    timeframe: 15m
+    count: 228
+    notes: ''
+  - week: 2026-W07
+    primitive: displacement
+    timeframe: 1H
+    count: 53
+    notes: ''
+  - week: 2026-W07
+    primitive: displacement
+    timeframe: 1m
+    count: 3821
+    notes: ''
+  - week: 2026-W07
+    primitive: displacement
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2026-W07
+    primitive: displacement
+    timeframe: 5m
+    count: 735
+    notes: ''
+  - week: 2026-W07
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W07
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W07
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W07
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W07
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W07
+    primitive: fvg
+    timeframe: 15m
+    count: 80
+    notes: ''
+  - week: 2026-W07
+    primitive: fvg
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2026-W07
+    primitive: fvg
+    timeframe: 1m
+    count: 1782
+    notes: ''
+  - week: 2026-W07
+    primitive: fvg
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2026-W07
+    primitive: fvg
+    timeframe: 5m
+    count: 296
+    notes: ''
+  - week: 2026-W07
+    primitive: htf_liquidity
+    timeframe: global
+    count: 4
+    notes: ''
+  - week: 2026-W07
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 85
+    notes: ''
+  - week: 2026-W07
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 54
+    notes: ''
+  - week: 2026-W07
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 63
+    notes: ''
+  - week: 2026-W07
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 48
+    notes: ''
+  - week: 2026-W07
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 62
+    notes: ''
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 15m
+    count: 21
+    notes: ''
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 1m
+    count: 165
+    notes: ''
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 5m
+    count: 40
+    notes: ''
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 15m
+    count: 18
+    notes: ''
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 1m
+    count: 119
+    notes: ''
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 5m
+    count: 30
+    notes: ''
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 15m
+    count: 21
+    notes: ''
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 1m
+    count: 165
+    notes: ''
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 5m
+    count: 40
+    notes: ''
+  - week: 2026-W07
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W07
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 15m
+    count: 119
+    notes: ''
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 1H
+    count: 24
+    notes: ''
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 1m
+    count: 771
+    notes: ''
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 5m
+    count: 259
+    notes: ''
+  - week: 2026-W08
+    primitive: asia_range
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W08
+    primitive: displacement
+    timeframe: 15m
+    count: 227
+    notes: ''
+  - week: 2026-W08
+    primitive: displacement
+    timeframe: 1H
+    count: 48
+    notes: ''
+  - week: 2026-W08
+    primitive: displacement
+    timeframe: 1m
+    count: 3584
+    notes: ''
+  - week: 2026-W08
+    primitive: displacement
+    timeframe: 4H
+    count: 10
+    notes: ''
+  - week: 2026-W08
+    primitive: displacement
+    timeframe: 5m
+    count: 694
+    notes: ''
+  - week: 2026-W08
+    primitive: equal_hl
+    timeframe: 15m
+    count: 0
+    notes: zero detections
+  - week: 2026-W08
+    primitive: equal_hl
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W08
+    primitive: equal_hl
+    timeframe: 1m
+    count: 0
+    notes: zero detections
+  - week: 2026-W08
+    primitive: equal_hl
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W08
+    primitive: equal_hl
+    timeframe: 5m
+    count: 0
+    notes: zero detections
+  - week: 2026-W08
+    primitive: fvg
+    timeframe: 15m
+    count: 71
+    notes: ''
+  - week: 2026-W08
+    primitive: fvg
+    timeframe: 1H
+    count: 18
+    notes: ''
+  - week: 2026-W08
+    primitive: fvg
+    timeframe: 1m
+    count: 1552
+    notes: ''
+  - week: 2026-W08
+    primitive: fvg
+    timeframe: 4H
+    count: 8
+    notes: ''
+  - week: 2026-W08
+    primitive: fvg
+    timeframe: 5m
+    count: 244
+    notes: ''
+  - week: 2026-W08
+    primitive: htf_liquidity
+    timeframe: global
+    count: 6
+    notes: ''
+  - week: 2026-W08
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 83
+    notes: ''
+  - week: 2026-W08
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 60
+    notes: ''
+  - week: 2026-W08
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 65
+    notes: ''
+  - week: 2026-W08
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 50
+    notes: ''
+  - week: 2026-W08
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 61
+    notes: ''
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 1m
+    count: 158
+    notes: ''
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 5m
+    count: 41
+    notes: ''
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 15m
+    count: 13
+    notes: ''
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 1H
+    count: 0
+    notes: zero detections
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 1m
+    count: 109
+    notes: ''
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 5m
+    count: 32
+    notes: ''
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 15m
+    count: 16
+    notes: ''
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 1H
+    count: 1
+    notes: ''
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 1m
+    count: 158
+    notes: ''
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    notes: ATR warmup may suppress early-week detections
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 5m
+    count: 41
+    notes: ''
+  - week: 2026-W08
+    primitive: reference_levels
+    timeframe: global
+    count: 5
+    notes: ''
+  - week: 2026-W08
+    primitive: session_liquidity
+    timeframe: global
+    count: 15
+    notes: ''
+  - week: 2026-W08
+    primitive: swing_points
+    timeframe: 15m
+    count: 104
+    notes: ''
+  - week: 2026-W08
+    primitive: swing_points
+    timeframe: 1H
+    count: 18
+    notes: ''
+  - week: 2026-W08
+    primitive: swing_points
+    timeframe: 1m
+    count: 761
+    notes: ''
+  - week: 2026-W08
+    primitive: swing_points
+    timeframe: 4H
+    count: 6
+    notes: ''
+  - week: 2026-W08
+    primitive: swing_points
+    timeframe: 5m
+    count: 233
+    notes: ''
+  statistical_summary:
+  - primitive: asia_range
+    timeframe: global
+    mean: 5.24
+    stddev: 0.66
+    min: 4
+    min_week: 2025-W52
+    max: 6
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.1266
+    outlier_weeks: []
+  - primitive: displacement
+    timeframe: 15m
+    mean: 242.24
+    stddev: 30.21
+    min: 174
+    min_week: 2026-W05
+    max: 284
+    max_week: 2025-W48
+    zero_weeks: 0
+    cv: 0.1247
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W05
+  - primitive: displacement
+    timeframe: 1H
+    mean: 53.6
+    stddev: 7.98
+    min: 38
+    min_week: 2025-W52
+    max: 64
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.1489
+    outlier_weeks: []
+  - primitive: displacement
+    timeframe: 1m
+    mean: 3880.36
+    stddev: 491.01
+    min: 2736
+    min_week: 2025-W52
+    max: 4352
+    max_week: 2025-W40
+    zero_weeks: 0
+    cv: 0.1265
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W05
+  - primitive: displacement
+    timeframe: 4H
+    mean: 8.76
+    stddev: 2.05
+    min: 4
+    min_week: 2025-W52
+    max: 12
+    max_week: 2025-W39
+    zero_weeks: 0
+    cv: 0.2337
+    outlier_weeks:
+    - 2025-W52
+  - primitive: displacement
+    timeframe: 5m
+    mean: 738.8
+    stddev: 89.16
+    min: 523
+    min_week: 2025-W52
+    max: 848
+    max_week: 2025-W48
+    zero_weeks: 0
+    cv: 0.1207
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W05
+  - primitive: equal_hl
+    timeframe: 15m
+    mean: 0.0
+    stddev: 0.0
+    min: 0
+    min_week: 2025-W36
+    max: 0
+    max_week: 2025-W36
+    zero_weeks: 25
+    cv: null
+    outlier_weeks: []
+  - primitive: equal_hl
+    timeframe: 1H
+    mean: 0.0
+    stddev: 0.0
+    min: 0
+    min_week: 2025-W36
+    max: 0
+    max_week: 2025-W36
+    zero_weeks: 25
+    cv: null
+    outlier_weeks: []
+  - primitive: equal_hl
+    timeframe: 1m
+    mean: 0.0
+    stddev: 0.0
+    min: 0
+    min_week: 2025-W36
+    max: 0
+    max_week: 2025-W36
+    zero_weeks: 25
+    cv: null
+    outlier_weeks: []
+  - primitive: equal_hl
+    timeframe: 4H
+    mean: 0.0
+    stddev: 0.0
+    min: 0
+    min_week: 2025-W36
+    max: 0
+    max_week: 2025-W36
+    zero_weeks: 25
+    cv: null
+    outlier_weeks: []
+  - primitive: equal_hl
+    timeframe: 5m
+    mean: 0.0
+    stddev: 0.0
+    min: 0
+    min_week: 2025-W36
+    max: 0
+    max_week: 2025-W36
+    zero_weeks: 25
+    cv: null
+    outlier_weeks: []
+  - primitive: fvg
+    timeframe: 15m
+    mean: 93.12
+    stddev: 13.51
+    min: 67
+    min_week: 2026-W06
+    max: 120
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.1451
+    outlier_weeks: []
+  - primitive: fvg
+    timeframe: 1H
+    mean: 22.52
+    stddev: 4.2
+    min: 16
+    min_week: 2026-W03
+    max: 30
+    max_week: 2025-W41
+    zero_weeks: 0
+    cv: 0.1867
+    outlier_weeks: []
+  - primitive: fvg
+    timeframe: 1m
+    mean: 1749.68
+    stddev: 228.0
+    min: 1205
+    min_week: 2025-W52
+    max: 2143
+    max_week: 2025-W46
+    zero_weeks: 0
+    cv: 0.1303
+    outlier_weeks:
+    - 2025-W52
+  - primitive: fvg
+    timeframe: 4H
+    mean: 6.16
+    stddev: 1.8
+    min: 2
+    min_week: 2025-W47
+    max: 10
+    max_week: 2026-W04
+    zero_weeks: 0
+    cv: 0.2915
+    outlier_weeks:
+    - 2025-W47
+    - 2026-W04
+  - primitive: fvg
+    timeframe: 5m
+    mean: 300.52
+    stddev: 43.84
+    min: 189
+    min_week: 2025-W52
+    max: 359
+    max_week: 2025-W46
+    zero_weeks: 0
+    cv: 0.1459
+    outlier_weeks:
+    - 2025-W52
+  - primitive: htf_liquidity
+    timeframe: global
+    mean: 3.28
+    stddev: 1.49
+    min: 1
+    min_week: 2025-W36
+    max: 6
+    max_week: 2025-W40
+    zero_weeks: 0
+    cv: 0.4532
+    outlier_weeks: []
+  - primitive: liquidity_sweep
+    timeframe: 15m
+    mean: 93.52
+    stddev: 15.37
+    min: 57
+    min_week: 2025-W52
+    max: 123
+    max_week: 2025-W40
+    zero_weeks: 0
+    cv: 0.1643
+    outlier_weeks:
+    - 2025-W52
+  - primitive: liquidity_sweep
+    timeframe: 1H
+    mean: 63.16
+    stddev: 10.41
+    min: 35
+    min_week: 2025-W52
+    max: 81
+    max_week: 2025-W45
+    zero_weeks: 0
+    cv: 0.1648
+    outlier_weeks:
+    - 2025-W52
+  - primitive: liquidity_sweep
+    timeframe: 1m
+    mean: 65.96
+    stddev: 8.52
+    min: 44
+    min_week: 2025-W52
+    max: 81
+    max_week: 2025-W37
+    zero_weeks: 0
+    cv: 0.1291
+    outlier_weeks:
+    - 2025-W52
+  - primitive: liquidity_sweep
+    timeframe: 4H
+    mean: 49.68
+    stddev: 7.5
+    min: 30
+    min_week: 2025-W52
+    max: 70
+    max_week: 2025-W45
+    zero_weeks: 0
+    cv: 0.1509
+    outlier_weeks:
+    - 2025-W45
+    - 2025-W52
+  - primitive: liquidity_sweep
+    timeframe: 5m
+    mean: 63.28
+    stddev: 7.79
+    min: 42
+    min_week: 2025-W52
+    max: 75
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.1231
+    outlier_weeks:
+    - 2025-W52
+  - primitive: mss
+    timeframe: 15m
+    mean: 16.76
+    stddev: 4.35
+    min: 9
+    min_week: 2025-W52
+    max: 27
+    max_week: 2025-W47
+    zero_weeks: 0
+    cv: 0.2597
+    outlier_weeks:
+    - 2025-W47
+  - primitive: mss
+    timeframe: 1H
+    mean: 3.04
+    stddev: 1.9
+    min: 0
+    min_week: 2026-W01
+    max: 7
+    max_week: 2025-W37
+    zero_weeks: 1
+    cv: 0.6262
+    outlier_weeks:
+    - 2025-W37
+    - 2025-W46
+  - primitive: mss
+    timeframe: 1m
+    mean: 157.4
+    stddev: 18.43
+    min: 109
+    min_week: 2025-W52
+    max: 183
+    max_week: 2025-W45
+    zero_weeks: 0
+    cv: 0.1171
+    outlier_weeks:
+    - 2025-W52
+  - primitive: mss
+    timeframe: 4H
+    mean: 0.48
+    stddev: 0.59
+    min: 0
+    min_week: 2025-W37
+    max: 2
+    max_week: 2025-W44
+    zero_weeks: 14
+    cv: 1.2207
+    outlier_weeks:
+    - 2025-W44
+  - primitive: mss
+    timeframe: 5m
+    mean: 43.64
+    stddev: 9.29
+    min: 26
+    min_week: 2025-W49
+    max: 66
+    max_week: 2025-W41
+    zero_weeks: 0
+    cv: 0.2128
+    outlier_weeks:
+    - 2025-W41
+  - primitive: order_block
+    timeframe: 15m
+    mean: 13.92
+    stddev: 3.95
+    min: 8
+    min_week: 2026-W01
+    max: 25
+    max_week: 2025-W47
+    zero_weeks: 0
+    cv: 0.2835
+    outlier_weeks:
+    - 2025-W47
+  - primitive: order_block
+    timeframe: 1H
+    mean: 2.28
+    stddev: 1.7
+    min: 0
+    min_week: 2026-W01
+    max: 6
+    max_week: 2025-W42
+    zero_weeks: 2
+    cv: 0.7439
+    outlier_weeks:
+    - 2025-W42
+    - 2025-W46
+  - primitive: order_block
+    timeframe: 1m
+    mean: 109.16
+    stddev: 13.04
+    min: 74
+    min_week: 2025-W52
+    max: 128
+    max_week: 2025-W45
+    zero_weeks: 0
+    cv: 0.1195
+    outlier_weeks:
+    - 2025-W52
+  - primitive: order_block
+    timeframe: 4H
+    mean: 0.44
+    stddev: 0.58
+    min: 0
+    min_week: 2025-W36
+    max: 2
+    max_week: 2025-W44
+    zero_weeks: 15
+    cv: 1.3252
+    outlier_weeks:
+    - 2025-W44
+  - primitive: order_block
+    timeframe: 5m
+    mean: 34.08
+    stddev: 6.79
+    min: 19
+    min_week: 2025-W49
+    max: 47
+    max_week: 2025-W41
+    zero_weeks: 0
+    cv: 0.1992
+    outlier_weeks:
+    - 2025-W49
+  - primitive: ote
+    timeframe: 15m
+    mean: 16.76
+    stddev: 4.35
+    min: 9
+    min_week: 2025-W52
+    max: 27
+    max_week: 2025-W47
+    zero_weeks: 0
+    cv: 0.2597
+    outlier_weeks:
+    - 2025-W47
+  - primitive: ote
+    timeframe: 1H
+    mean: 3.04
+    stddev: 1.9
+    min: 0
+    min_week: 2026-W01
+    max: 7
+    max_week: 2025-W37
+    zero_weeks: 1
+    cv: 0.6262
+    outlier_weeks:
+    - 2025-W37
+    - 2025-W46
+  - primitive: ote
+    timeframe: 1m
+    mean: 157.4
+    stddev: 18.43
+    min: 109
+    min_week: 2025-W52
+    max: 183
+    max_week: 2025-W45
+    zero_weeks: 0
+    cv: 0.1171
+    outlier_weeks:
+    - 2025-W52
+  - primitive: ote
+    timeframe: 4H
+    mean: 0.48
+    stddev: 0.59
+    min: 0
+    min_week: 2025-W37
+    max: 2
+    max_week: 2025-W44
+    zero_weeks: 14
+    cv: 1.2207
+    outlier_weeks:
+    - 2025-W44
+  - primitive: ote
+    timeframe: 5m
+    mean: 43.64
+    stddev: 9.29
+    min: 26
+    min_week: 2025-W49
+    max: 66
+    max_week: 2025-W41
+    zero_weeks: 0
+    cv: 0.2128
+    outlier_weeks:
+    - 2025-W41
+  - primitive: reference_levels
+    timeframe: global
+    mean: 5.32
+    stddev: 0.69
+    min: 4
+    min_week: 2025-W52
+    max: 6
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.1298
+    outlier_weeks: []
+  - primitive: session_liquidity
+    timeframe: global
+    mean: 15.0
+    stddev: 1.22
+    min: 12
+    min_week: 2025-W52
+    max: 16
+    max_week: 2025-W36
+    zero_weeks: 0
+    cv: 0.0816
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W01
+    - 2026-W05
+  - primitive: swing_points
+    timeframe: 15m
+    mean: 116.12
+    stddev: 15.95
+    min: 76
+    min_week: 2025-W52
+    max: 142
+    max_week: 2025-W39
+    zero_weeks: 0
+    cv: 0.1373
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W05
+  - primitive: swing_points
+    timeframe: 1H
+    mean: 21.08
+    stddev: 3.84
+    min: 15
+    min_week: 2026-W01
+    max: 30
+    max_week: 2025-W47
+    zero_weeks: 0
+    cv: 0.1821
+    outlier_weeks:
+    - 2025-W40
+    - 2025-W47
+  - primitive: swing_points
+    timeframe: 1m
+    mean: 779.56
+    stddev: 88.9
+    min: 559
+    min_week: 2025-W52
+    max: 873
+    max_week: 2025-W42
+    zero_weeks: 0
+    cv: 0.114
+    outlier_weeks:
+    - 2025-W52
+    - 2026-W05
+  - primitive: swing_points
+    timeframe: 4H
+    mean: 4.84
+    stddev: 1.46
+    min: 2
+    min_week: 2025-W42
+    max: 8
+    max_week: 2026-W07
+    zero_weeks: 0
+    cv: 0.3022
+    outlier_weeks:
+    - 2026-W07
+  - primitive: swing_points
+    timeframe: 5m
+    mean: 251.76
+    stddev: 31.4
+    min: 180
+    min_week: 2025-W52
+    max: 283
+    max_week: 2025-W40
+    zero_weeks: 0
+    cv: 0.1247
+    outlier_weeks:
+    - 2025-W52
+  outlier_diagnostics:
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 15m
+    count: 178
+    expected_range:
+    - 181.8
+    - 302.7
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 15m
+    count: 174
+    expected_range:
+    - 181.8
+    - 302.7
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 1m
+    count: 2736
+    expected_range:
+    - 2898.3
+    - 4862.4
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 1m
+    count: 2860
+    expected_range:
+    - 2898.3
+    - 4862.4
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 4H
+    count: 4
+    expected_range:
+    - 4.7
+    - 12.9
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W52
+    primitive: displacement
+    timeframe: 5m
+    count: 523
+    expected_range:
+    - 560.5
+    - 917.1
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W05
+    primitive: displacement
+    timeframe: 5m
+    count: 560
+    expected_range:
+    - 560.5
+    - 917.1
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 1m
+    count: 1205
+    expected_range:
+    - 1293.7
+    - 2205.7
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W47
+    primitive: fvg
+    timeframe: 4H
+    count: 2
+    expected_range:
+    - 2.6
+    - 9.8
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2026-W04
+    primitive: fvg
+    timeframe: 4H
+    count: 10
+    expected_range:
+    - 2.6
+    - 9.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W52
+    primitive: fvg
+    timeframe: 5m
+    count: 189
+    expected_range:
+    - 212.8
+    - 388.2
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 15m
+    count: 57
+    expected_range:
+    - 62.8
+    - 124.3
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 1H
+    count: 35
+    expected_range:
+    - 42.3
+    - 84.0
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 1m
+    count: 44
+    expected_range:
+    - 48.9
+    - 83.0
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W45
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 70
+    expected_range:
+    - 34.7
+    - 64.7
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 4H
+    count: 30
+    expected_range:
+    - 34.7
+    - 64.7
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W52
+    primitive: liquidity_sweep
+    timeframe: 5m
+    count: 42
+    expected_range:
+    - 47.7
+    - 78.9
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 15m
+    count: 27
+    expected_range:
+    - 8.1
+    - 25.5
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 1H
+    count: 7
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W46
+    primitive: mss
+    timeframe: 1H
+    count: 7
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 1H
+    count: 0
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 1m
+    count: 109
+    expected_range:
+    - 120.5
+    - 194.3
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W44
+    primitive: mss
+    timeframe: 4H
+    count: 2
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W37
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W42
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W47
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W48
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: US Thanksgiving week (Thu-Fri closed)
+  - week: 2025-W49
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W51
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W52
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W01
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2026-W02
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W03
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W05
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W06
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W07
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W08
+    primitive: mss
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: mss on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W41
+    primitive: mss
+    timeframe: 5m
+    count: 66
+    expected_range:
+    - 25.1
+    - 62.2
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 15m
+    count: 25
+    expected_range:
+    - 6.0
+    - 21.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 1H
+    count: 6
+    expected_range:
+    - -1.1
+    - 5.7
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W46
+    primitive: order_block
+    timeframe: 1H
+    count: 6
+    expected_range:
+    - -1.1
+    - 5.7
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 1H
+    count: 0
+    expected_range:
+    - -1.1
+    - 5.7
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 1H
+    count: 0
+    expected_range:
+    - -1.1
+    - 5.7
+    possible_cause: 'Expected sparse: order_block on 1H requires displacement-confirmed swing break on 1H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 1m
+    count: 74
+    expected_range:
+    - 83.1
+    - 135.2
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W44
+    primitive: order_block
+    timeframe: 4H
+    count: 2
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W36
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W37
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W42
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W47
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W48
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: US Thanksgiving week (Thu-Fri closed)
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W51
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W52
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W01
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2026-W02
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2026-W03
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2026-W05
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2026-W06
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2026-W07
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2026-W08
+    primitive: order_block
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.6
+    possible_cause: 'Expected sparse: order_block on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup
+      + few bars per week = few events)'
+  - week: 2025-W49
+    primitive: order_block
+    timeframe: 5m
+    count: 19
+    expected_range:
+    - 20.5
+    - 47.7
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 15m
+    count: 27
+    expected_range:
+    - 8.1
+    - 25.5
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 1H
+    count: 7
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W46
+    primitive: ote
+    timeframe: 1H
+    count: 7
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 1H
+    count: 0
+    expected_range:
+    - -0.8
+    - 6.8
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 1m
+    count: 109
+    expected_range:
+    - 120.5
+    - 194.3
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2025-W44
+    primitive: ote
+    timeframe: 4H
+    count: 2
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W37
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W42
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W47
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W48
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: US Thanksgiving week (Thu-Fri closed)
+  - week: 2025-W49
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W51
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W52
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W01
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2026-W02
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W03
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W05
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W06
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W07
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2026-W08
+    primitive: ote
+    timeframe: 4H
+    count: 0
+    expected_range:
+    - -0.7
+    - 1.7
+    possible_cause: 'Expected sparse: ote on 4H requires displacement-confirmed swing break on 4H bars (ATR warmup + few bars
+      per week = few events)'
+  - week: 2025-W41
+    primitive: ote
+    timeframe: 5m
+    count: 66
+    expected_range:
+    - 25.1
+    - 62.2
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W52
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    expected_range:
+    - 12.6
+    - 17.4
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W01
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    expected_range:
+    - 12.6
+    - 17.4
+    possible_cause: New Year week (reduced liquidity)
+  - week: 2026-W05
+    primitive: session_liquidity
+    timeframe: global
+    count: 12
+    expected_range:
+    - 12.6
+    - 17.4
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 15m
+    count: 76
+    expected_range:
+    - 84.2
+    - 148.0
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 15m
+    count: 82
+    expected_range:
+    - 84.2
+    - 148.0
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2025-W40
+    primitive: swing_points
+    timeframe: 1H
+    count: 29
+    expected_range:
+    - 13.4
+    - 28.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W47
+    primitive: swing_points
+    timeframe: 1H
+    count: 30
+    expected_range:
+    - 13.4
+    - 28.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 1m
+    count: 559
+    expected_range:
+    - 601.8
+    - 957.4
+    possible_cause: Christmas week (reduced liquidity)
+  - week: 2026-W05
+    primitive: swing_points
+    timeframe: 1m
+    count: 598
+    expected_range:
+    - 601.8
+    - 957.4
+    possible_cause: Low volatility or strongly trending week — fewer structural breaks
+  - week: 2026-W07
+    primitive: swing_points
+    timeframe: 4H
+    count: 8
+    expected_range:
+    - 1.9
+    - 7.8
+    possible_cause: High volatility week — more structural breaks and displacement events
+  - week: 2025-W52
+    primitive: swing_points
+    timeframe: 5m
+    count: 180
+    expected_range:
+    - 189.0
+    - 314.6
+    possible_cause: Christmas week (reduced liquidity)
+  sweep_health_per_week:
+    2025-W36:
+      1m:
+        total_events: 79
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 18
+          LONDON_H_L: 16
+          LTF_BOX: 34
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 75
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LONDON_H_L: 16
+          LTF_BOX: 32
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 120
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 17
+          LTF_BOX: 29
+          PROMOTED_SWING: 47
+          LONDON_H_L: 16
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 79
+        sweep_count: 19
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          PDH_PDL: 10
+          LTF_BOX: 29
+          LONDON_H_L: 14
+          PROMOTED_SWING: 10
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 56
+        sweep_count: 2
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 23
+          ASIA_H_L: 14
+          LONDON_H_L: 11
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+    2025-W37:
+      1m:
+        total_events: 81
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 33
+          LONDON_H_L: 16
+          ASIA_H_L: 20
+          PDH_PDL: 12
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 75
+        sweep_count: 19
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 19
+          LTF_BOX: 33
+          LONDON_H_L: 14
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 120
+        sweep_count: 19
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          PROMOTED_SWING: 44
+          ASIA_H_L: 19
+          LTF_BOX: 32
+          LONDON_H_L: 15
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 80
+        sweep_count: 15
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 17
+          LTF_BOX: 31
+          PDH_PDL: 10
+          LONDON_H_L: 13
+          PROMOTED_SWING: 9
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 56
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LTF_BOX: 25
+          LONDON_H_L: 11
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+    2025-W38:
+      1m:
+        total_events: 70
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 30
+          LONDON_H_L: 14
+          ASIA_H_L: 16
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 65
+        sweep_count: 15
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 30
+          PDH_PDL: 9
+          ASIA_H_L: 14
+          LONDON_H_L: 12
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 113
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 14
+          PDH_PDL: 9
+          LTF_BOX: 28
+          LONDON_H_L: 12
+          PROMOTED_SWING: 50
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 68
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 26
+          PROMOTED_SWING: 9
+          ASIA_H_L: 12
+          PDH_PDL: 9
+          LONDON_H_L: 12
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 53
+        sweep_count: 4
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          LONDON_H_L: 11
+          ASIA_H_L: 12
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+    2025-W39:
+      1m:
+        total_events: 63
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 26
+          LONDON_H_L: 17
+          PDH_PDL: 8
+          ASIA_H_L: 12
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 60
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 25
+          LONDON_H_L: 15
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 94
+        sweep_count: 15
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          ASIA_H_L: 12
+          LONDON_H_L: 16
+          PROMOTED_SWING: 33
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 72
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          LONDON_H_L: 16
+          ASIA_H_L: 13
+          PDH_PDL: 8
+          PROMOTED_SWING: 10
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 44
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 9
+          ASIA_H_L: 11
+          LTF_BOX: 19
+          PDH_PDL: 5
+        cont_sweep_ratio: 0.0
+    2025-W40:
+      1m:
+        total_events: 75
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 32
+          LONDON_H_L: 16
+          ASIA_H_L: 16
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 74
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 32
+          ASIA_H_L: 16
+          LONDON_H_L: 15
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 123
+        sweep_count: 17
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 30
+          PROMOTED_SWING: 54
+          PDH_PDL: 10
+          LONDON_H_L: 13
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 67
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          LONDON_H_L: 12
+          ASIA_H_L: 13
+          PROMOTED_SWING: 8
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 55
+        sweep_count: 4
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 24
+          ASIA_H_L: 12
+          LONDON_H_L: 12
+          PDH_PDL: 6
+          PROMOTED_SWING: 1
+        cont_sweep_ratio: 0.0
+    2025-W41:
+      1m:
+        total_events: 57
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 13
+          PDH_PDL: 6
+          ASIA_H_L: 10
+          LTF_BOX: 27
+          HTF_EQL: 1
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 56
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 13
+          PDH_PDL: 6
+          ASIA_H_L: 10
+          LTF_BOX: 27
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 89
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          ASIA_H_L: 10
+          LTF_BOX: 26
+          PROMOTED_SWING: 35
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 55
+        sweep_count: 15
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          LTF_BOX: 24
+          PDH_PDL: 6
+          ASIA_H_L: 9
+          PROMOTED_SWING: 4
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 47
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 20
+          LONDON_H_L: 11
+          ASIA_H_L: 10
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+    2025-W42:
+      1m:
+        total_events: 69
+        sweep_count: 8
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LONDON_H_L: 14
+          LTF_BOX: 30
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 69
+        sweep_count: 18
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 29
+          LONDON_H_L: 14
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 104
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          PROMOTED_SWING: 37
+          ASIA_H_L: 16
+          LTF_BOX: 28
+          LONDON_H_L: 13
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 66
+        sweep_count: 15
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          PDH_PDL: 10
+          ASIA_H_L: 13
+          LTF_BOX: 28
+          LONDON_H_L: 13
+          PROMOTED_SWING: 2
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 51
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 20
+          LONDON_H_L: 11
+          ASIA_H_L: 12
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+    2025-W43:
+      1m:
+        total_events: 67
+        sweep_count: 8
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 18
+          LTF_BOX: 25
+          LONDON_H_L: 16
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 64
+        sweep_count: 16
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 18
+          LONDON_H_L: 14
+          LTF_BOX: 24
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 95
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          PROMOTED_SWING: 33
+          LONDON_H_L: 15
+          LTF_BOX: 23
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 61
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 14
+          LTF_BOX: 22
+          LONDON_H_L: 12
+          PDH_PDL: 8
+          PROMOTED_SWING: 5
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 52
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LONDON_H_L: 11
+          LTF_BOX: 21
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+    2025-W44:
+      1m:
+        total_events: 66
+        sweep_count: 9
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 21
+          ASIA_H_L: 18
+          LONDON_H_L: 17
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 65
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          ASIA_H_L: 17
+          LONDON_H_L: 16
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 107
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          PDH_PDL: 10
+          ASIA_H_L: 17
+          PROMOTED_SWING: 42
+          LONDON_H_L: 16
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 71
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 14
+          PDH_PDL: 10
+          LTF_BOX: 21
+          LONDON_H_L: 15
+          PROMOTED_SWING: 11
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 57
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 20
+          ASIA_H_L: 15
+          LONDON_H_L: 13
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+    2025-W45:
+      1m:
+        total_events: 76
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          LTF_BOX: 30
+          ASIA_H_L: 18
+          PDH_PDL: 12
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 73
+        sweep_count: 17
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 17
+          LTF_BOX: 29
+          PDH_PDL: 11
+          LONDON_H_L: 16
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 100
+        sweep_count: 16
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          LTF_BOX: 29
+          PROMOTED_SWING: 29
+          ASIA_H_L: 15
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 81
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          PDH_PDL: 11
+          ASIA_H_L: 15
+          LONDON_H_L: 15
+          PROMOTED_SWING: 12
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 70
+        sweep_count: 1
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 28
+          LONDON_H_L: 15
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+    2025-W46:
+      1m:
+        total_events: 65
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          ASIA_H_L: 15
+          LTF_BOX: 28
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 61
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          ASIA_H_L: 15
+          LONDON_H_L: 15
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 92
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          ASIA_H_L: 15
+          PROMOTED_SWING: 31
+          LONDON_H_L: 15
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 60
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          ASIA_H_L: 11
+          LONDON_H_L: 13
+          PROMOTED_SWING: 8
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 45
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 21
+          LONDON_H_L: 7
+          PDH_PDL: 5
+        cont_sweep_ratio: 0.0
+    2025-W47:
+      1m:
+        total_events: 67
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 30
+          LONDON_H_L: 13
+          ASIA_H_L: 14
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 60
+        sweep_count: 17
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          LTF_BOX: 27
+          ASIA_H_L: 12
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 94
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          LTF_BOX: 25
+          PROMOTED_SWING: 37
+          ASIA_H_L: 13
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 60
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 23
+          PDH_PDL: 8
+          LONDON_H_L: 12
+          PROMOTED_SWING: 7
+          ASIA_H_L: 10
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 44
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 18
+          PDH_PDL: 8
+          LONDON_H_L: 10
+          ASIA_H_L: 8
+        cont_sweep_ratio: 0.0
+    2025-W48:
+      1m:
+        total_events: 65
+        sweep_count: 8
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          PDH_PDL: 8
+          LONDON_H_L: 15
+          ASIA_H_L: 14
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 66
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          ASIA_H_L: 14
+          LONDON_H_L: 16
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 88
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          ASIA_H_L: 12
+          PDH_PDL: 8
+          LONDON_H_L: 14
+          PROMOTED_SWING: 26
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 66
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          ASIA_H_L: 11
+          LONDON_H_L: 14
+          PDH_PDL: 8
+          PROMOTED_SWING: 5
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 49
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 9
+          LONDON_H_L: 12
+          PDH_PDL: 6
+          LTF_BOX: 22
+        cont_sweep_ratio: 0.0
+    2025-W49:
+      1m:
+        total_events: 71
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 32
+          ASIA_H_L: 16
+          LONDON_H_L: 16
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 70
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 15
+          LTF_BOX: 31
+          ASIA_H_L: 16
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 88
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LONDON_H_L: 14
+          PROMOTED_SWING: 21
+          LTF_BOX: 30
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 60
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LONDON_H_L: 13
+          LTF_BOX: 25
+          PDH_PDL: 6
+          PROMOTED_SWING: 3
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 48
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 19
+          PDH_PDL: 7
+          ASIA_H_L: 11
+          LONDON_H_L: 11
+        cont_sweep_ratio: 0.0
+    2025-W50:
+      1m:
+        total_events: 70
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          LTF_BOX: 28
+          PDH_PDL: 10
+          ASIA_H_L: 16
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 66
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          LTF_BOX: 27
+          ASIA_H_L: 15
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 79
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          LONDON_H_L: 15
+          ASIA_H_L: 14
+          PDH_PDL: 9
+          PROMOTED_SWING: 16
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 65
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LTF_BOX: 26
+          LONDON_H_L: 13
+          PDH_PDL: 7
+          PROMOTED_SWING: 6
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 52
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 10
+          LONDON_H_L: 11
+          LTF_BOX: 24
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+    2025-W51:
+      1m:
+        total_events: 74
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 28
+          ASIA_H_L: 20
+          LONDON_H_L: 16
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 67
+        sweep_count: 19
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          ASIA_H_L: 18
+          LONDON_H_L: 15
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 89
+        sweep_count: 17
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          ASIA_H_L: 18
+          LONDON_H_L: 15
+          PDH_PDL: 9
+          PROMOTED_SWING: 22
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 70
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 24
+          ASIA_H_L: 17
+          LONDON_H_L: 15
+          PDH_PDL: 9
+          PROMOTED_SWING: 5
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 55
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 17
+          LTF_BOX: 19
+          LONDON_H_L: 12
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+    2025-W52:
+      1m:
+        total_events: 44
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LONDON_H_L: 12
+          PDH_PDL: 6
+          LTF_BOX: 14
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 42
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 10
+          LTF_BOX: 14
+          PDH_PDL: 6
+          LONDON_H_L: 12
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 57
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          PROMOTED_SWING: 17
+          ASIA_H_L: 9
+          PDH_PDL: 6
+          LONDON_H_L: 11
+          LTF_BOX: 14
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 35
+        sweep_count: 8
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 10
+          PDH_PDL: 5
+          ASIA_H_L: 9
+          LONDON_H_L: 10
+          PROMOTED_SWING: 1
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 30
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 8
+          LTF_BOX: 9
+          ASIA_H_L: 10
+          PDH_PDL: 3
+        cont_sweep_ratio: 0.0
+    2026-W01:
+      1m:
+        total_events: 51
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LTF_BOX: 20
+          LONDON_H_L: 10
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 50
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 20
+          ASIA_H_L: 12
+          LONDON_H_L: 10
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 68
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 18
+          ASIA_H_L: 12
+          PROMOTED_SWING: 24
+          LONDON_H_L: 7
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 46
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 18
+          ASIA_H_L: 12
+          PDH_PDL: 6
+          LONDON_H_L: 7
+          PROMOTED_SWING: 3
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 36
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 9
+          LTF_BOX: 14
+          PDH_PDL: 6
+          LONDON_H_L: 7
+        cont_sweep_ratio: 0.0
+    2026-W02:
+      1m:
+        total_events: 62
+        sweep_count: 9
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LTF_BOX: 25
+          LONDON_H_L: 14
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 57
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 23
+          ASIA_H_L: 12
+          LONDON_H_L: 13
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 89
+        sweep_count: 16
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 21
+          PROMOTED_SWING: 35
+          ASIA_H_L: 12
+          LONDON_H_L: 12
+          PDH_PDL: 9
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 60
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 22
+          LONDON_H_L: 13
+          PDH_PDL: 10
+          PROMOTED_SWING: 3
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 53
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          LTF_BOX: 21
+          ASIA_H_L: 10
+          PDH_PDL: 8
+          PROMOTED_SWING: 2
+        cont_sweep_ratio: 0.0
+    2026-W03:
+      1m:
+        total_events: 71
+        sweep_count: 11
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 28
+          LONDON_H_L: 19
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 68
+        sweep_count: 20
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LONDON_H_L: 17
+          LTF_BOX: 27
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 89
+        sweep_count: 23
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 26
+          PROMOTED_SWING: 24
+          LONDON_H_L: 16
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 69
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          LONDON_H_L: 15
+          ASIA_H_L: 15
+          PDH_PDL: 7
+          PROMOTED_SWING: 10
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 45
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 16
+          LONDON_H_L: 10
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+    2026-W04:
+      1m:
+        total_events: 56
+        sweep_count: 5
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          ASIA_H_L: 12
+          LONDON_H_L: 12
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 56
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 22
+          LONDON_H_L: 12
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 82
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 21
+          ASIA_H_L: 12
+          LONDON_H_L: 11
+          PROMOTED_SWING: 28
+          PDH_PDL: 10
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 63
+        sweep_count: 10
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LONDON_H_L: 12
+          LTF_BOX: 21
+          PDH_PDL: 10
+          PROMOTED_SWING: 8
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 51
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 19
+          ASIA_H_L: 11
+          LONDON_H_L: 11
+          PDH_PDL: 9
+          PROMOTED_SWING: 1
+        cont_sweep_ratio: 0.0
+    2026-W05:
+      1m:
+        total_events: 57
+        sweep_count: 18
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 11
+          HTF_EQL: 1
+          LTF_BOX: 26
+          ASIA_H_L: 13
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 58
+        sweep_count: 14
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LONDON_H_L: 11
+          HTF_EQL: 1
+          LTF_BOX: 27
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 92
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          PROMOTED_SWING: 38
+          LONDON_H_L: 9
+          ASIA_H_L: 12
+          LTF_BOX: 26
+          PDH_PDL: 6
+          HTF_EQL: 1
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 50
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 11
+          LONDON_H_L: 9
+          LTF_BOX: 22
+          PDH_PDL: 6
+          PROMOTED_SWING: 2
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 46
+        sweep_count: 4
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 10
+          LTF_BOX: 20
+          PDH_PDL: 7
+          LONDON_H_L: 8
+          PROMOTED_SWING: 1
+        cont_sweep_ratio: 0.0
+    2026-W06:
+      1m:
+        total_events: 65
+        sweep_count: 8
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 16
+          LTF_BOX: 25
+          ASIA_H_L: 12
+          PDH_PDL: 12
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 62
+        sweep_count: 16
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 25
+          LONDON_H_L: 14
+          PDH_PDL: 11
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 98
+        sweep_count: 13
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 24
+          LONDON_H_L: 15
+          PDH_PDL: 10
+          PROMOTED_SWING: 37
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 61
+        sweep_count: 16
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 13
+          LTF_BOX: 23
+          LONDON_H_L: 13
+          PDH_PDL: 9
+          PROMOTED_SWING: 3
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 49
+        sweep_count: 9
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 19
+          LONDON_H_L: 13
+          PDH_PDL: 7
+          ASIA_H_L: 10
+        cont_sweep_ratio: 0.0
+    2026-W07:
+      1m:
+        total_events: 63
+        sweep_count: 7
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LTF_BOX: 25
+          LONDON_H_L: 15
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 62
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 25
+          LONDON_H_L: 14
+          ASIA_H_L: 16
+          PDH_PDL: 7
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 85
+        sweep_count: 17
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LTF_BOX: 22
+          PDH_PDL: 5
+          LONDON_H_L: 12
+          PROMOTED_SWING: 32
+          ASIA_H_L: 14
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 54
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 14
+          PDH_PDL: 5
+          LONDON_H_L: 11
+          LTF_BOX: 23
+          PROMOTED_SWING: 1
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 48
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          LONDON_H_L: 12
+          ASIA_H_L: 11
+          LTF_BOX: 21
+          PDH_PDL: 4
+        cont_sweep_ratio: 0.0
+    2026-W08:
+      1m:
+        total_events: 65
+        sweep_count: 6
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 18
+          LTF_BOX: 26
+          LONDON_H_L: 13
+          PDH_PDL: 8
+        cont_sweep_ratio: 0.0
+      5m:
+        total_events: 61
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          LONDON_H_L: 13
+          LTF_BOX: 26
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      15m:
+        total_events: 83
+        sweep_count: 18
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 16
+          PROMOTED_SWING: 22
+          LTF_BOX: 26
+          LONDON_H_L: 13
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+      1H:
+        total_events: 60
+        sweep_count: 12
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 15
+          LTF_BOX: 23
+          PDH_PDL: 7
+          LONDON_H_L: 12
+          PROMOTED_SWING: 3
+        cont_sweep_ratio: 0.0
+      4H:
+        total_events: 50
+        sweep_count: 3
+        continuation_count: 0
+        consumed_count: 0
+        pass_through_consumed_count: 0
+        pool_sources:
+          ASIA_H_L: 12
+          LTF_BOX: 21
+          LONDON_H_L: 11
+          PDH_PDL: 6
+        cont_sweep_ratio: 0.0
+  walk_forward_verdict:
+    status: PASS
+    primitives_stable:
+    - asia_range/global
+    - displacement/15m
+    - displacement/1H
+    - displacement/1m
+    - displacement/4H
+    - displacement/5m
+    - fvg/15m
+    - fvg/1H
+    - fvg/1m
+    - fvg/4H
+    - fvg/5m
+    - htf_liquidity/global
+    - liquidity_sweep/15m
+    - liquidity_sweep/1H
+    - liquidity_sweep/1m
+    - liquidity_sweep/4H
+    - liquidity_sweep/5m
+    - mss/15m
+    - mss/1m
+    - mss/5m
+    - order_block/15m
+    - order_block/1m
+    - order_block/5m
+    - ote/15m
+    - ote/1m
+    - ote/5m
+    - reference_levels/global
+    - session_liquidity/global
+    - swing_points/15m
+    - swing_points/1H
+    - swing_points/1m
+    - swing_points/4H
+    - swing_points/5m
+    - mss/1H (HTF-sparse, expected)
+    - mss/4H (HTF-sparse, expected)
+    - order_block/1H (HTF-sparse, expected)
+    - order_block/4H (HTF-sparse, expected)
+    - ote/1H (HTF-sparse, expected)
+    - ote/4H (HTF-sparse, expected)
+    primitives_flagged: []
+    overall_cv_range:
+    - 0.0816
+    - 1.3252
+    zero_detection_issues: 0
+    recommendation: All stable — S64 Gate 3 validated. Parameters generalise across 25 weeks of unseen data.
