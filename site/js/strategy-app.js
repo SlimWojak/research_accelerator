@@ -380,7 +380,7 @@ function updateMetadata() {
 
   if (loadBtn) {
     loadBtn.addEventListener('click', () => {
-      if (typeof loadTemplate === 'function') loadTemplate();
+      if (typeof showLoadDialog === 'function') showLoadDialog();
     });
   }
 

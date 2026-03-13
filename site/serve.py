@@ -29,11 +29,25 @@ SITE_DIR = Path(__file__).resolve().parent
 ROUTES = {
     r"^/api/labels/([A-Za-z0-9_-]+)$": "labels",
     r"^/api/lock-records/([A-Za-z0-9_-]+)$": "lock-records",
+    r"^/api/strategies/([A-Za-z0-9_-]+)$": "strategies",
 }
 
 
 class WriteHandler(SimpleHTTPRequestHandler):
     """HTTP handler that adds POST endpoints for writing JSON files."""
+
+    def do_GET(self):
+        # Check if this is a list-strategies request
+        if self.path == '/api/strategies':
+            self._handle_list_strategies()
+            return
+        # Check for individual strategy load
+        match = re.match(r"^/api/strategies/([A-Za-z0-9_-]+)$", self.path)
+        if match:
+            self._handle_read_strategy(match.group(1))
+            return
+        # Fall through to static file serving
+        super().do_GET()
 
     def do_POST(self):
         for pattern, subdir in ROUTES.items():
@@ -70,6 +84,32 @@ class WriteHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps({"status": "ok"}).encode())
+
+    def _handle_list_strategies(self):
+        strategies_dir = SITE_DIR / "data" / "strategies"
+        strategies_dir.mkdir(parents=True, exist_ok=True)
+        files = sorted(strategies_dir.glob("*.json"))
+        names = [f.stem for f in files]
+        body = json.dumps(names).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_read_strategy(self, name):
+        fpath = SITE_DIR / "data" / "strategies" / f"{name}.json"
+        if not fpath.exists():
+            self.send_error(404, "Strategy not found")
+            return
+        body = fpath.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, format, *args):
         # Quieter logging: only POST requests

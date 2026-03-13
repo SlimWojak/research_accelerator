@@ -1,99 +1,177 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
- * strategy-templates.js — Template save/load STUB
+ * strategy-templates.js — Template save/load persistence
  *                         for the Strategy Designer page
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * Save Template (STUB — Task 7 will implement full persistence)
+ * Save Template
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-function saveTemplate() {
-  const nameInput = document.getElementById('template-name');
-  const name = nameInput ? nameInput.value.trim() : '';
-
+async function saveTemplate() {
+  const def = getChainDefinition();
+  const name = sApp.templateName.trim();
+  
   if (!name) {
-    alert('Please enter a strategy name');
+    alert('Enter a strategy name first');
     return;
   }
-
-  if (sApp.steps.length === 0) {
-    alert('Cannot save empty strategy');
+  
+  if (def.steps.length === 0) {
+    alert('Add at least one step to save');
     return;
   }
-
-  // Update template name in state
-  sApp.templateName = name;
-
-  // Get chain definition
-  const definition = getChainDefinition();
-
-  console.log('Template save not yet implemented (Task 7)');
-  console.log('Would POST to /api/strategies/' + name);
-  console.log('Definition:', JSON.stringify(definition, null, 2));
-
-  // TODO: Task 7 will implement:
-  // POST /api/strategies/{name}
-  // Body: definition JSON
-  // Response: success/failure
-  // On success: show confirmation toast
-
-  alert(`Template "${name}" would be saved here.\n\nImplementation coming in Task 7.`);
+  
+  // Sanitize name for URL (alphanumeric, hyphens, underscores only)
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  
+  try {
+    const resp = await fetch(`/api/strategies/${safeName}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(def),
+    });
+    
+    if (resp.ok) {
+      console.log(`Strategy "${name}" saved as ${safeName}`);
+      // Brief visual feedback
+      const btn = document.getElementById('btn-save-template');
+      if (btn) {
+        btn.textContent = 'Saved!';
+        btn.style.background = 'var(--teal)';
+        setTimeout(() => {
+          btn.textContent = 'Save';
+          btn.style.background = '';
+        }, 1500);
+      }
+    } else {
+      alert(`Save failed: ${resp.statusText}`);
+    }
+  } catch (e) {
+    console.error('Save error:', e);
+    alert(`Save error: ${e.message}`);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * Load Template List (STUB — Task 7 will implement)
+ * Load Template List
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 async function loadTemplateList() {
-  console.log('Template list loading not yet implemented (Task 7)');
-
-  // TODO: Task 7 will implement:
-  // GET /api/strategies
-  // Response: array of template names
-  // Return: array of { name, created_at, updated_at }
-
-  return [];
+  try {
+    const resp = await fetch('/api/strategies');
+    if (!resp.ok) return [];
+    return await resp.json();
+  } catch (e) {
+    console.error('Load list error:', e);
+    return [];
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * Load Template (STUB — Task 7 will implement)
+ * Load Template
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 async function loadTemplate(name) {
-  console.log('Template loading not yet implemented (Task 7)');
-  console.log('Would GET from /api/strategies/' + name);
-
-  // TODO: Task 7 will implement:
-  // GET /api/strategies/{name}
-  // Response: definition JSON
-  // On success:
-  //   - Load definition into sApp.steps
-  //   - Load definition gates into sApp.gates
-  //   - Set sApp.direction
-  //   - Set sApp.templateName
-  //   - Re-render chain builder
-  //   - Re-evaluate chain
-
-  alert(`Loading template "${name}" not yet implemented.\n\nComing in Task 7.`);
+  try {
+    const resp = await fetch(`/api/strategies/${name}`);
+    if (!resp.ok) {
+      alert(`Load failed: ${resp.statusText}`);
+      return;
+    }
+    const def = await resp.json();
+    
+    // Apply template to sApp state
+    sApp.templateName = def.name || name;
+    sApp.direction = def.direction || 'bearish';
+    sApp.steps = (def.steps || []).map(s => ({
+      ...s,
+      _advancedExpanded: false,
+    }));
+    sApp.gates = def.gates || { kill_zone: ['lokz', 'nyokz'], asia_range_tier: ['tight', 'mid'] };
+    
+    // Update UI
+    const nameInput = document.getElementById('template-name');
+    if (nameInput) nameInput.value = sApp.templateName;
+    
+    // Update direction buttons
+    const bullBtn = document.getElementById('btn-bull');
+    const bearBtn = document.getElementById('btn-bear');
+    if (bullBtn && bearBtn) {
+      bullBtn.className = 'direction-btn' + (sApp.direction === 'bullish' ? ' active-bull' : '');
+      bearBtn.className = 'direction-btn' + (sApp.direction === 'bearish' ? ' active-bear' : '');
+    }
+    
+    // Re-render chain builder and gates
+    renderChainBuilder();
+    renderGates();
+    
+    // Re-evaluate chain
+    evaluateChain();
+    
+    console.log(`Template "${name}" loaded`);
+  } catch (e) {
+    console.error('Load error:', e);
+    alert(`Load error: ${e.message}`);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Load Template Dialog (User-facing)
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-async function loadTemplateDialog() {
-  const templates = await loadTemplateList();
-
-  if (templates.length === 0) {
-    alert('No saved templates found.\n\nImplementation coming in Task 7.');
-    return;
-  }
-
-  // TODO: Task 7 will implement:
-  // Show modal/dropdown with template list
-  // User selects template
-  // Call loadTemplate(name)
+function showLoadDialog() {
+  loadTemplateList().then(names => {
+    if (names.length === 0) {
+      alert('No saved strategies found');
+      return;
+    }
+    
+    // Create simple overlay dialog with list
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;';
+    
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;min-width:280px;max-height:400px;overflow-y:auto;';
+    
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;';
+    title.textContent = 'Load Strategy';
+    dialog.appendChild(title);
+    
+    for (const name of names) {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer;';
+      btn.textContent = name;
+      btn.addEventListener('click', () => {
+        overlay.remove();
+        loadTemplate(name);
+      });
+      btn.addEventListener('mouseenter', () => { btn.style.borderColor = 'var(--blue)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.borderColor = 'var(--border)'; });
+      dialog.appendChild(btn);
+    }
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.style.cssText = 'display:block;width:100%;text-align:center;padding:8px;margin-top:8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer;';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    dialog.appendChild(cancelBtn);
+    
+    overlay.appendChild(dialog);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  });
 }
 
-// Expose loadTemplateDialog as the handler for the Load button
-window.loadTemplate = loadTemplateDialog;
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Event Listeners
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  const nameInput = document.getElementById('template-name');
+  if (nameInput) {
+    nameInput.addEventListener('input', (e) => {
+      sApp.templateName = e.target.value;
+    });
+  }
+});
