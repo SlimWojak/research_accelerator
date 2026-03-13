@@ -847,6 +847,8 @@ let state = {
 };
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 function toTS(s) {
   if (!s) return null;
   // NY time string like "2024-01-09T08:15:00"
@@ -876,7 +878,7 @@ function getFilteredBars() {
   const mode = state.mode;
 
   return disps.filter(b => {
-    if (b.forex_day !== state.day) return false;
+    if (!isHTF(state.tf) && b.forex_day !== state.day) return false;
     const qual = b.qualifies[key];
     if (!qual) return false;
     const modeKey = (mode === 'and' && state.closeGate) ? 'and_close' : mode;
@@ -957,7 +959,9 @@ function createChart() {
 // ─── RENDER SESSION BANDS ─────────────────────────────────────────────────────
 function renderSessionBands() {
   if (!sessionBandsPrimitive || !state.sessionBoundaries) return;
-  const dayBounds = state.sessionBoundaries.filter(b => b.forex_day === state.day);
+  const dayBounds = isHTF(state.tf)
+    ? state.sessionBoundaries
+    : state.sessionBoundaries.filter(b => b.forex_day === state.day);
   const bands = dayBounds.map(b => ({
     startTS: toTS(b.start_time),
     endTS: toTS(b.end_time),
@@ -971,20 +975,34 @@ function renderSessionBands() {
 function renderChart() {
   if (!chart || !candleSeries) return;
 
-  const candles = state.candlesByDay[state.day];
-  if (!candles) return;
-
-  const raw = candles[state.tf];
+  let raw;
+  if (isHTF(state.tf)) {
+    // Concatenate candles from all days for HTF week view
+    const allBars = [];
+    for (const d of DAYS) {
+      const dayCandles = state.candlesByDay[d.key];
+      if (dayCandles && dayCandles[state.tf]) {
+        allBars.push(...dayCandles[state.tf]);
+      }
+    }
+    raw = allBars;
+  } else {
+    const candles = state.candlesByDay[state.day];
+    if (!candles) return;
+    raw = candles[state.tf];
+  }
   if (!raw || raw.length === 0) return;
 
   // Set candle data — new format uses full field names
+  const seen = new Set();
   const data = raw.map(c => ({
     time: toTS(c.time),
     open:  c.open,
     high:  c.high,
     low:   c.low,
     close: c.close,
-  })).sort((a, b) => a.time - b.time);
+  })).sort((a, b) => a.time - b.time)
+    .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
 
   candleSeries.setData(data);
 
@@ -1163,7 +1181,23 @@ function renderHeatmap() {
   const grid = document.getElementById('heatmap-grid');
   grid.innerHTML = '';
 
-  const stats = state.dispData.stats[state.day];
+  let stats;
+  if (isHTF(state.tf)) {
+    // Aggregate stats across all days for HTF week view
+    stats = {};
+    for (const d of DAYS) {
+      const dayStats = state.dispData.stats[d.key];
+      if (!dayStats) continue;
+      for (const [k, v] of Object.entries(dayStats)) {
+        if (!stats[k]) stats[k] = {};
+        for (const [mode, count] of Object.entries(v)) {
+          stats[k][mode] = (stats[k][mode] || 0) + count;
+        }
+      }
+    }
+  } else {
+    stats = state.dispData.stats[state.day];
+  }
   if (!stats) return;
 
   // Find max value for color scaling
@@ -1282,6 +1316,11 @@ function renderParamButtons() {
 // ─── DAY TABS ─────────────────────────────────────────────────────────────────
 function renderDayTabs() {
   const el = document.getElementById('day-tabs');
+  if (isHTF(state.tf)) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
   el.innerHTML = '';
   for (const d of DAYS) {
     const btn = document.createElement('button');

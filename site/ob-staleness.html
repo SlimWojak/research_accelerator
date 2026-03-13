@@ -618,6 +618,8 @@ let sessionPrimitive     = null;
 let lastLifecycleResults = [];
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 function toTS(s) {
   if (!s) return null;
   // NY time string like "2024-01-09T08:15:00"
@@ -628,7 +630,8 @@ function toTS(s) {
 }
 
 function tfSecs(tf) {
-  return tf === '1m' ? 60 : tf === '5m' ? 300 : 900;
+  const map = {'1m': 60, '5m': 300, '15m': 900, '1H': 3600, '4H': 14400, '1D': 86400};
+  return map[tf] || 900;
 }
 
 // Is this OB active (has meaningful retest within threshold)?
@@ -746,7 +749,13 @@ async function init() {
   }).observe(container);
 
   // Wire controls
+  function updateDayTabVisibility() {
+    const tabs = document.querySelectorAll('.day-tabs');
+    tabs.forEach(el => { el.style.display = isHTF(currentTF) ? 'none' : ''; });
+  }
+
   document.querySelectorAll('.day-tab').forEach(btn => btn.addEventListener('click', () => {
+    if (isHTF(currentTF)) return;
     document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentDay = btn.dataset.day;
@@ -759,6 +768,7 @@ async function init() {
     currentTF = btn.dataset.tf;
     document.getElementById('header-sub').textContent = `EURUSD · Native ${currentTF} detection · All times NY (EST)`;
     document.getElementById('tf-label').textContent = `Native ${currentTF} detection`;
+    updateDayTabVisibility();
     // Reload detection data for new TF
     await loadOBData();
     rebuildThreshButtons();
@@ -820,23 +830,41 @@ function wireThreshButtons() {
 async function redraw() {
   document.getElementById('loading').style.display = 'flex';
 
-  if (!candleCache[currentDay]) {
-    try {
-      const r = await fetch(`candles_${currentDay}.json`);
-      candleCache[currentDay] = await r.json();
-    } catch(e) {
-      console.error('Candle load failed:', e);
-      document.getElementById('loading').style.display = 'none';
-      return;
+  let candles;
+  if (isHTF(currentTF)) {
+    // HTF week view: load and concatenate candles from all days
+    const allBars = [];
+    for (const d of DAYS) {
+      if (!candleCache[d.date]) {
+        try {
+          const r = await fetch(`candles_${d.date}.json`);
+          candleCache[d.date] = await r.json();
+        } catch(e) { /* skip missing */ }
+      }
+      const raw = candleCache[d.date] ? (candleCache[d.date][currentTF] || []) : [];
+      allBars.push(...raw.map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close })));
     }
+    const seen = new Set();
+    candles = allBars.sort((a,b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    if (!candleCache[currentDay]) {
+      try {
+        const r = await fetch(`candles_${currentDay}.json`);
+        candleCache[currentDay] = await r.json();
+      } catch(e) {
+        console.error('Candle load failed:', e);
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+    }
+    const raw = candleCache[currentDay][currentTF] || [];
+    const seen = new Set();
+    candles = raw
+      .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+      .sort((a,b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
   }
-
-  const raw = candleCache[currentDay][currentTF] || [];
-  const seen = new Set();
-  const candles = raw
-    .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
-    .sort((a,b) => a.time - b.time)
-    .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
 
   cSeries.setData(candles);
 
@@ -853,7 +881,9 @@ async function redraw() {
 function renderSessionBands() {
   if (!sessionData || !sessionPrimitive) return;
 
-  const dayBands = sessionData.filter(s => s.forex_day === currentDay);
+  const dayBands = isHTF(currentTF)
+    ? sessionData
+    : sessionData.filter(s => s.forex_day === currentDay);
   const rawBands = dayBands.map(s => ({
     startTS: toTS(s.start_time),
     endTS:   toTS(s.end_time),
@@ -872,13 +902,31 @@ function clearOBs() {
 
 // ── RENDER OB ZONES ───────────────────────────────────────────────────────────
 function renderOBs() {
-  if (!obData || !candleCache[currentDay] || !obPrimitive) return;
+  if (!obData || !obPrimitive) return;
 
+  const _htf = isHTF(currentTF);
   const secs = tfSecs(currentTF);
-  const rawCandles = candleCache[currentDay][currentTF] || [];
-  const sortedCandles = rawCandles
-    .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
-    .sort((a, b) => a.time - b.time);
+
+  let rawCandles;
+  if (_htf) {
+    // Concatenate candles from all days
+    const allBars = [];
+    for (const d of DAYS) {
+      if (candleCache[d.date] && candleCache[d.date][currentTF]) {
+        allBars.push(...candleCache[d.date][currentTF].map(c =>
+          ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close })));
+      }
+    }
+    const seen = new Set();
+    rawCandles = allBars.sort((a,b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    if (!candleCache[currentDay]) return;
+    rawCandles = (candleCache[currentDay][currentTF] || [])
+      .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+      .sort((a, b) => a.time - b.time);
+  }
+  const sortedCandles = rawCandles;
   if (sortedCandles.length === 0) { clearOBs(); return; }
 
   const candleTimes = sortedCandles.map(c => c.time);
@@ -893,7 +941,7 @@ function renderOBs() {
     return best;
   }
 
-  const dayOBs = (obData.order_blocks || []).filter(ob => ob.forex_day === currentDay);
+  const dayOBs = (obData.order_blocks || []).filter(ob => _htf || ob.forex_day === currentDay);
   const zones = [];
   // Store lifecycle results for stats
   lastLifecycleResults = [];
@@ -970,7 +1018,7 @@ function renderOBs() {
 // ── UPDATE STATS ──────────────────────────────────────────────────────────────
 function updateStats() {
   if (!obData) return;
-  const dayOBs = (obData.order_blocks || []).filter(ob => ob.forex_day === currentDay);
+  const dayOBs = (obData.order_blocks || []).filter(ob => isHTF(currentTF) || ob.forex_day === currentDay);
   const total = dayOBs.length;
   const bull  = dayOBs.filter(ob => ob.direction === 'bullish').length;
   const bear  = dayOBs.filter(ob => ob.direction === 'bearish').length;

@@ -963,6 +963,8 @@ let boxLineSeries = [];
 // UTILS
 // ══════════════════════════════════════════════════════════════════
 
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 // Convert any NY time string to Unix seconds
 // NY time string like "2024-01-09T08:15:00" — treat as UTC for chart display
 function toTs(t) {
@@ -1190,7 +1192,9 @@ function createMainChart() {
 // ══════════════════════════════════════════════════════════════════
 function renderSessionBandsOn(primitive) {
   if (!primitive || !sessionBands) return;
-  const dayBands = sessionBands.filter(b => b.forex_day === state.day);
+  const dayBands = isHTF(state.tf)
+    ? sessionBands
+    : sessionBands.filter(b => b.forex_day === state.day);
   const rawBands = dayBands.map(b => ({
     startTS: toTs(b.start_time),
     endTS:   toTs(b.end_time),
@@ -1220,8 +1224,22 @@ function fitToDay(chart, tfCandles) {
 async function renderSwings() {
   document.getElementById('main-loading').style.display = 'flex';
 
-  const candles = await loadCandles(state.day);
-  const tfCandles = candles[state.tf];
+  let tfCandles;
+  if (isHTF(state.tf)) {
+    // HTF week view: load and concatenate candles from all days
+    const allBars = [];
+    for (const d of DAYS) {
+      const dayCandles = await loadCandles(d.date);
+      if (dayCandles[state.tf]) allBars.push(...dayCandles[state.tf]);
+    }
+    // Deduplicate
+    const seen = new Set();
+    tfCandles = allBars.sort((a, b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    const candles = await loadCandles(state.day);
+    tfCandles = candles[state.tf];
+  }
 
   // Set candlestick data
   mainSeries.setData(tfCandles.map(c => ({
@@ -1229,8 +1247,9 @@ async function renderSwings() {
   })));
 
   // Filter swings by day + height threshold
+  const _htf = isHTF(state.tf);
   const daySwings = allSwings.filter(s =>
-    s.forex_day === state.day && s.height_pips >= state.heightThreshold
+    (_htf || s.forex_day === state.day) && s.height_pips >= state.heightThreshold
   );
 
   // Build marker list (one per swing, mapped to TF candle time)
@@ -1258,7 +1277,7 @@ async function renderSwings() {
   let mssCount = 0;
   let sweepCount = 0;
   if (state.showMSS && mssData) {
-    const dayMSS = (mssData.mss_events || []).filter(m => m.forex_day === state.day);
+    const dayMSS = (mssData.mss_events || []).filter(m => _htf || m.forex_day === state.day);
     for (const m of dayMSS) {
       const ts = snapToCandle(toTs(m.time), tfCandles);
       const fvgStar = m.fvg_created ? '\u2605' : '';
@@ -1315,7 +1334,7 @@ async function renderSwings() {
 
     // LAYER 1: Base sweeps (same-bar, return_window=1)
     if (state.showSweeps) {
-      let daySweeps = rwData.sweeps.filter(s => s.forex_day === state.day);
+      let daySweeps = rwData.sweeps.filter(s => _htf || s.forex_day === state.day);
       if (state.sweepSourceFilter !== 'ALL') {
         daySweeps = daySweeps.filter(s => s.source === state.sweepSourceFilter);
       }
@@ -1342,7 +1361,7 @@ async function renderSwings() {
 
     // LAYER 2: Delayed sweeps (bar+1 return)
     if (state.showSweeps && state.showDelayed) {
-      let dayDelayed = (sweepData.delayed_sweeps || []).filter(s => s.forex_day === state.day);
+      let dayDelayed = (sweepData.delayed_sweeps || []).filter(s => _htf || s.forex_day === state.day);
       if (state.sweepSourceFilter !== 'ALL') {
         dayDelayed = dayDelayed.filter(s => s.source === state.sweepSourceFilter);
       }
@@ -1370,7 +1389,7 @@ async function renderSwings() {
 
     // Continuations
     if (state.showContinuations) {
-      let dayConts = (rwData.continuations || []).filter(c => c.forex_day === state.day);
+      let dayConts = (rwData.continuations || []).filter(c => _htf || c.forex_day === state.day);
       if (state.sweepSourceFilter !== 'ALL') {
         dayConts = dayConts.filter(c => c.source === state.sweepSourceFilter);
       }
@@ -1410,12 +1429,12 @@ async function renderSwings() {
   if (state.showOTE && state.showMSS && mssCount > 0) {
     const mssEvents = [];
     const structSwings = allSwings.filter(s =>
-      s.forex_day === state.day && s.height_pips >= state.heightThreshold && s.strength >= 10
+      (_htf || s.forex_day === state.day) && s.height_pips >= state.heightThreshold && s.strength >= 10
     );
     const dispKey = 'atr1.5_br0.6';
     const dayDisps = new Set();
     for (const d of (dispData.displacements || [])) {
-      if (d.forex_day !== state.day) continue;
+      if (!_htf && d.forex_day !== state.day) continue;
       const q = d.qualifies && d.qualifies[dispKey];
       if (q && q.and) dayDisps.add(toTs(d.time));
     }
@@ -1509,8 +1528,21 @@ const BOX_COLORS = {
 async function renderSessionBoxes() {
   document.getElementById('main-loading').style.display = 'flex';
 
-  const candles = await loadCandles(state.day);
-  const tfCandles = candles[state.tf];
+  let tfCandles;
+  const _htf = isHTF(state.tf);
+  if (_htf) {
+    const allBars = [];
+    for (const d of DAYS) {
+      const dayCandles = await loadCandles(d.date);
+      if (dayCandles[state.tf]) allBars.push(...dayCandles[state.tf]);
+    }
+    const seen = new Set();
+    tfCandles = allBars.sort((a, b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    const candles = await loadCandles(state.day);
+    tfCandles = candles[state.tf];
+  }
 
   mainSeries.setData(tfCandles.map(c => ({
     time: c.time, open: c.o, high: c.h, low: c.l, close: c.c
@@ -1523,7 +1555,7 @@ async function renderSessionBoxes() {
   oteSeries.forEach(s => { try { mainChart.removeSeries(s); } catch(e) {} });
   oteSeries = [];
 
-  const dayBoxes = (sessionBoxData?.boxes || []).filter(b => b.forex_day === state.day);
+  const dayBoxes = (sessionBoxData?.boxes || []).filter(b => _htf || b.forex_day === state.day);
 
   const isConsol = b => b.classification === 'CONSOLIDATION_BOX';
 
@@ -1650,7 +1682,7 @@ function updateSwingStats(daySwings) {
   const heightThresholds = swingData?.height_thresholds || [];
   const countEl = document.getElementById('height-counts');
   countEl.innerHTML = heightThresholds.map(h => {
-    const cnt = allSwings.filter(s => s.forex_day === state.day && s.height_pips >= h).length;
+    const cnt = allSwings.filter(s => (isHTF(state.tf) || s.forex_day === state.day) && s.height_pips >= h).length;
     const active = h === state.heightThreshold;
     return `<div class="h-count-row">
       <span class="h-count-pip">≥ ${h.toFixed(1)} pip</span>
@@ -1741,6 +1773,11 @@ async function render() {
 // ══════════════════════════════════════════════════════════════════
 // EVENT WIRING
 // ══════════════════════════════════════════════════════════════════
+function updateDayTabVisibility() {
+  const el = document.getElementById('day-tabs');
+  if (el) el.style.display = isHTF(state.tf) ? 'none' : '';
+}
+
 document.querySelector('.header').addEventListener('click', async e => {
   const btn = e.target.closest('[data-tf]');
   if (!btn) return;
@@ -1752,6 +1789,7 @@ document.querySelector('.header').addEventListener('click', async e => {
   );
   candleCache = {};
   mssCache = {};
+  updateDayTabVisibility();
   await loadSwingData();
   await loadDispData();
   await loadMSSData();

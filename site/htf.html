@@ -218,6 +218,8 @@ let poolLineSeries = [];
 // ══════════════════════════════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════════════════════════════
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 function toTs(t) {
   if (!t) return 0;
   const c = t.includes('T') ? t : t.replace(' ', 'T');
@@ -275,8 +277,23 @@ function createChart() {
 // ══════════════════════════════════════════════════════════════════
 async function render() {
   document.getElementById('loading').style.display = 'flex';
-  const candles = await loadCandles(state.day);
-  const tfCandles = candles[state.tf];
+  const _htf = isHTF(state.tf);
+  let tfCandles;
+
+  if (_htf) {
+    // HTF week view: load and concatenate candles from all days
+    const allBars = [];
+    for (const d of DAYS) {
+      const dayCandles = await loadCandles(d.date);
+      if (dayCandles[state.tf]) allBars.push(...dayCandles[state.tf]);
+    }
+    const seen = new Set();
+    tfCandles = allBars.sort((a, b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    const candles = await loadCandles(state.day);
+    tfCandles = candles[state.tf];
+  }
 
   candleSeries.setData(tfCandles.map(c => ({ time: c.time, open: c.o, high: c.h, low: c.l, close: c.c })));
 
@@ -285,7 +302,9 @@ async function render() {
   const dayEnd   = tfCandles.length > 0 ? tfCandles[tfCandles.length - 1].time : 0;
 
   // Session bands
-  const dayBands = (sessionBands || []).filter(b => b.forex_day === state.day);
+  const dayBands = _htf
+    ? (sessionBands || [])
+    : (sessionBands || []).filter(b => b.forex_day === state.day);
   sessionPrimitive.setBands(dayBands.map(b => ({ startTS: toTs(b.start_time), endTS: toTs(b.end_time), color: b.color, border: b.border })));
   requestAnimationFrame(() => { if (sessionPrimitive?._requestUpdate) sessionPrimitive._requestUpdate(); });
 
@@ -387,16 +406,23 @@ function updatePoolCards(visiblePools) {
 // ══════════════════════════════════════════════════════════════════
 // EVENTS
 // ══════════════════════════════════════════════════════════════════
+function updateDayTabVisibility() {
+  const el = document.getElementById('day-tabs');
+  if (el) el.style.display = isHTF(state.tf) ? 'none' : '';
+}
+
 document.querySelector('.header').addEventListener('click', async e => {
   const btn = e.target.closest('[data-tf]');
   if (!btn || btn.type === 'checkbox') return;
   state.tf = btn.dataset.tf;
   document.querySelectorAll('.header [data-tf]').forEach(b => b.classList.toggle('active', b.dataset.tf === state.tf));
   candleCache = {};
+  updateDayTabVisibility();
   render();
 });
 
 document.getElementById('day-tabs').addEventListener('click', e => {
+  if (isHTF(state.tf)) return;
   const btn = e.target.closest('[data-day]');
   if (!btn) return;
   state.day = btn.dataset.day;

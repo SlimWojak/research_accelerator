@@ -628,6 +628,8 @@ const app = {
 };
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 function toTS(s) {
   if (!s) return null;
   // NY time string like "2024-01-09T08:15:00"
@@ -684,13 +686,40 @@ async function loadData() {
     }
   }
 
-  // --- Candle data (per-day) ---
-  try {
-    const cr = await fetch('candles_' + app.day + '.json');
-    app.candleData = await cr.json();
-  } catch (e) {
-    console.warn('Could not load candles for', app.day, e);
-    app.candleData = null;
+  // --- Candle data ---
+  if (isHTF(app.tf)) {
+    // HTF week view: load and merge candles from all days
+    const merged = {};
+    for (const d of DAYS) {
+      try {
+        const cr = await fetch('candles_' + d.key + '.json');
+        const dayData = await cr.json();
+        for (const [tf, bars] of Object.entries(dayData)) {
+          if (!merged[tf]) merged[tf] = [];
+          merged[tf].push(...bars);
+        }
+      } catch (e) { /* skip missing */ }
+    }
+    // Sort and deduplicate each TF
+    for (const tf of Object.keys(merged)) {
+      merged[tf].sort((a, b) => toTS(a.time) - toTS(b.time));
+      const seen = new Set();
+      merged[tf] = merged[tf].filter(b => {
+        const t = b.time;
+        if (seen.has(t)) return false;
+        seen.add(t);
+        return true;
+      });
+    }
+    app.candleData = merged;
+  } else {
+    try {
+      const cr = await fetch('candles_' + app.day + '.json');
+      app.candleData = await cr.json();
+    } catch (e) {
+      console.warn('Could not load candles for', app.day, e);
+      app.candleData = null;
+    }
   }
 }
 
@@ -761,7 +790,9 @@ function initChart() {
 function renderSessionBands() {
   if (!app.sessionPrimitive || !app.sessionBands) return;
 
-  const dayBands = app.sessionBands.filter(b => b.forex_day === app.day);
+  const dayBands = isHTF(app.tf)
+    ? app.sessionBands
+    : app.sessionBands.filter(b => b.forex_day === app.day);
   const rawBands = dayBands.map(b => ({
     startTS: toTS(b.start_time),
     endTS:   toTS(b.end_time),
@@ -836,7 +867,7 @@ function renderCandles() {
 // ─── FVG zone preparation ────────────────────────────────────────────────────
 function getActiveFvgs() {
   if (!app.fvgData) return [];
-  return app.fvgData.fvgs.filter(f => f.forex_day === app.day && f.gap_pips >= app.threshold);
+  return app.fvgData.fvgs.filter(f => (isHTF(app.tf) || f.forex_day === app.day) && f.gap_pips >= app.threshold);
 }
 
 function renderZones() {
@@ -1049,7 +1080,10 @@ function renderThreshButtons() {
   grp.innerHTML = '';
   const thresholds = app.fvgData?.thresholds || [];
   for (const t of thresholds) {
-    const cnt = app.fvgData?.stats?.[app.day]?.[threshKey(t)]?.count ?? '?';
+    const statDay = isHTF(app.tf) ? '_all' : app.day;
+    const cnt = (isHTF(app.tf)
+      ? (app.fvgData?.fvgs || []).filter(f => f.gap_pips >= t).length
+      : app.fvgData?.stats?.[app.day]?.[threshKey(t)]?.count) ?? '?';
     const btn = document.createElement('button');
     btn.className = 'thresh-btn' + (t === app.threshold ? ' active' : '');
     btn.innerHTML = `<span class="t-lbl">${t.toFixed(1)} pip</span><span class="t-cnt">${cnt}</span>`;
@@ -1068,11 +1102,20 @@ function renderThreshButtons() {
 function renderStatsPanel() {
   const fvgs   = getActiveFvgs();
   const tk     = threshKey(app.threshold);
-  const stats  = app.fvgData?.stats?.[app.day]?.[tk] || {};
-  const count  = stats.count     ?? fvgs.length;
-  const bull   = stats.bullish   ?? fvgs.filter(f => f.type === 'bullish').length;
-  const bear   = stats.bearish   ?? fvgs.filter(f => f.type === 'bearish').length;
-  const medGap = stats.median_gap != null ? stats.median_gap + ' pip' : '—';
+  let stats, count, bull, bear, medGap;
+  if (isHTF(app.tf)) {
+    count = fvgs.length;
+    bull  = fvgs.filter(f => f.type === 'bullish').length;
+    bear  = fvgs.filter(f => f.type === 'bearish').length;
+    const gaps = fvgs.map(f => f.gap_pips).sort((a,b) => a - b);
+    medGap = gaps.length > 0 ? gaps[Math.floor(gaps.length / 2)].toFixed(1) + ' pip' : '—';
+  } else {
+    stats  = app.fvgData?.stats?.[app.day]?.[tk] || {};
+    count  = stats.count     ?? fvgs.length;
+    bull   = stats.bullish   ?? fvgs.filter(f => f.type === 'bullish').length;
+    bear   = stats.bearish   ?? fvgs.filter(f => f.type === 'bearish').length;
+    medGap = stats.median_gap != null ? stats.median_gap + ' pip' : '—';
+  }
   const bPct   = count > 0 ? (bull / count * 100).toFixed(0) : 0;
   const rPct   = count > 0 ? (bear / count * 100).toFixed(0) : 0;
 
@@ -1081,7 +1124,13 @@ function renderStatsPanel() {
 
   const thresholds = app.fvgData?.thresholds || [];
   const allThreshRows = thresholds.map(t => {
-    const s  = app.fvgData?.stats?.[app.day]?.[threshKey(t)] || {};
+    let s;
+    if (isHTF(app.tf)) {
+      const c = (app.fvgData?.fvgs || []).filter(f => f.gap_pips >= t).length;
+      s = { count: c };
+    } else {
+      s = app.fvgData?.stats?.[app.day]?.[threshKey(t)] || {};
+    }
     const hl = t === app.threshold ? ' style="color:var(--yellow);font-weight:600"' : '';
     return `<div class="sr"${hl}><span class="sk">${t.toFixed(1)} pip</span><span class="sv"${hl}>${s.count ?? '—'}</span></div>`;
   }).join('');
@@ -1142,6 +1191,7 @@ function setLoading(v) {
 // ─── Events ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.day-tab').forEach(tab => {
   tab.addEventListener('click', () => {
+    if (isHTF(app.tf)) return; // Day tabs disabled in HTF mode
     if (tab.dataset.day === app.day) return;
     app.day        = tab.dataset.day;
     app.candleData = null;
@@ -1151,14 +1201,21 @@ document.querySelectorAll('.day-tab').forEach(tab => {
   });
 });
 
+function updateDayTabVisibility() {
+  const tabs = document.querySelectorAll('.day-tabs');
+  tabs.forEach(el => { el.style.display = isHTF(app.tf) ? 'none' : ''; });
+}
+
 document.querySelectorAll('.tf-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.dataset.tf === app.tf) return;
     app.tf = btn.dataset.tf;
     app.fvgData = null;     // Force reload of TF-specific detection data
+    app.candleData = null;  // Force reload of candle data
     app.threshold = null;   // Reset to let loadData pick middle threshold
     document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateDayTabVisibility();
     fullUpdate(true);
   });
 });

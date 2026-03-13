@@ -450,6 +450,8 @@ let overlays    = []; // extra series to remove on redraw
 let sessionPrimitive = null;
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 function toTS(s) {
   if (!s) return null;
   // NY time string like "2024-01-09T08:15:00"
@@ -524,7 +526,13 @@ async function init() {
   }).observe(container);
 
   // Wire up controls
+  function updateDayTabVisibility() {
+    const tabs = document.querySelectorAll('.day-tabs');
+    tabs.forEach(el => { el.style.display = isHTF(currentTF) ? 'none' : ''; });
+  }
+
   document.querySelectorAll('.day-tab').forEach(btn => btn.addEventListener('click', () => {
+    if (isHTF(currentTF)) return;
     document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentDay = btn.dataset.day;
@@ -536,6 +544,7 @@ async function init() {
     currentTF = btn.dataset.tf;
     document.getElementById('header-sub').textContent = `EURUSD · Native ${currentTF} detection · All times NY (EST)`;
     document.getElementById('tf-label').textContent = `Native ${currentTF} detection`;
+    updateDayTabVisibility();
     // Reload detection data for new TF
     await loadNYData();
     redraw();
@@ -557,27 +566,46 @@ async function loadNYData() {
 async function redraw() {
   document.getElementById('loading').style.display = 'flex';
 
-  // Load candles
-  if (!candleCache[currentDay]) {
-    try {
-      const r = await fetch(`candles_${currentDay}.json`);
-      candleCache[currentDay] = await r.json();
-    } catch(e) {
-      console.error('Candle load failed', e);
-      document.getElementById('loading').style.display = 'none';
-      return;
-    }
-  }
-
-  const raw = candleCache[currentDay][currentTF] || [];
+  const _htf = isHTF(currentTF);
+  let candles;
   const secs = tfSecs(currentTF);
 
-  // Convert + deduplicate — new candle format: time, open, high, low, close
-  const seen = new Set();
-  const candles = raw
-    .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
-    .sort((a,b) => a.time - b.time)
-    .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  if (_htf) {
+    // HTF week view: load and concatenate candles from all days
+    const allBars = [];
+    for (const d of DAYS) {
+      if (!candleCache[d.date]) {
+        try {
+          const r = await fetch(`candles_${d.date}.json`);
+          candleCache[d.date] = await r.json();
+        } catch(e) { /* skip missing */ }
+      }
+      const raw = candleCache[d.date] ? (candleCache[d.date][currentTF] || []) : [];
+      allBars.push(...raw.map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close })));
+    }
+    const seen = new Set();
+    candles = allBars.sort((a,b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  } else {
+    // Load candles
+    if (!candleCache[currentDay]) {
+      try {
+        const r = await fetch(`candles_${currentDay}.json`);
+        candleCache[currentDay] = await r.json();
+      } catch(e) {
+        console.error('Candle load failed', e);
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+    }
+
+    const raw = candleCache[currentDay][currentTF] || [];
+    const seen = new Set();
+    candles = raw
+      .map(c => ({ time: toTS(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+      .sort((a,b) => a.time - b.time)
+      .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+  }
 
   cSeries.setData(candles);
 
@@ -594,12 +622,16 @@ async function redraw() {
   // Add event markers
   addMarkers(candles, secs);
 
-  // Scroll to window period: 06:30–12:30 NY time
-  try {
-    const from = toTS(`${currentDay}T06:30:00`);
-    const to   = toTS(`${currentDay}T12:30:00`);
-    chart.timeScale().setVisibleRange({ from, to });
-  } catch(e) {}
+  // Scroll to fit
+  if (_htf) {
+    try { chart.timeScale().fitContent(); } catch(e) {}
+  } else {
+    try {
+      const from = toTS(`${currentDay}T06:30:00`);
+      const to   = toTS(`${currentDay}T12:30:00`);
+      chart.timeScale().setVisibleRange({ from, to });
+    } catch(e) {}
+  }
 
   // Update sidebar
   updateSidebarStats();
@@ -612,7 +644,9 @@ async function redraw() {
 function renderSessionBands() {
   if (!sessionData || !sessionPrimitive) return;
 
-  const dayBands = sessionData.filter(s => s.forex_day === currentDay);
+  const dayBands = isHTF(currentTF)
+    ? sessionData
+    : sessionData.filter(s => s.forex_day === currentDay);
   const rawBands = dayBands.map(s => ({
     startTS: toTS(s.start_time),
     endTS:   toTS(s.end_time),
@@ -625,8 +659,10 @@ function renderSessionBands() {
 
 // ── WINDOW BACKGROUND BANDS ───────────────────────────────────────────────────
 function drawWindowBands(candles, secs) {
-  const day = currentDay;
+  const _htf = isHTF(currentTF);
+  const daysToShow = _htf ? DAYS.map(d => d.date) : [currentDay];
 
+  for (const day of daysToShow) {
   // Window A: 08:00–09:00 NY time
   const aStart = toTS(`${day}T08:00:00`);
   const aEnd   = toTS(`${day}T09:00:00`);
@@ -664,18 +700,23 @@ function drawWindowBands(candles, secs) {
     return s;
   }
 
-  const sA = makeShade(aStart, aEnd, 'rgba(41,98,255,0.07)',  'win-a-overlay');
-  const sB = makeShade(bStart, bEnd, 'rgba(156,39,176,0.07)', 'win-b-overlay');
+  const sA = makeShade(aStart, aEnd, 'rgba(41,98,255,0.07)',  `win-a-overlay-${day}`);
+  const sB = makeShade(bStart, bEnd, 'rgba(156,39,176,0.07)', `win-b-overlay-${day}`);
   overlays.push(sA, sB);
+  } // end daysToShow loop
 }
 
 // ── EVENT MARKERS ─────────────────────────────────────────────────────────────
 function addMarkers(candles, secs) {
   if (!nyData) return;
 
-  const day = currentDay;
-  const evA = (nyData.window_a || []).filter(e => e.time.startsWith(day));
-  const evB = (nyData.window_b || []).filter(e => e.time.startsWith(day));
+  const _htf = isHTF(currentTF);
+  const evA = _htf
+    ? (nyData.window_a || [])
+    : (nyData.window_a || []).filter(e => e.time.startsWith(currentDay));
+  const evB = _htf
+    ? (nyData.window_b || [])
+    : (nyData.window_b || []).filter(e => e.time.startsWith(currentDay));
 
   function nearestCandleTime(eventTimeStr) {
     const ts = toTS(eventTimeStr);
@@ -690,14 +731,17 @@ function addMarkers(candles, secs) {
   const markers = [];
 
   // Window boundary markers (subtle)
-  const aNearStart = nearestCandleTime(`${day}T08:00:00`);
-  const bNearStart = nearestCandleTime(`${day}T10:00:00`);
+  const daysForMarkers = _htf ? DAYS.map(d => d.date) : [currentDay];
+  for (const day of daysForMarkers) {
+    const aNearStart = nearestCandleTime(`${day}T08:00:00`);
+    const bNearStart = nearestCandleTime(`${day}T10:00:00`);
 
-  if (aNearStart) {
-    markers.push({ time: aNearStart, position: 'aboveBar', color: '#2962ff', shape: 'arrowDown', text: 'Win A', size: 0 });
-  }
-  if (bNearStart) {
-    markers.push({ time: bNearStart, position: 'aboveBar', color: '#9c27b0', shape: 'arrowDown', text: 'Win B', size: 0 });
+    if (aNearStart) {
+      markers.push({ time: aNearStart, position: 'aboveBar', color: '#2962ff', shape: 'arrowDown', text: 'Win A', size: 0 });
+    }
+    if (bNearStart) {
+      markers.push({ time: bNearStart, position: 'aboveBar', color: '#9c27b0', shape: 'arrowDown', text: 'Win B', size: 0 });
+    }
   }
 
   function makeMarker(ev, isWinA) {
@@ -751,16 +795,21 @@ function addMarkers(candles, secs) {
 // ── SIDEBAR STATS ─────────────────────────────────────────────────────────────
 function updateSidebarStats() {
   if (!nyData) return;
+  const _htf = isHTF(currentTF);
   const d = currentDay;
-  const evA = (nyData.window_a || []).filter(e => e.time.startsWith(d));
-  const evB = (nyData.window_b || []).filter(e => e.time.startsWith(d));
+  const evA = _htf
+    ? (nyData.window_a || [])
+    : (nyData.window_a || []).filter(e => e.time.startsWith(d));
+  const evB = _htf
+    ? (nyData.window_b || [])
+    : (nyData.window_b || []).filter(e => e.time.startsWith(d));
 
   const c = (arr) => ({ fvg: countBy(arr,'fvg'), sw: countBy(arr,'swing'), di: countBy(arr,'displacement'), tot: arr.length });
   const cA = c(evA), cB = c(evB);
 
   document.getElementById('day-stats').innerHTML = `
     <div style="margin-bottom:10px">
-      <div style="font-size:12px;color:var(--text);font-weight:500;margin-bottom:6px">${DAY_LABELS[d] || d}</div>
+      <div style="font-size:12px;color:var(--text);font-weight:500;margin-bottom:6px">${_htf ? 'Week View (All Days)' : (DAY_LABELS[d] || d)}</div>
       <div class="win-row">
         <span class="win-badge badge-a">A</span>
         <div class="ev-counts">
