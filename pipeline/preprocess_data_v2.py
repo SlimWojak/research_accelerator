@@ -56,10 +56,20 @@ FVG_THRESHOLDS_15M = [2.0, 3.0, 5.0, 7.0, 10.0, 15.0]  # pips (for 15m)
 SWING_HEIGHT_THRESHOLDS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]  # pips (for 1m)
 SWING_HEIGHT_THRESHOLDS_5M = [2.0, 3.0, 5.0, 7.0, 10.0, 15.0]  # pips (for 5m)
 SWING_HEIGHT_THRESHOLDS_15M = [3.0, 5.0, 7.0, 10.0, 15.0, 20.0]  # pips (for 15m)
+SWING_HEIGHT_THRESHOLDS_1H = [5.0, 7.0, 10.0, 15.0, 20.0, 30.0]  # pips (for 1H)
+SWING_HEIGHT_THRESHOLDS_4H = [10.0, 15.0, 20.0, 30.0, 50.0, 70.0]  # pips (for 4H)
+SWING_HEIGHT_THRESHOLDS_1D = [20.0, 30.0, 50.0, 70.0, 100.0, 150.0]  # pips (for 1D)
 
 EQUAL_HL_TOLERANCES = [0.5, 1.0, 1.5, 2.0, 2.5]  # pips (1m)
 EQUAL_HL_TOLERANCES_5M = [1.0, 2.0, 3.0, 4.0, 5.0]  # pips (5m)
 EQUAL_HL_TOLERANCES_15M = [2.0, 3.0, 5.0, 7.0, 10.0]  # pips (15m)
+EQUAL_HL_TOLERANCES_1H = [3.0, 5.0, 7.0, 10.0, 15.0]  # pips (1H)
+EQUAL_HL_TOLERANCES_4H = [5.0, 10.0, 15.0, 20.0, 30.0]  # pips (4H)
+EQUAL_HL_TOLERANCES_1D = [10.0, 20.0, 30.0, 50.0, 70.0]  # pips (1D)
+
+FVG_THRESHOLDS_1H = [3.0, 5.0, 7.0, 10.0, 15.0, 20.0]  # pips (for 1H)
+FVG_THRESHOLDS_4H = [5.0, 10.0, 15.0, 20.0, 30.0, 50.0]  # pips (for 4H)
+FVG_THRESHOLDS_1D = [10.0, 20.0, 30.0, 50.0, 70.0, 100.0]  # pips (for 1D)
 
 ASIA_THRESHOLDS = [12, 15, 18, 20, 25, 30]  # pips (session-level, TF-independent)
 
@@ -73,6 +83,10 @@ DISP_TF_DEFAULTS = {
     'H1':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
     'H4':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
     'D1':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
+    # Aliases using TF_CONFIG keys
+    '1H':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
+    '4H':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
+    '1D':  {'atr': 1.50, 'body': 0.65, 'close_str': 0.25},
 }
 
 CLUSTER2_NET_EFF_MIN = 0.65
@@ -84,6 +98,7 @@ DECISIVE_OVERRIDE = {
     'pip_floor': {
         '1m': 3.0, '5m': 5.0, '15m': 6.0,
         'H1': 8.0, 'H4': 15.0, 'D1': 20.0,
+        '1H': 8.0, '4H': 15.0, '1D': 20.0,
     },
 }
 OB_STALENESS_BARS = [5, 10, 15, 20, 30]
@@ -95,6 +110,10 @@ TF_CONFIG = {
     '1m':  {'minutes': 1,  'swing_n': 5, 'fvg_thresh': FVG_THRESHOLDS,      'swing_height_thresh': SWING_HEIGHT_THRESHOLDS,      'equal_tol': EQUAL_HL_TOLERANCES},
     '5m':  {'minutes': 5,  'swing_n': 3, 'fvg_thresh': FVG_THRESHOLDS_5M,   'swing_height_thresh': SWING_HEIGHT_THRESHOLDS_5M,   'equal_tol': EQUAL_HL_TOLERANCES_5M},
     '15m': {'minutes': 15, 'swing_n': 2, 'fvg_thresh': FVG_THRESHOLDS_15M,  'swing_height_thresh': SWING_HEIGHT_THRESHOLDS_15M,  'equal_tol': EQUAL_HL_TOLERANCES_15M},
+    '1H':  {'minutes': 60,  'swing_n': 2, 'fvg_thresh': FVG_THRESHOLDS_1H,  'swing_height_thresh': SWING_HEIGHT_THRESHOLDS_1H,  'equal_tol': EQUAL_HL_TOLERANCES_1H},
+    '4H':  {'minutes': 240, 'swing_n': 2, 'fvg_thresh': FVG_THRESHOLDS_4H,  'swing_height_thresh': SWING_HEIGHT_THRESHOLDS_4H,  'equal_tol': EQUAL_HL_TOLERANCES_4H},
+    '1D':  {'minutes': 1440, 'swing_n': 2, 'fvg_thresh': FVG_THRESHOLDS_1D, 'swing_height_thresh': SWING_HEIGHT_THRESHOLDS_1D, 'equal_tol': EQUAL_HL_TOLERANCES_1D},
+    # NOTE: W1 skipped — 5-day data windows are too small for weekly aggregation
 }
 
 
@@ -223,6 +242,36 @@ def aggregate_bars(bars, period_minutes):
         }
         agg_bars.append(agg)
     
+    return agg_bars
+
+
+def aggregate_bars_daily(bars):
+    """Aggregate 1m bars to daily (forex day) bars. Groups by forex_day."""
+    groups = defaultdict(list)
+    for bar in bars:
+        groups[bar['forex_day']].append(bar)
+
+    agg_bars = []
+    for forex_day in sorted(groups.keys()):
+        group = groups[forex_day]
+        first = group[0]
+        agg = {
+            'time': first['time'],
+            'time_utc': first.get('time_utc', first['time']),
+            'dt_utc': first['dt_utc'],
+            'dt_ny': first['dt_ny'],
+            'open': group[0]['open'],
+            'high': max(b['high'] for b in group),
+            'low': min(b['low'] for b in group),
+            'close': group[-1]['close'],
+            'forex_day': forex_day,
+            'session': 'daily',
+            'ny_window_a': any(b.get('ny_window_a', False) for b in group),
+            'ny_window_b': any(b.get('ny_window_b', False) for b in group),
+            'bar_count': len(group),
+        }
+        agg_bars.append(agg)
+
     return agg_bars
 
 
@@ -2512,16 +2561,22 @@ def main():
     forex_days = sorted(set(b['forex_day'] for b in bars_1m))
     print(f"  Forex days: {forex_days}")
     
-    print("Aggregating to 5m and 15m...")
+    print("Aggregating to 5m, 15m, 1H, 4H, 1D...")
     bars_5m = aggregate_bars(bars_1m, 5)
     bars_15m = aggregate_bars(bars_1m, 15)
+    bars_1h = aggregate_bars(bars_1m, 60)
+    bars_4h = aggregate_bars(bars_1m, 240)
+    bars_1d = aggregate_bars_daily(bars_1m)
     print(f"  5m: {len(bars_5m)} bars, 15m: {len(bars_15m)} bars")
+    print(f"  1H: {len(bars_1h)} bars, 4H: {len(bars_4h)} bars, 1D: {len(bars_1d)} bars")
     
     # ── Run detections natively on EACH timeframe ──
-    all_bars = {'1m': bars_1m, '5m': bars_5m, '15m': bars_15m}
+    ALL_TF_LABELS = ['1m', '5m', '15m', '1H', '4H', '1D']
+    all_bars = {'1m': bars_1m, '5m': bars_5m, '15m': bars_15m,
+                '1H': bars_1h, '4H': bars_4h, '1D': bars_1d}
     tf_results = {}
     
-    for tf_label in ['1m', '5m', '15m']:
+    for tf_label in ALL_TF_LABELS:
         tf_results[tf_label] = process_timeframe(all_bars[tf_label], tf_label, forex_days)
     
     # ── Asia ranges (session-level, TF-independent) ──
@@ -2570,7 +2625,7 @@ def main():
     # ── Liquidity Sweeps (cross-primitive: all level sources) ──
     print("\nComputing liquidity sweeps...")
     sweep_results = {}
-    for tf_label in ['1m', '5m', '15m']:
+    for tf_label in ALL_TF_LABELS:
         tf_bars = all_bars[tf_label]
         tf_swings = tf_results[tf_label]['swings']
         tf_atrs = compute_atr(tf_bars, period=14)
@@ -2650,10 +2705,11 @@ def main():
         path = os.path.join(OUTPUT_DIR, f"candles_{day}.json")
         with open(path, 'w') as f:
             json.dump(day_data, f)
-        print(f"  candles_{day}.json  (1m:{len(day_data['1m'])}, 5m:{len(day_data['5m'])}, 15m:{len(day_data['15m'])})")
+        htf_info = ', '.join(f"{tf}:{len(day_data.get(tf, []))}" for tf in ['1H', '4H', '1D'])
+        print(f"  candles_{day}.json  (1m:{len(day_data['1m'])}, 5m:{len(day_data['5m'])}, 15m:{len(day_data['15m'])}, {htf_info})")
     
     # 2. Per-TF detection data
-    for tf_label in ['1m', '5m', '15m']:
+    for tf_label in ALL_TF_LABELS:
         r = tf_results[tf_label]
         
         # FVG data

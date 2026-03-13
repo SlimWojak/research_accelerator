@@ -521,6 +521,10 @@
       <button class="tf-btn" data-tf="1m">1m</button>
       <button class="tf-btn active" data-tf="5m">5m</button>
       <button class="tf-btn" data-tf="15m">15m</button>
+      <span style="width:1px;background:var(--border2);margin:0 4px;align-self:stretch;"></span>
+      <button class="tf-btn" data-tf="1H">1H</button>
+      <button class="tf-btn" data-tf="4H">4H</button>
+      <button class="tf-btn" data-tf="1D">1D</button>
     </div>
   </header>
 
@@ -1107,7 +1111,7 @@ async function loadCandles(date) {
   const res = await fetch(`candles_${date}.json`);
   const raw = await res.json();
   const result = {};
-  for (const tf of ['1m', '5m', '15m']) {
+  for (const tf of ['1m', '5m', '15m', '1H', '4H', '1D']) {
     result[tf] = (raw[tf] || [])
       .map(c => ({ time: toTs(c.time), o: c.open, h: c.high, l: c.low, c: c.close }))
       .sort((a, b) => a.time - b.time);

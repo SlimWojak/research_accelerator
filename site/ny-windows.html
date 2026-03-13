@@ -221,6 +221,10 @@
     <button class="tf-btn" data-tf="1m">1m</button>
     <button class="tf-btn active" data-tf="5m">5m</button>
     <button class="tf-btn" data-tf="15m">15m</button>
+    <span style="width:1px;background:#2a2e39;margin:0 3px;align-self:stretch;"></span>
+    <button class="tf-btn" data-tf="1H">1H</button>
+    <button class="tf-btn" data-tf="4H">4H</button>
+    <button class="tf-btn" data-tf="1D">1D</button>
   </div>
   <nav class="header-nav">
     <a href="index.html" class="nav-link">Index</a>
@@ -461,7 +465,8 @@ function countBy(arr, type) {
 }
 
 function tfSecs(tf) {
-  return tf === '1m' ? 60 : tf === '5m' ? 300 : 900;
+  const map = {'1m': 60, '5m': 300, '15m': 900, '1H': 3600, '4H': 14400, '1D': 86400};
+  return map[tf] || 900;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────

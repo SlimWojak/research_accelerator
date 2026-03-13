@@ -331,9 +331,8 @@ def slim_detection(det) -> dict:
     }
 
 
-def build_candle_json(bars_1m: pd.DataFrame, bars_5m: pd.DataFrame,
-                      bars_15m: pd.DataFrame) -> dict:
-    """Build candle JSON with 1m/5m/15m arrays."""
+def build_candle_json(bars_by_tf: dict) -> dict:
+    """Build candle JSON with arrays for all timeframes (1m/5m/15m/1H/4H/1D)."""
     def bars_to_list(df: pd.DataFrame) -> list[dict]:
         records = []
         for _, row in df.iterrows():
@@ -351,11 +350,7 @@ def build_candle_json(bars_1m: pd.DataFrame, bars_5m: pd.DataFrame,
             })
         return records
 
-    return {
-        "1m": bars_to_list(bars_1m),
-        "5m": bars_to_list(bars_5m),
-        "15m": bars_to_list(bars_15m),
-    }
+    return {tf: bars_to_list(df) for tf, df in bars_by_tf.items()}
 
 
 def build_session_boundaries(bars_1m: pd.DataFrame) -> list[dict]:
@@ -452,11 +447,18 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     if bars_1m.empty:
         return None
 
-    # Aggregate to 5m and 15m
+    # Aggregate to 5m, 15m, and HTF (1H, 4H, 1D)
     bars_5m = aggregate(bars_1m, "5m")
     bars_15m = aggregate(bars_1m, "15m")
+    bars_1h = aggregate(bars_1m, "1H")
+    bars_4h = aggregate(bars_1m, "4H")
+    bars_1d = aggregate(bars_1m, "1D")
 
-    bars_by_tf = {"1m": bars_1m, "5m": bars_5m, "15m": bars_15m}
+    bars_by_tf = {
+        "1m": bars_1m, "5m": bars_5m, "15m": bars_15m,
+        "1H": bars_1h, "4H": bars_4h, "1D": bars_1d,
+    }
+    # NOTE: W1 (weekly) skipped — 5-day data windows are too small for weekly aggregation
 
     # Run cascade at locked params
     results = runner.run_locked(bars_by_tf)
@@ -488,7 +490,7 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     }
 
     # Build candle JSON
-    candle_data = build_candle_json(bars_1m, bars_5m, bars_15m)
+    candle_data = build_candle_json(bars_by_tf)
 
     # Build session boundaries
     session_data = build_session_boundaries(bars_1m)
@@ -526,6 +528,9 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
         "bars_1m": len(bars_1m),
         "bars_5m": len(bars_5m),
         "bars_15m": len(bars_15m),
+        "bars_1H": len(bars_1h),
+        "bars_4H": len(bars_4h),
+        "bars_1D": len(bars_1d),
     }
 
 
