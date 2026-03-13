@@ -155,6 +155,7 @@ class MSSDetector(PrimitiveDetector):
         closes = bars["close"].values
         highs = bars["high"].values
         lows = bars["low"].values
+        opens = bars["open"].values
         is_ghost = bars["is_ghost"].values
         forex_days = bars["forex_day"].values
         sessions = bars["session"].values
@@ -264,6 +265,12 @@ class MSSDetector(PrimitiveDetector):
                                 "time": sh_props["time"],
                                 "bar_index": sh_bar_idx,
                             },
+                            "origin_candle": {
+                                "body_high": float(max(opens[i], closes[i])),
+                                "body_low": float(min(opens[i], closes[i])),
+                                "wick_high": float(highs[i]),
+                                "wick_low": float(lows[i]),
+                            },
                             "displacement": {
                                 "atr_multiple": disp["atr_multiple"],
                                 "body_ratio": disp["body_ratio"],
@@ -271,6 +278,7 @@ class MSSDetector(PrimitiveDetector):
                                 "path": disp.get("qualification_path", "ATR_RELATIVE"),
                                 "displacement_type": disp.get("displacement_type", "SINGLE"),
                                 "extreme_price": disp.get("extreme_price"),
+                                "extreme_candle": disp.get("extreme_candle"),
                             },
                             "fvg_created": fvg_created,
                             "forex_day": forex_days[i],
@@ -337,6 +345,12 @@ class MSSDetector(PrimitiveDetector):
                                 "time": sl_props["time"],
                                 "bar_index": sl_bar_idx,
                             },
+                            "origin_candle": {
+                                "body_high": float(max(opens[i], closes[i])),
+                                "body_low": float(min(opens[i], closes[i])),
+                                "wick_high": float(highs[i]),
+                                "wick_low": float(lows[i]),
+                            },
                             "displacement": {
                                 "atr_multiple": disp["atr_multiple"],
                                 "body_ratio": disp["body_ratio"],
@@ -344,6 +358,7 @@ class MSSDetector(PrimitiveDetector):
                                 "path": disp.get("qualification_path", "ATR_RELATIVE"),
                                 "displacement_type": disp.get("displacement_type", "SINGLE"),
                                 "extreme_price": disp.get("extreme_price"),
+                                "extreme_candle": disp.get("extreme_candle"),
                             },
                             "fvg_created": fvg_created,
                             "forex_day": forex_days[i],

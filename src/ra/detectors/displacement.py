@@ -349,10 +349,24 @@ class DisplacementDetector(PrimitiveDetector):
 
             # Compute extreme price: directional extreme of the displacement move
             # Bullish → highest high; Bearish → lowest low
+            # Also identify the bar that produced the extreme for body/wick exposure
             if is_cluster and cluster2:
                 extreme_price = cluster2["high"] if used_dir == "bullish" else cluster2["low"]
+                # Find which bar of the cluster produced the extreme
+                if used_dir == "bullish":
+                    ext_idx = i if highs[i] >= highs[i + 1] else i + 1
+                else:
+                    ext_idx = i if lows[i] <= lows[i + 1] else i + 1
             else:
                 extreme_price = float(highs[i] if used_dir == "bullish" else lows[i])
+                ext_idx = i
+
+            extreme_candle = {
+                "body_high": float(max(opens[ext_idx], closes[ext_idx])),
+                "body_low": float(min(opens[ext_idx], closes[ext_idx])),
+                "wick_high": float(highs[ext_idx]),
+                "wick_low": float(lows[ext_idx]),
+            }
 
             # Build time strings
             bar_time = _bar_time_str(ts_ny_series.iloc[i], tf_minutes)
@@ -392,6 +406,7 @@ class DisplacementDetector(PrimitiveDetector):
                 "atr_multiple": round(used_atr, 4),
                 "atr_value": round(atr / PIP, 2),
                 "extreme_price": extreme_price,
+                "extreme_candle": extreme_candle,
                 "forex_day": forex_days[i],
                 "session": bar_session,
                 "ny_window_a": ny_window_a,

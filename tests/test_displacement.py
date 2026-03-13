@@ -414,6 +414,57 @@ class TestDisplacementExtremePrice:
                 )
 
 
+# ── Extreme Candle Field ──────────────────────────────────────────────────────
+
+class TestDisplacementExtremeCandle:
+    """Verify extreme_candle body/wick fields on every displacement."""
+
+    def test_extreme_candle_present_5m(self, result_5m):
+        for d in result_5m.detections:
+            ec = d.properties.get("extreme_candle")
+            assert ec is not None, f"Missing extreme_candle at bar {d.properties['bar_index']}"
+            for key in ("body_high", "body_low", "wick_high", "wick_low"):
+                assert key in ec, f"Missing extreme_candle.{key} at bar {d.properties['bar_index']}"
+
+    def test_extreme_candle_body_correct_5m(self, result_5m, bars_5m):
+        """body_high = max(open, close), body_low = min(open, close) of extreme bar."""
+        opens = bars_5m["open"].values
+        closes = bars_5m["close"].values
+        highs = bars_5m["high"].values
+        lows = bars_5m["low"].values
+        for d in result_5m.detections:
+            ec = d.properties["extreme_candle"]
+            idx = d.properties["bar_index"]
+            idx_end = d.properties["bar_index_end"]
+            if d.direction == "bullish":
+                ext_idx = max(range(idx, idx_end + 1), key=lambda k: highs[k])
+            else:
+                ext_idx = min(range(idx, idx_end + 1), key=lambda k: lows[k])
+            assert abs(ec["body_high"] - max(opens[ext_idx], closes[ext_idx])) < 1e-10
+            assert abs(ec["body_low"] - min(opens[ext_idx], closes[ext_idx])) < 1e-10
+            assert abs(ec["wick_high"] - highs[ext_idx]) < 1e-10
+            assert abs(ec["wick_low"] - lows[ext_idx]) < 1e-10
+
+    def test_cluster2_extreme_candle_correct_bar_5m(self, result_5m, bars_5m):
+        """For CLUSTER_2, extreme_candle uses the bar that produced the extreme."""
+        highs = bars_5m["high"].values
+        lows = bars_5m["low"].values
+        opens = bars_5m["open"].values
+        closes = bars_5m["close"].values
+        clusters = [d for d in result_5m.detections if d.properties["displacement_type"] == "CLUSTER_2"]
+        assert len(clusters) > 0
+        for d in clusters:
+            ec = d.properties["extreme_candle"]
+            idx = d.properties["bar_index"]
+            idx_end = d.properties["bar_index_end"]
+            if d.direction == "bullish":
+                ext_idx = idx if highs[idx] >= highs[idx_end] else idx_end
+            else:
+                ext_idx = idx if lows[idx] <= lows[idx_end] else idx_end
+            assert abs(ec["wick_high"] - highs[ext_idx]) < 1e-10
+            assert abs(ec["wick_low"] - lows[ext_idx]) < 1e-10
+
+
 # ── Detector Interface ───────────────────────────────────────────────────────
 
 class TestDetectorInterface:

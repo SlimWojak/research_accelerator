@@ -64,17 +64,18 @@
 #        Window B (10:00-11:00) EXCLUDED — not part of Olya's process
 #        Olya confirmed 2026-03-13
 #
-# [ ] 9. OTE — anchor swing rule + 70.5% sweet spot
-#        Anchor: most recent MSS defines the range
-#        Levels: 61.8% / 70.5% / 79%
-#        No visual — logic confirmation from Olya
+# [x] 9. OTE — LOCKED
+#        Body-to-body OTE (0.50/0.618/0.705/0.79) + wick-to-wick P/D (0.50)
+#        Anchor: most recent MSS origin_candle + displacement extreme_candle
+#        Kill zone gate: LOKZ 03-04 + NYOKZ 08-09
+#        Olya confirmed 2026-03-13
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 
 metadata:
   version: "0.6"
   date: "2026-03-11"
-  status: DRAFT — 10 primitives LOCKED, 3 remaining (HTF Disp, HTF MSS, OTE)
+  status: DRAFT — 13 primitives LOCKED. Calibration COMPLETE. Walk-forward stability pending.
   supersedes: "v0.4"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
@@ -1942,84 +1943,128 @@ LIQUIDITY_SWEEP:
     placeholder: true
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PRIMITIVE: OTE (Optimal Trade Entry)
-# Status: PENDING CALIBRATION
+# PRIMITIVE: OTE (Optimal Trade Entry) + Premium/Discount
+# Status: LOCKED — Olya confirmed 2026-03-13
 # ═══════════════════════════════════════════════════════════════════════════════
 
 OTE:
 
   L1_detection:
     definition: |
-      Fibonacci retracement zone of a dealing range or expansion.
-      Not a pattern — a zone calculation.
-      The hard problem is anchor swing selection: which swing defines
-      the range? Solved by tying to MSS — MSS resets the dealing range.
+      Fibonacci retracement zone of the post-MSS dealing range.
+      Two separate measurement systems on the same impulse leg:
+        1. OTE levels: body-to-body (where orders were filled)
+        2. Premium/Discount midpoint: wick-to-wick (where liquidity reached)
+
+    ote_measurement:
+      description: |
+        OTE is measured from candle BODY extremes of the post-MSS expansion leg.
+        Body-based measurement keeps the retracement model aligned with
+        ICT-style body-based OTE logic. Wicks are liquidity probes,
+        bodies are where orders were filled.
+
+      range_definition:
+        bullish:
+          range_low: "body_low of MSS origin candle (min(open, close) of break bar)"
+          range_high: "body_high of displacement extreme candle (max(open, close))"
+        bearish:
+          range_high: "body_high of MSS origin candle (max(open, close) of break bar)"
+          range_low: "body_low of displacement extreme candle (min(open, close))"
+
+      tracked_levels:
+        - 0.50    # equilibrium of dealing range (NEW — added per Olya 2026-03-13)
+        - 0.618   # OTE zone bottom
+        - 0.705   # ICT sweet spot
+        - 0.79    # OTE zone top
+
+      pseudocode: |
+        if mss.direction == BULLISH:
+            range_low  = mss.origin_candle.body_low
+            range_high = mss.displacement.extreme_candle.body_high
+        elif mss.direction == BEARISH:
+            range_high = mss.origin_candle.body_high
+            range_low  = mss.displacement.extreme_candle.body_low
+
+        range_size = abs(range_high - range_low)
+
+        # Bullish: retracement DOWN from expansion high
+        ote_50   = range_high - range_size * 0.50
+        ote_618  = range_high - range_size * 0.382   # 1 - 0.618
+        ote_705  = range_high - range_size * 0.295   # 1 - 0.705
+        ote_79   = range_high - range_size * 0.21    # 1 - 0.79
+
+        price_in_ote = ote_618 >= current_price >= ote_79
+
+    premium_discount_measurement:
+      description: |
+        Premium/Discount context measured from WICK extremes of the same
+        impulse leg. The midpoint reflects the full traded range including
+        liquidity spikes. Separate from the body-based OTE 0.50.
+
+      range_definition:
+        bullish:
+          range_low: "wick_low of MSS origin candle (low of break bar)"
+          range_high: "wick_high of displacement extreme candle (high)"
+        bearish:
+          range_high: "wick_high of MSS origin candle (high of break bar)"
+          range_low: "wick_low of displacement extreme candle (low)"
+
+      tracked_levels:
+        - 0.50    # true wick-based premium/discount midpoint
+
+      pseudocode: |
+        if mss.direction == BULLISH:
+            pd_low  = mss.origin_candle.wick_low
+            pd_high = mss.displacement.extreme_candle.wick_high
+        elif mss.direction == BEARISH:
+            pd_high = mss.origin_candle.wick_high
+            pd_low  = mss.displacement.extreme_candle.wick_low
+
+        pd_midpoint = (pd_high + pd_low) / 2
+
+      note: |
+        OTE 0.50 and P/D 0.50 will be at different prices whenever
+        the anchor candles have wicks (which is most of the time).
+        OTE 0.50 = equilibrium of where orders filled.
+        P/D 0.50 = equilibrium of where liquidity reached.
 
     anchor_selection:
-      rule: "Most recent MSS defines the anchor swing"
-      bullish: |
-        Draw from most recent MSS swing low (the broken level)
-        to the subsequent high (post-MSS expansion high).
-        OTE zone = 61.8%-79% retracement of that range.
-      bearish: |
-        Draw from most recent MSS swing high (the broken level)
-        to the subsequent low (post-MSS expansion low).
-        OTE zone = 61.8%-79% retracement of that range.
-      rationale: |
-        ICT canonical — MSS resets the dealing range, OTE measured
-        from that reset. Without an anchor rule, multiple simultaneous
-        OTE zones exist and the detector is useless.
-        Source: innercircletrader.net/tutorials/ict-optimal-trade-entry-ote-pattern/
-      dependency: "[MSS]"
-      status: "PROPOSED — pending Olya confirmation"
-      provenance: "Research Pack §3.9, ICT primary source 2026-03-05"
+      rule: "Most recent MSS defines the anchor. MSS resets the dealing range."
+      dependency: "[MSS (LOCKED), Displacement (LOCKED)]"
+      status: "LOCKED — Olya confirmed 2026-03-13"
+      provenance: "Olya + advisor spec, CTO synthesis 2026-03-13"
 
-    pseudocode: |
-      # After MSS confirmed, identify the dealing range
-      if mss.direction == BULLISH:
-          range_low  = mss.broken_swing.price    # the swing low that was broken
-          range_high = post_mss_expansion_high    # highest high after MSS
-      elif mss.direction == BEARISH:
-          range_high = mss.broken_swing.price     # the swing high that was broken
-          range_low  = post_mss_expansion_low     # lowest low after MSS
-
-      range_size = abs(range_high - range_low)
-
-      # Bullish OTE: measure retracement DOWN from expansion high
-      ote_top = range_high - range_size * (1 - fib_upper)   # 0.79 level
-      ote_sweet = range_high - range_size * (1 - fib_sweet)  # 0.705 level
-      ote_bot = range_high - range_size * (1 - fib_lower)   # 0.618 level
-
-      price_in_ote = ote_bot <= current_price <= ote_top
-
-    kill_zone_gate: |
-      OTE entry only valid during active kill zones:
-        LOKZ:  02:00-05:00 NY
-        NYOKZ: 07:00-10:00 NY
-      Outside these windows the OTE zone still EXISTS (computed),
-      but no entry signal is generated. The zone is displayed on
-      chart for awareness but is not actionable.
-      Rationale: OTE at 14:00 NY is not how Olya trades — timing
-      is part of the setup, not optional. ICT teaches OTE within
-      kill zone context, not as an all-hours signal.
-      status: "PROPOSED — Olya to confirm window boundaries"
-      provenance: "Research Pack §3.9 L389 + CTO analysis 2026-03-05"
+    kill_zone_gate:
+      rule: |
+        OTE entry only valid during active kill zones:
+          LOKZ:  03:00-04:00 NY (refined from broad 02:00-05:00)
+          NYOKZ: 08:00-09:00 NY
+        Outside these windows the OTE zone still EXISTS (computed and displayed),
+        but no entry signal is generated.
+      status: "LOCKED — Olya confirmed 2026-03-13 (same session as NY Windows lock)"
+      provenance: "Olya confirmed kill zone windows earlier in session"
 
   L15_parameters:
     fib_levels:
-      lower: 0.618
-      sweet_spot: 0.705
-      upper: 0.79
+      levels: [0.50, 0.618, 0.705, 0.79]
       note: |
-        ICT canonical levels. 70.5% ("the sweet spot") is unique to ICT —
-        not found in standard Fibonacci theory. Research Pack §3.9 L370, L381.
-        GrandAlgo + TradingFinder implementations use this level.
-    note: "Standard ICT values. LOCKED — unlikely to change in calibration."
-    status: "LOCKED (fib levels) + PROPOSED (anchor selection + kill zone gate)"
+        0.50 = dealing range equilibrium (body-based). Added per Olya 2026-03-13.
+        0.618 / 0.705 / 0.79 = standard ICT OTE zone.
+        0.705 ("the sweet spot") is unique to ICT methodology.
+      status: "LOCKED — Olya confirmed 2026-03-13"
+    premium_discount:
+      levels: [0.50]
+      measurement: "wick-to-wick"
+      note: "Separate from OTE 0.50. Full traded range midpoint."
+      status: "LOCKED — Olya confirmed 2026-03-13"
 
   L2_usage:
-    # PENDING OLYA SESSION
     placeholder: true
+    note: |
+      OTE zone + P/D context feed into the five-factor checklist (factor 4).
+      Strategy Designer tool (Phase 5) will validate L2 assembly.
+
+  status: "LOCKED — Olya confirmed 2026-03-13"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # REFERENCE LEVELS — not primitives, but L1 computations
@@ -2229,10 +2274,10 @@ calibration_status:
     note: "Deferred. Add when sufficient monthly history available."
     session_date: "2026-03-07"
   OTE:
-    L1: PROPOSED   # anchor swing selection rule added (MSS-based)
-    L15: LOCKED    # 0.618 / 0.705 / 0.79 (70.5% sweet spot added)
+    L1: LOCKED     # anchor selection (MSS-based), body/wick separation, kill zone gate
+    L15: LOCKED    # 0.50/0.618/0.705/0.79 (body-based) + P/D 0.50 (wick-based)
     L2: PENDING
-    session_date: "2026-03-05 (anchor rule + 70.5% from Research Pack)"
+    session_date: "2026-03-13 — Olya confirmed full OTE + P/D spec"
   NY_WINDOWS:
     L1: N/A        # observation, not detection algorithm
     L15: N/A       # preference, not parameter sweep

@@ -412,6 +412,51 @@ class TestMSSGhostBars:
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Origin candle + extreme_candle propagation tests
+# ──────────────────────────────────────────────────────────────────────
+
+class TestMSSOriginCandle:
+    """Verify origin_candle fields populated on every MSS event."""
+
+    def test_origin_candle_present_5m(self, bars_5m):
+        result = _run_mss(bars_5m, "5m")
+        for d in result.detections:
+            oc = d.properties.get("origin_candle")
+            assert oc is not None, f"Missing origin_candle at bar {d.properties['bar_index']}"
+            for key in ("body_high", "body_low", "wick_high", "wick_low"):
+                assert key in oc, f"Missing origin_candle.{key}"
+
+    def test_origin_candle_body_is_max_min_of_open_close_5m(self, bars_5m):
+        """body_high = max(open, close), body_low = min(open, close) of break bar."""
+        opens = bars_5m["open"].values
+        closes = bars_5m["close"].values
+        highs = bars_5m["high"].values
+        lows = bars_5m["low"].values
+        result = _run_mss(bars_5m, "5m")
+        for d in result.detections:
+            oc = d.properties["origin_candle"]
+            i = d.properties["bar_index"]
+            assert abs(oc["body_high"] - max(opens[i], closes[i])) < 1e-10
+            assert abs(oc["body_low"] - min(opens[i], closes[i])) < 1e-10
+            assert abs(oc["wick_high"] - highs[i]) < 1e-10
+            assert abs(oc["wick_low"] - lows[i]) < 1e-10
+
+    def test_extreme_candle_propagated_5m(self, bars_5m):
+        """displacement.extreme_candle is propagated through to MSS event."""
+        result = _run_mss(bars_5m, "5m")
+        for d in result.detections:
+            ec = d.properties["displacement"].get("extreme_candle")
+            assert ec is not None, f"Missing displacement.extreme_candle at bar {d.properties['bar_index']}"
+            for key in ("body_high", "body_low", "wick_high", "wick_low"):
+                assert key in ec, f"Missing displacement.extreme_candle.{key}"
+
+    def test_origin_candle_present_1m(self, bars_1m):
+        result = _run_mss(bars_1m, "1m")
+        for d in result.detections:
+            assert d.properties.get("origin_candle") is not None
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Required upstream test
 # ──────────────────────────────────────────────────────────────────────
 

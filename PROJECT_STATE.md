@@ -63,7 +63,7 @@
 | 8 | **MSS** | `mss.py` | LOCKED | `displacement_required: true`, `close_beyond_swing: true`, `fvg_tag_only: true` |
 | 9 | **OrderBlock** | `order_block.py` | LOCKED | `trigger: displacement_plus_mss`, `zone_type: body`, `min_displacement_grade: VALID` |
 | 10 | **HTFLiquidity** | `htf_liquidity.py` | LOCKED | `min_touches: 2`, per-TF tolerance/rotation/lookback |
-| 11 | **OTE** | `ote.py` | PROPOSED | `fib: [0.618, 0.705, 0.79]`, `kill_zone_gate: true` |
+| 11 | **OTE** | `ote.py` | LOCKED | `fib: [0.50, 0.618, 0.705, 0.79]`, `kill_zone_gate: true`, `P/D: wick-to-wick 0.50` |
 | 12 | **LiquiditySweep** | `liquidity_sweep.py` | LOCKED | `rejection_wick_pct: 0.40`, per-TF return windows, multi-source level pooling, probe exhaustion, sweep event levels, LTF scope restriction |
 | 13 | **LuxAlgo MSS** *(variant)* | `luxalgo_mss.py` | VARIANT | BOS/CHoCH, no displacement gate — fires ~2× more than a8ra |
 | 14 | **LuxAlgo OB** *(variant)* | `luxalgo_ob.py` | VARIANT | Wick-to-wick order block zones |
@@ -204,12 +204,11 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ## 9. Calibration Status (as of 2026-03-13)
 
-### Primitive Lock Status: 10/13 LOCKED
+### Primitive Lock Status: 13/13 LOCKED
 
 | Status | Count | Primitives |
 |--------|-------|------------|
-| **LOCKED** | 10 | FVG, Swing Points, Displacement (LTF), MSS, Order Block, Session Liquidity, HTF EQH/EQL, Liquidity Sweep, Asia Range, NY Windows |
-| **PROPOSED** | 3 | HTF Displacement, HTF MSS, OTE |
+| **LOCKED** | 13 | FVG, Swing Points, Displacement (LTF), MSS, Order Block, Session Liquidity, HTF EQH/EQL, Liquidity Sweep, Asia Range, NY Windows, HTF Displacement, HTF MSS, OTE |
 | **DEFERRED** | 1 | Equal HL |
 
 ### Mechanisms Added During 2026-03-12 Calibration Session
@@ -226,11 +225,11 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ### Sprint 64 Gate Status
 
-Gate 3 (v0.6 methodology Olya-lock) pending — 3 remaining primitives (HTF Displacement, HTF MSS, OTE).
+Gate 3 (v0.6 methodology Olya-lock) COMPLETE — all 13 primitives LOCKED as of 2026-03-13.
 
 ## 10. What's Next
 
-- **Lock remaining 3 primitives** (HTF Displacement, HTF MSS, OTE) for Sprint 64 Gate 3 completion
+- **Walk-forward stability run** — next milestone after full primitive lock
 - **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
 - **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
 
