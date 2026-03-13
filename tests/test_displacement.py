@@ -361,6 +361,59 @@ class TestCluster2:
             )
 
 
+# ── Extreme Price Field ──────────────────────────────────────────────────────
+
+class TestDisplacementExtremePrice:
+    """Verify extreme_price field is present and correct on every displacement."""
+
+    def test_extreme_price_present_5m(self, result_5m):
+        """Every 5m displacement has an extreme_price field."""
+        for d in result_5m.detections:
+            assert "extreme_price" in d.properties, (
+                f"Missing extreme_price at bar_index {d.properties['bar_index']}"
+            )
+
+    def test_extreme_price_positive_5m(self, result_5m):
+        """extreme_price should be a positive price value."""
+        for d in result_5m.detections:
+            assert d.properties["extreme_price"] > 0, (
+                f"extreme_price should be positive at bar_index {d.properties['bar_index']}"
+            )
+
+    def test_extreme_price_is_float_5m(self, result_5m):
+        """extreme_price should be a float."""
+        for d in result_5m.detections:
+            assert isinstance(d.properties["extreme_price"], float), (
+                f"extreme_price should be float, got {type(d.properties['extreme_price'])}"
+            )
+
+    def test_extreme_price_bullish_is_high_5m(self, result_5m, bars_5m):
+        """For bullish displacements, extreme_price should be the highest high."""
+        highs = bars_5m["high"].values
+        for d in result_5m.detections:
+            if d.direction == "bullish":
+                idx = d.properties["bar_index"]
+                idx_end = d.properties["bar_index_end"]
+                expected = max(highs[k] for k in range(idx, idx_end + 1))
+                assert abs(d.properties["extreme_price"] - expected) < 1e-10, (
+                    f"Bullish extreme_price mismatch at bar {idx}: "
+                    f"{d.properties['extreme_price']} != {expected}"
+                )
+
+    def test_extreme_price_bearish_is_low_5m(self, result_5m, bars_5m):
+        """For bearish displacements, extreme_price should be the lowest low."""
+        lows = bars_5m["low"].values
+        for d in result_5m.detections:
+            if d.direction == "bearish":
+                idx = d.properties["bar_index"]
+                idx_end = d.properties["bar_index_end"]
+                expected = min(lows[k] for k in range(idx, idx_end + 1))
+                assert abs(d.properties["extreme_price"] - expected) < 1e-10, (
+                    f"Bearish extreme_price mismatch at bar {idx}: "
+                    f"{d.properties['extreme_price']} != {expected}"
+                )
+
+
 # ── Detector Interface ───────────────────────────────────────────────────────
 
 class TestDetectorInterface:

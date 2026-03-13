@@ -347,6 +347,13 @@ class DisplacementDetector(PrimitiveDetector):
                     grade = "VALID"
                     close_loc = True
 
+            # Compute extreme price: directional extreme of the displacement move
+            # Bullish → highest high; Bearish → lowest low
+            if is_cluster and cluster2:
+                extreme_price = cluster2["high"] if used_dir == "bullish" else cluster2["low"]
+            else:
+                extreme_price = float(highs[i] if used_dir == "bullish" else lows[i])
+
             # Build time strings
             bar_time = _bar_time_str(ts_ny_series.iloc[i], tf_minutes)
             if is_cluster:
@@ -384,6 +391,7 @@ class DisplacementDetector(PrimitiveDetector):
                 "body_ratio": round(used_body, 4),
                 "atr_multiple": round(used_atr, 4),
                 "atr_value": round(atr / PIP, 2),
+                "extreme_price": extreme_price,
                 "forex_day": forex_days[i],
                 "session": bar_session,
                 "ny_window_a": ny_window_a,
