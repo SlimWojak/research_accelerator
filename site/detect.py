@@ -331,6 +331,38 @@ def slim_detection(det) -> dict:
     }
 
 
+def full_detection(det) -> dict:
+    """Convert a Detection object to full JSON format for Strategy Designer.
+    
+    Preserves all properties (except 'qualifies' grid which is engine-internal),
+    tags, and upstream_refs. Needed for chain evaluation, spatial constraints,
+    and cross-primitive tracing.
+    """
+    props = {}
+    for key, val in det.properties.items():
+        if key == "qualifies":
+            continue
+        props[key] = val
+    
+    t = det.time
+    if hasattr(t, "isoformat"):
+        time_str = t.isoformat()
+    else:
+        time_str = str(t)
+    
+    result = {
+        "id": det.id,
+        "time": time_str,
+        "direction": det.direction,
+        "type": det.type,
+        "price": det.price,
+        "properties": props,
+        "tags": det.tags if det.tags else {},
+        "upstream_refs": det.upstream_refs if det.upstream_refs else [],
+    }
+    return result
+
+
 def build_candle_json(bars_by_tf: dict) -> dict:
     """Build candle JSON with arrays for all timeframes (1m/5m/15m/1H/4H/1D)."""
     def bars_to_list(df: pd.DataFrame) -> list[dict]:
@@ -432,7 +464,8 @@ def build_locked_params_snapshot(config) -> dict:
 
 
 def process_week(week_info: dict, config, adapter: RiverAdapter,
-                 runner: EvaluationRunner, output_dir: Path) -> dict:
+                 runner: EvaluationRunner, output_dir: Path,
+                 full_mode: bool = False) -> dict:
     """Process a single forex week: load bars, run detection, write outputs.
 
     Returns manifest entry for this week.
@@ -467,17 +500,20 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     locked_thresholds = _extract_locked_thresholds(config)
     results = _filter_locked_detections(results, locked_thresholds)
 
-    # Build slim detections organized by primitive and timeframe
+    # Build detections organized by primitive and timeframe
+    # Use full_detection() when full_mode=True, otherwise slim_detection()
     detections_by_primitive = {}
     total_detection_count = 0
+
+    detection_fn = full_detection if full_mode else slim_detection
 
     for prim_name, by_tf in results.items():
         prim_dets = {}
         for tf, det_result in by_tf.items():
-            slim_dets = [slim_detection(d) for d in det_result.detections]
-            if slim_dets:
-                prim_dets[tf] = slim_dets
-                total_detection_count += len(slim_dets)
+            serialized_dets = [detection_fn(d) for d in det_result.detections]
+            if serialized_dets:
+                prim_dets[tf] = serialized_dets
+                total_detection_count += len(serialized_dets)
         if prim_dets:
             detections_by_primitive[prim_name] = prim_dets
 
@@ -554,6 +590,10 @@ def main():
         "--output", required=True,
         help="Output directory (e.g. site/data/)"
     )
+    parser.add_argument(
+        "--full", action="store_true", default=False,
+        help="Output full detection fields (for Strategy Designer). Default: slim format."
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -581,7 +621,8 @@ def main():
         t0 = time.time()
 
         try:
-            entry = process_week(week_info, config, adapter, runner, output_dir)
+            entry = process_week(week_info, config, adapter, runner, output_dir,
+                                full_mode=args.full)
         except Exception as e:
             print(f"[{i}/{total_weeks}] {week_info['week']} — ERROR: {e}")
             logger.warning("Failed to process week %s: %s",
