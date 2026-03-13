@@ -25,9 +25,11 @@ class VSessionBandsRenderer {
       const ctx = scope.context;
       const H = scope.mediaSize.height;
       for (const b of this._bands) {
-        if (b.x1 == null || b.x2 == null) continue;
-        const xL = Math.min(b.x1, b.x2);
-        const xR = Math.max(b.x1, b.x2);
+        if (b.x1 == null && b.x2 == null) continue;
+        const rawL = b.x1 ?? 0;
+        const rawR = b.x2 ?? scope.mediaSize.width;
+        const xL = Math.min(rawL, rawR);
+        const xR = Math.max(rawL, rawR);
         if (xR < 0 || xL > scope.mediaSize.width) continue;
         // Fill
         ctx.fillStyle = b.color;
@@ -393,8 +395,9 @@ function findValidateNearestCandleTime(detTime) {
 
 function getValidateSessionBandsForDay(dayKey) {
   if (!vApp.sessionData || !dayKey) return [];
+  const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   return vApp.sessionData
-    .filter(b => b.forex_day === dayKey)
+    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
     .map(b => ({
       startTS: toTS(b.start_time),
       endTS: toTS(b.end_time),
