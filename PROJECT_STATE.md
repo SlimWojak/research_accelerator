@@ -1,5 +1,5 @@
 # PROJECT_STATE.md — a8ra Research Accelerator
-## Checkpoint: 2026-03-12
+## Checkpoint: 2026-03-13
 
 > **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
@@ -57,7 +57,7 @@
 | 2 | **SwingPoints** | `swing_points.py` | LOCKED | `N: {1m:5, 5m:3, 15m:2}`, `height_filter_pips: {1m:0.5, 5m:3.0, 15m:3.0}` |
 | 3 | **Displacement** | `displacement.py` | LOCKED | `atr_multiplier: 1.50`, `body_ratio: 0.60`, `close_gate: 0.25`, `combination_mode: AND` |
 | 4 | **SessionLiquidity** | `session_liquidity.py` | LOCKED | `efficiency_threshold: 0.60`, `mid_cross_min: 2`, `balance_score_min: 0.30` |
-| 5 | **AsiaRange** | `asia_range.py` | PROPOSED | `tight_below_pips: 10`, `max_cap_pips: 30` |
+| 5 | **AsiaRange** | `asia_range.py` | LOCKED | `tight_below_pips: 10`, `mid_range_pips: [10, 20]`, `wide_above_pips: 20`, `max_cap_pips: 30` |
 | 6 | **ReferenceLevels** | `reference_levels.py` | LOCKED | PDH/PDL (forex day boundary), midnight open, equilibrium midpoint |
 | 7 | **EqualHL** | `equal_hl.py` | DEFERRED | `tolerance_pips: 2.0`, `atr_factor: 0.1` |
 | 8 | **MSS** | `mss.py` | LOCKED | `displacement_required: true`, `close_beyond_swing: true`, `fvg_tag_only: true` |
@@ -202,14 +202,14 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ---
 
-## 9. Calibration Status (as of 2026-03-12)
+## 9. Calibration Status (as of 2026-03-13)
 
-### Primitive Lock Status: 8/13 LOCKED
+### Primitive Lock Status: 10/13 LOCKED
 
 | Status | Count | Primitives |
 |--------|-------|------------|
-| **LOCKED** | 8 | FVG, Swing Points, Displacement (LTF), MSS, Order Block, Session Liquidity, HTF EQH/EQL, Liquidity Sweep |
-| **PROPOSED** | 5 | Asia Range, HTF Displacement, HTF MSS, NY Window, OTE |
+| **LOCKED** | 10 | FVG, Swing Points, Displacement (LTF), MSS, Order Block, Session Liquidity, HTF EQH/EQL, Liquidity Sweep, Asia Range, NY Windows |
+| **PROPOSED** | 3 | HTF Displacement, HTF MSS, OTE |
 | **DEFERRED** | 1 | Equal HL |
 
 ### Mechanisms Added During 2026-03-12 Calibration Session
@@ -226,11 +226,11 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ### Sprint 64 Gate Status
 
-Gate 3 (v0.6 methodology Olya-lock) pending — 5 remaining primitives (Asia Range, HTF Displacement, HTF MSS, NY Window, OTE).
+Gate 3 (v0.6 methodology Olya-lock) pending — 3 remaining primitives (HTF Displacement, HTF MSS, OTE).
 
 ## 10. What's Next
 
-- **Lock remaining 5 primitives** for Sprint 64 Gate 3 completion
+- **Lock remaining 3 primitives** (HTF Displacement, HTF MSS, OTE) for Sprint 64 Gate 3 completion
 - **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
 - **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
 
@@ -252,4 +252,4 @@ a1fa939 S65: Pass-through consumption + distinct primitive markers
 
 ---
 
-*Last updated: 2026-03-12*
+*Last updated: 2026-03-13*

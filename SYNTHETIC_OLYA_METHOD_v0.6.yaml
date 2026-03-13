@@ -43,9 +43,9 @@
 #        ATR: 1.5x  |  Body: 0.60  |  Mode: AND
 #        Tool: displacement.html → 4x4 heatmap, click each cell
 #
-# [ ] 4. ASIA RANGE — tight/mid/wide thresholds
-#        TIGHT: < 10 pip  |  MID: 10-20 pip  |  WIDE: > 20 pip
-#        Tool: asia.html → threshold slider
+# [x] 4. ASIA RANGE — LOCKED
+#        TIGHT: < 10 pip  |  MID: 10-20 pip  |  WIDE: > 20 pip  |  Cap: 30 pip
+#        Olya confirmed 2026-03-13 (visual review of asia.html threshold slider)
 #
 # [ ] 5. MSS — require FVG or just tag it?
 #        Proposed: tag only (fvg_created), not a gate
@@ -59,10 +59,10 @@
 #        Return: 3 bars  |  Max: 1.5x ATR  |  Min: 0.5 pip floor
 #        No dedicated visual yet — review in context of sweep events on chart
 #
-# [ ] 8. NY WINDOWS — Window A vs Window B preference
-#        A: 08:00-09:00 (reversal)  |  B: 10:00-11:00 (continuation)
-#        Tool: ny-windows.html → window toggle
-#        This is a PREFERENCE question, not a threshold
+# [x] 8. NY WINDOWS — LOCKED
+#        Olya confirmed: LOKZ 03:00-04:00 + NYOKZ 08:00-09:00 = reversal windows
+#        Window B (10:00-11:00) EXCLUDED — not part of Olya's process
+#        Olya confirmed 2026-03-13
 #
 # [ ] 9. OTE — anchor swing rule + 70.5% sweet spot
 #        Anchor: most recent MSS defines the range
@@ -74,7 +74,7 @@
 metadata:
   version: "0.6"
   date: "2026-03-11"
-  status: DRAFT — 7 primitives LOCKED, sweep verification in progress
+  status: DRAFT — 10 primitives LOCKED, 3 remaining (HTF Disp, HTF MSS, OTE)
   supersedes: "v0.4"
   instrument: EURUSD  # primary — expand after full calibration
   calibration_data: "EURUSD 1m, 2024-01-07 to 2024-01-12 (7,177 bars)"
@@ -598,7 +598,7 @@ SESSION_LIQUIDITY:
     Jan 11: Asia 11.7p ε=0.298 mid×=30 bal=0.391 CONSOL   | PreLon 14.0p ε=0.584 mid×=1  bal=0.325 TREND↑  | PreNY 23.8p ε=0.618 mid×=1  bal=0.483 TREND↑
     Jan 12: Asia 12.7p ε=0.531 mid×=9  bal=0.492 CONSOL   | PreLon  7.2p ε=0.069 mid×=10 bal=0.417 CONSOL  | PreNY 17.5p ε=0.742 mid×=1  bal=0.300 TREND↓
 
-  status: "PROPOSED — four-gate classification + interaction tracking, pending Olya visual recheck"
+  status: "LOCKED — four-gate classification + interaction tracking. Olya confirmed 2026-03-07."
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TIER 2: EQL/EQH — DEFERRED
@@ -949,8 +949,8 @@ ASIA_RANGE:
         Calibration data: Wed 10.3, Thu 12.0 = clearly TIGHT.
         Mon 20.7, Fri 22.2 = clearly WIDE. Tue 17.7 = MID zone.
         10 pip and 20 pip are the natural break points.
-      status: "PROPOSED — pending Olya confirmation"
-      provenance: "calibration_data_export asia_range classification_matrix 2026-03-05"
+      status: "LOCKED — Olya confirmed 2026-03-13"
+      provenance: "Olya visual review of asia.html threshold slider, 2026-03-13"
     max_cap:
       value: 30  # pips
       note: "Olya confirmed in v0.3 — LOCKED. Beyond 30 pip = anomaly."
@@ -2069,34 +2069,27 @@ NY_WINDOWS:
     Window B (10:00-11:00 NY): Continuation energy — lower event count, directional
     These are NOT interchangeable — different phenomena.
 
-  window_a:
-    time: "08:00-09:00 NY"
-    character: "Reversal energy — higher event density"
-    note: |
-      Aligns with LOKZ → NY transition. Most MSS events occur here.
-      Calibration data: FVG and displacement counts peak in Window A.
-      This is where Olya's reversal setups (sweep → MSS → OTE) fire.
+  olya_confirmed_windows:
+    lokz_reversal:
+      time: "03:00-04:00 NY"
+      character: "Key reversal window — HOD/LOD often forms here"
+      note: "Refinement of broad LOKZ 02:00-05:00. Peak reversal energy 03:00-04:00."
+    nyokz_reversal:
+      time: "08:00-09:00 NY"
+      character: "Key reversal window — HOD/LOD often forms here"
+      note: "Window A confirmed as primary NY reversal time."
+    window_b:
+      time: "10:00-11:00 NY"
+      status: "EXCLUDED — not part of Olya's process"
+      note: "ICT Silver Bullet / continuation window. Olya does not trade this."
 
-  window_b:
-    time: "10:00-11:00 NY"
-    character: "Continuation energy — directional, lower event count"
-    note: |
-      ICT Silver Bullet window. Direction already established by Window A.
-      Entries here ride existing momentum rather than catching reversals.
+  olya_note: |
+    Strong reversals happen during LOKZ 03:00-04:00 and NYOKZ 08:00-09:00.
+    These are the strongest times typically where highs or lows of day form.
+    Not exclusive to these windows, but these are the peak reversal zones.
+    Window B (10:00-11:00) is not part of her trading process.
 
-  proposed_default: |
-    Window A primary — reversal aligns with LOKZ → NY transition.
-    Window B secondary for continuation entries after A establishes direction.
-    Both windows tagged on displacement and FVG events via ny_window tag.
-
-  olya_question: |
-    Do you trade Window A (reversal), Window B (continuation),
-    or both for different setup types?
-    This is a PREFERENCE, not a parameter sweep.
-    The calibration tool tags events by window — Olya reviews the
-    chart and states which window(s) she enters in.
-
-  status: "PENDING OLYA PREFERENCE — not a parameter sweep"
+  status: "LOCKED — Olya confirmed 2026-03-13"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STRATEGY LAYER (L2) — SKELETON
@@ -2192,9 +2185,9 @@ calibration_status:
     session_date: "2026-03-07 (DEFERRED — confirmed, not superseded by sweep session)"
   ASIA_RANGE:
     L1: LOCKED     # session H/L computation confirmed, three-tier pseudocode
-    L15: PROPOSED  # TIGHT <10, MID 10-20, WIDE >20 — pending Olya
+    L15: LOCKED    # TIGHT <10, MID 10-20, WIDE >20, cap 30 — Olya confirmed
     L2: PENDING
-    session_date: "2026-03-05 (proposed from calibration data)"
+    session_date: "2026-03-13 — Olya confirmed all thresholds"
   DISPLACEMENT:
     L1: LOCKED     # 1-2 bar impulse + close gate + override path + quality grades
     L15: LOCKED    # two-tier: LTF 1.5x/0.60 LOCKED, HTF 1.5x/0.65 PROPOSED
@@ -2243,8 +2236,8 @@ calibration_status:
   NY_WINDOWS:
     L1: N/A        # observation, not detection algorithm
     L15: N/A       # preference, not parameter sweep
-    L2: PENDING    # Olya preference: Window A, B, or both
-    session_date: "2026-03-05 (documented, pending Olya preference)"
+    L2: LOCKED     # Olya preference confirmed: LOKZ 03-04 + NYOKZ 08-09 reversal, Window B excluded
+    session_date: "2026-03-13 — Olya confirmed: LOKZ 03-04 + NYOKZ 08-09 reversal, Window B excluded"
   HTF_LIQUIDITY_MODEL:
     L1: LOCKED     # SwingPoint-sourced, invalidation-aware, candidate fallback
     L15: LOCKED    # H1:2pip H4:3pip fixed tolerance, Asia filter, buffered invalidation
