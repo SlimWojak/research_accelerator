@@ -388,8 +388,12 @@ function updateMetadata() {
   const drillDownClose = document.getElementById('drill-down-close');
   if (drillDownClose) {
     drillDownClose.addEventListener('click', () => {
-      const panel = document.getElementById('drill-down-panel');
-      if (panel) panel.classList.remove('visible');
+      if (typeof closeDrillDown === 'function') {
+        closeDrillDown();
+      } else {
+        const panel = document.getElementById('drill-down-panel');
+        if (panel) panel.classList.remove('visible');
+      }
     });
   }
 

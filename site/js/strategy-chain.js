@@ -863,23 +863,6 @@ function updateFunnelBar() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * Update Chain Overlays (Placeholder for Task 6)
+ * NOTE: updateChainOverlays() has been moved to strategy-chart.js (Task 6)
+ * It is called by evaluateChain() and is available in global scope.
  * ═══════════════════════════════════════════════════════════════════════════════ */
-
-function updateChainOverlays() {
-  // Placeholder — Task 6 will implement chart highlight bands
-  // For now, just update metadata counts
-  
-  // Update metadata bar match/near-miss counts
-  const matchEl = document.getElementById('meta-matches');
-  const nearEl = document.getElementById('meta-near-misses');
-  
-  if (matchEl) {
-    const matches = sApp.chainResults ? sApp.chainResults.filter(r => r.type === 'FULL_MATCH').length : 0;
-    matchEl.textContent = matches.toString();
-  }
-  if (nearEl) {
-    const nears = sApp.chainResults ? sApp.chainResults.filter(r => r.type === 'NEAR_MISS').length : 0;
-    nearEl.textContent = nears.toString();
-  }
-}
