@@ -1,5 +1,5 @@
 # PROJECT_STATE.md — a8ra Research Accelerator
-## Checkpoint: 2026-03-13
+## Checkpoint: 2026-03-14
 
 > **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
@@ -26,9 +26,10 @@
 | **Phase 3: Comparison Interface** | ✅ COMPLETE | `compare.html` — 4 tabs (Chart, Stats, Heatmap, Walk-Forward), ground truth, lock panel, divergence navigator |
 | **Phase 3.5: Validation Mode** | ✅ COMPLETE | `validate.html` — week-by-week detection browser, 25 weeks EURUSD (Sep 2025–Feb 2026), disk-persisted ground truth |
 | **Phase 4: Variant Comparison, Ground Truth Scoring & Parameter Search** | ✅ COMPLETE | LuxAlgo MSS/OB variants, P/R/F1 scoring pipeline, `search.py` parameter optimizer, 65 validation assertions |
-| **Phase 5: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
+| **Phase 5: Strategy Designer** | ✅ COMPLETE | `strategy.html` — chain composer, evaluator engine, chart overlays, template persistence, enriched detection output |
+| **Phase 6: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
 
-**Total: 970+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search).**
+**Total: 970+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search). Strategy Designer (Phase 5) is frontend-only — tested via agent-browser integration tests.**
 
 ---
 
@@ -41,6 +42,7 @@
 | **Evaluation Runner** | Statistical comparison, parameter sweep (1D/2D grid), walk-forward validation, cascade funnel — all emit JSON schemas 4A–4E |
 | **Comparison Interface** | Static HTML/JS + Plotly 2.35.2 + Lightweight Charts v4.1.3, served on port 8100 |
 | **Validation Mode** | CLI batch generator (`detect.py`) + minimal write server (`serve.py` on port 8200) |
+| **Strategy Designer** | `strategy.html` — chain composer consuming enriched detection output (`detect.py --full`), client-side evaluator, template persistence via `serve.py` |
 
 **Key interfaces:**
 - `PrimitiveDetector.detect(bars, params, upstream, context) → DetectionResult`
@@ -98,7 +100,9 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 |---|---|---|---|
 | Comparison | `python3 -m http.server 8100 -d site` | 8100 | Static serving of `compare.html` + calibration charts |
 | Validation | `python3 site/serve.py` | 8200 | `validate.html` with POST endpoint for label/lock persistence |
+| Strategy | `python3 site/serve.py` | 8200 | `strategy.html` chain composer + template persistence (shares serve.py with validation) |
 | Detection gen | `python3 detect.py --config configs/locked_baseline.yaml --river EURUSD --start ... --end ... --output site/eval/` | — | Batch cascade run, outputs per-week JSON |
+| Detection gen (enriched) | `python3 site/detect.py --full --start ... --end ... --output site/data/` | — | Full detection output with all properties, tags, upstream_refs (for Strategy Designer) |
 | Public | https://slimwojak.github.io/ra-tools/validate.html | — | Read-only GitHub Pages deployment (no label persistence) |
 
 ---
@@ -139,8 +143,9 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 | `index.html` | Landing page → 6 calibration charts + compare + validate |
 | `compare.html` | Phase 3 comparison interface (4 tabs) |
 | `validate.html` | Phase 3.5 validation mode (week picker + chart + labels) |
-| `detect.py` | CLI batch generator — cascade over River data → per-week JSON |
-| `serve.py` | HTTP server with POST for label/lock persistence |
+| `strategy.html` | Phase 5 strategy designer (chain composer + evaluator + overlays) |
+| `detect.py` | CLI batch generator — cascade over River data → per-week JSON. `--full` flag outputs enriched detections (all properties, tags, upstream_refs) for Strategy Designer |
+| `serve.py` | HTTP server with POST for label/lock/strategy persistence, GET for strategy listing/loading |
 | `generate_eval_data.sh` | Generate single-config evaluation fixture |
 | `generate_comparison_fixture.py` | Generate 2-config comparison fixture |
 | `js/chart-tab.js` | LC candlestick chart with multi-config overlay |
@@ -152,6 +157,10 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 | `js/validate-app.js` | Validation mode app controller |
 | `js/validate-chart.js` | Validation mode chart rendering |
 | `js/validate-gt.js` | Validation mode ground truth + lock panel |
+| `js/strategy-app.js` | Strategy Designer state management, data loading, week/day/TF navigation |
+| `js/strategy-chart.js` | Strategy Designer chart rendering, session bands, chain highlight overlays, drill-down |
+| `js/strategy-chain.js` | Chain builder UI + evaluator engine (direction/constraint/timing matching, near-miss) |
+| `js/strategy-templates.js` | Template save/load (POST/GET via serve.py) |
 | `js/shared.js` | Shared utilities (color maps, TF helpers) |
 
 ### `configs/`
@@ -232,25 +241,26 @@ Walk-forward stability: **PASS** — 25 weeks EURUSD (Sep 2025 – Feb 2026), al
 ## 10. What's Next
 
 - **Walk-forward stability** — COMPLETE (PASS verdict, commit b641375)
+- **Strategy Designer** — COMPLETE (Phase 5, commits 8376ac3–9393ab4)
 - **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
-- **Future**: Production monitoring (Phase 5), regime tagging, forensic case runner
+- **Future**: Production monitoring (Phase 6), regime tagging, forensic case runner, cross-TF chain evaluation
 
 ---
 
 ## 11. Recent Git History
 
 ```
+9393ab4 Template save/load persistence — serve.py + strategy-templates.js
+c9ddbf7 Chart overlays + drill-down panel — visual feedback layer
+c66e6c4 Chain evaluator engine — core Strategy Designer logic
+42e3a26 Strategy Designer scaffold — strategy.html + 4 JS modules + enriched data
+8376ac3 detect.py: add --full flag for enriched Strategy Designer output
+cc7f34a Rename SYNTHETIC_OLYA_METHOD_v0.6 → vLOCK, update all docs
 b641375 Walk-forward stability run — 25-week EURUSD evaluation
 8da6f3e OTE LOCKED — body-based OTE + wick-based P/D, 13/13 primitives complete
 97c4b5f HTF calibration tool — complete integration + week view
-ecec8ed Fix session box rendering — null-clamp Asia band + correct Oct 2025 NY times
-70fbed4 Lock Asia Range tiers + NY Windows — Olya confirmed 2026-03-13
-9fd1982 OTE anchor verification — surface displacement cluster extreme
-78b50c4 YAML: cross_timeframe_cascade L1/L2 boundary annotation
-5dd9a32 Sweep target tiering: PROMOTED_SWING excluded from 5m/1m pool
-6f275b9 Whitelist renderable sweep types instead of blacklisting audit types
 ```
 
 ---
 
-*Last updated: 2026-03-13*
+*Last updated: 2026-03-14*

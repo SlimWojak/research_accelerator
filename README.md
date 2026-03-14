@@ -255,6 +255,55 @@ python3 search.py --config configs/locked_baseline.yaml \
 
 ---
 
+## Phase 5 Strategy Designer (`site/strategy.html`)
+
+Chain-based strategy composition tool — Olya defines primitive chains describing trade setups, the evaluator shows where they fire across historical data.
+
+### Quick Start
+
+```bash
+# 1. Ensure enriched detection data exists (runs cascade with full output)
+python3 site/detect.py --full --start 2025-09-01 --end 2026-02-28 \
+                       --config configs/locked_baseline.yaml \
+                       --output site/data/
+
+# 2. Serve the site
+python3 site/serve.py
+
+# 3. Open http://localhost:8200/strategy.html
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Chain Composer** | Define multi-step primitive chains with direction, timing, and constraints |
+| **Evaluator Engine** | Client-side evaluation: direction/constraint/timing matching, FULL_MATCH and NEAR_MISS classification |
+| **Chart Overlays** | Green bands for full matches, amber for near-misses, numbered step markers on drill-down |
+| **Convergence Funnel** | Step-by-step attrition counts showing where chains fail |
+| **Drill-Down Panel** | Per-step PASS/FAIL details with detection properties and failure reasons |
+| **Template Persistence** | Save/load named strategies via `serve.py` endpoints |
+
+### Enriched Detection Format
+
+The `--full` flag on `detect.py` preserves all detection properties (broken_swing, displacement sub-object, zone_body, fib_levels, source, qualified_sweep), tags (session, kill_zone, forex_day), and upstream_refs. The slim format (default) strips these for validate.html which doesn't need them.
+
+### Architecture
+
+- **strategy-app.js** — Global state (sApp), 11 LOCKED L1 primitive palette, data loading
+- **strategy-chart.js** — LWC chart with session bands + chain highlight primitive (ISeriesPrimitive)
+- **strategy-chain.js** — Chain builder UI + evaluator engine (850+ lines)
+- **strategy-templates.js** — Template save/load via `serve.py` POST/GET endpoints
+
+### v1 Deferrals
+
+- Cross-TF chains (schema supports per-step `tf`, UI uses single global TF)
+- Replay mode (step through matches bar-by-bar)
+- Convergence statistics export
+- Advanced constraint editing UI (smart defaults shown, advanced expandable)
+
+---
+
 ## Calibration Visual Bible (`site/`)
 
 Interactive threshold calibration tool for visual review of L1.5 parameter tuning on EURUSD data.
@@ -294,12 +343,18 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── search.py                      # CLI entry point for parameter search (Phase 4)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
 │
-├── site/                          # Static calibration charts + comparison + validation
+├── site/                          # Static calibration charts + comparison + validation + strategy
 │   ├── index.html                 # Landing page → 6 chart pages
 │   ├── compare.html               # Phase 3 comparison interface
 │   ├── validate.html              # Phase 3.5 validation mode
-│   ├── detect.py                  # CLI entry point for validation data generation (Phase 3.5)
-│   ├── serve.py                   # HTTP server with label persistence (Phase 3.5, port 8200)
+│   ├── strategy.html              # Phase 5 strategy designer (chain composer)
+│   ├── detect.py                  # CLI for validation data gen (--full for enriched output)
+│   ├── serve.py                   # HTTP server: labels, lock-records, strategies (port 8200)
+│   ├── js/strategy-app.js         # Strategy state management + data loading
+│   ├── js/strategy-chart.js       # Strategy chart + highlight overlays + drill-down
+│   ├── js/strategy-chain.js       # Chain builder UI + evaluator engine
+│   ├── js/strategy-templates.js   # Template save/load
+│   ├── data/strategies/           # Saved strategy templates (JSON)
 │   ├── generate_eval_data.sh      # Generate single-config evaluation fixture
 │   ├── generate_comparison_fixture.py  # Generate 2-config comparison fixture
 │   └── *.html / *.json            # Chart pages + data
