@@ -465,7 +465,7 @@ def build_locked_params_snapshot(config) -> dict:
 
 def process_week(week_info: dict, config, adapter: RiverAdapter,
                  runner: EvaluationRunner, output_dir: Path,
-                 full_mode: bool = False) -> dict:
+                 full_mode: bool = False, pair: str = "EURUSD") -> dict:
     """Process a single forex week: load bars, run detection, write outputs.
 
     Returns manifest entry for this week.
@@ -475,7 +475,7 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     end_date = week_info["end"]
 
     # Load 1m bars for this week
-    bars_1m = adapter.load_bars("EURUSD", start_date, end_date)
+    bars_1m = adapter.load_bars(pair, start_date, end_date)
 
     if bars_1m.empty:
         return None
@@ -597,6 +597,10 @@ def main():
         "--full", action="store_true", default=False,
         help="Output full detection fields (for Strategy Designer). Default: slim format."
     )
+    parser.add_argument(
+        "--pair", default="EURUSD",
+        help="Currency pair to process (default: EURUSD). Must be available in Phoenix River."
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -625,7 +629,7 @@ def main():
 
         try:
             entry = process_week(week_info, config, adapter, runner, output_dir,
-                                full_mode=args.full)
+                                full_mode=args.full, pair=args.pair)
         except Exception as e:
             print(f"[{i}/{total_weeks}] {week_info['week']} — ERROR: {e}")
             logger.warning("Failed to process week %s: %s",
