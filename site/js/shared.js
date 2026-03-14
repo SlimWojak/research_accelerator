@@ -136,7 +136,7 @@ let PRIMITIVES = [
   'displacement', 'fvg', 'mss', 'order_block', 'liquidity_sweep'
 ];
 
-const TF_KEYS = new Set(['1m', '5m', '15m']);
+const TF_KEYS = new Set(['1m', '5m', '15m', '1H', '4H']);
 
 function derivePrimitivesFromData(evalData) {
   if (!evalData || !evalData.per_config) return;
@@ -608,6 +608,44 @@ async function loadSessionBoundaries() {
   return data;
 }
 
+/* ── Page-Level TF Selector ─────────────────────────────────────────────────── */
+
+const COMPARE_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
+
+/**
+ * Render TF buttons in the page-level compare-tf-group container.
+ * Syncs with app.tf and triggers chart + stats refresh on change.
+ */
+function renderCompareTFButtons() {
+  const container = document.getElementById('compare-tf-group');
+  if (!container) return;
+  container.innerHTML = '';
+  for (const tf of COMPARE_TF_OPTIONS) {
+    const btn = document.createElement('button');
+    btn.className = 'tf-btn' + (tf === app.tf ? ' active' : '');
+    btn.textContent = tf;
+    btn.addEventListener('click', () => {
+      if (tf === app.tf) return;
+      app.tf = tf;
+      renderCompareTFButtons();
+      // Also sync the in-chart TF buttons if they exist
+      const chartTFGroup = document.getElementById('chart-tf-group');
+      if (chartTFGroup && typeof renderTFButtons === 'function') {
+        renderTFButtons(chartTFGroup);
+      }
+      // Trigger chart + stats refresh
+      if (typeof refreshChart === 'function') refreshChart();
+      if (typeof resetStatsTab === 'function') {
+        resetStatsTab();
+        if (app.activeTab === 'stats' && typeof initStatsTab === 'function') {
+          initStatsTab();
+        }
+      }
+    });
+    container.appendChild(btn);
+  }
+}
+
 /**
  * Boot: load all data, populate state, update UI.
  */
@@ -654,6 +692,9 @@ async function bootApp() {
 
     // Render metadata header
     renderMetadata();
+
+    // Render page-level TF selector
+    renderCompareTFButtons();
 
     // Render initial tab
     switchTab(app.activeTab);

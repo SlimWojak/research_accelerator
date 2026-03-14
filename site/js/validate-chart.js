@@ -375,8 +375,8 @@ function findValidateNearestCandleTime(detTime) {
   // Exact match
   if (_vCandleTimeSet.has(ts)) return ts;
 
-  // Find nearest candle time (within 15 min for 1m, 1h for larger TFs)
-  const maxDiff = vApp.tf === '1m' ? 900 : 3600;
+  // Find nearest candle time (within 15 min for 1m, 4h for HTF, 1h for other LTFs)
+  const maxDiff = vApp.tf === '1m' ? 900 : isHTF(vApp.tf) ? 14400 : 3600;
   let best = null;
   let bestDiff = Infinity;
   for (const ct of _vCandleTimesArr) {
@@ -394,10 +394,10 @@ function findValidateNearestCandleTime(detTime) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function getValidateSessionBandsForDay(dayKey) {
-  if (!vApp.sessionData || !dayKey) return [];
+  if (!vApp.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   return vApp.sessionData
-    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
+    .filter(b => VISIBLE_SESSIONS.has(b.session) && (!dayKey || b.forex_day === dayKey))
     .map(b => ({
       startTS: toTS(b.start_time),
       endTS: toTS(b.end_time),

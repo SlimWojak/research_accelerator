@@ -11,7 +11,7 @@ const sApp = {
 
   // Current selection
   currentWeek: null,      // week manifest entry object
-  tf: '5m',              // active timeframe (5m or 15m only — execution TFs)
+  tf: '5m',              // active timeframe (5m, 15m, 1H, 4H)
   day: null,             // active forex day (YYYY-MM-DD)
   direction: 'bearish',  // Default direction
 
@@ -229,6 +229,22 @@ function renderDayTabs() {
 
   if (!sApp.currentWeek) return;
 
+  const htf = isHTF(sApp.tf);
+
+  // "All" tab — visible when HTF is active
+  if (htf) {
+    const allBtn = document.createElement('button');
+    allBtn.className = 'day-tab' + (sApp.day === null ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.addEventListener('click', () => {
+      if (sApp.day === null) return;
+      sApp.day = null;
+      renderDayTabs();
+      refreshStrategyChart();
+    });
+    container.appendChild(allBtn);
+  }
+
   const days = sApp.currentWeek.forex_days || [];
   for (const d of days) {
     const btn = document.createElement('button');
@@ -246,10 +262,12 @@ function renderDayTabs() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
- * TF Buttons (5m and 15m only — execution TFs)
+ * TF Buttons (5m, 15m, 1H, 4H)
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-const S_TF_OPTIONS = ['5m', '15m'];
+const S_TF_OPTIONS = ['5m', '15m', '1H', '4H'];
+
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
 
 function renderTFButtons() {
   const container = document.getElementById('tf-group');
@@ -263,8 +281,22 @@ function renderTFButtons() {
     btn.dataset.tf = tf;
     btn.addEventListener('click', () => {
       if (tf === sApp.tf) return;
+      const wasHTF = isHTF(sApp.tf);
+      const nowHTF = isHTF(tf);
       sApp.tf = tf;
+
+      // Transition HTF ↔ LTF day selection
+      if (!wasHTF && nowHTF) {
+        // Switching TO HTF: show all days (week view)
+        sApp.day = null;
+      } else if (wasHTF && !nowHTF) {
+        // Switching FROM HTF to LTF: select first forex day
+        const days = sApp.currentWeek ? (sApp.currentWeek.forex_days || []) : [];
+        sApp.day = days.length > 0 ? days[0] : null;
+      }
+
       renderTFButtons();
+      renderDayTabs();
       refreshStrategyChart();
     });
     container.appendChild(btn);

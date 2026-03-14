@@ -55,7 +55,7 @@ def main() -> int:
     logger.info("Loaded %d 1m bars from %s", len(bars_1m), data_path)
 
     bars_by_tf = {"1m": bars_1m}
-    for tf in ["5m", "15m"]:
+    for tf in ["5m", "15m", "1H", "4H"]:
         bars_by_tf[tf] = aggregate(bars_1m, tf)
         logger.info("Aggregated to %s: %d bars", tf, len(bars_by_tf[tf]))
 
@@ -87,8 +87,10 @@ def main() -> int:
     base_params = _build_all_locked_params(config)
     engine_a = CascadeEngine(registry, raw_dep_graph, variant="a8ra_v1")
 
+    htf_timeframes = ["1m", "5m", "15m", "1H", "4H"]
+
     t0 = time.time()
-    results_a = engine_a.run(bars_by_tf, base_params)
+    results_a = engine_a.run(bars_by_tf, base_params, timeframes=htf_timeframes)
     t1 = time.time()
     logger.info("Config A done in %.1fs", t1 - t0)
 
@@ -119,7 +121,7 @@ def main() -> int:
     engine_b = CascadeEngine(registry, raw_dep_graph, variant="a8ra_v1")
 
     t0 = time.time()
-    results_b = engine_b.run(bars_by_tf, variant_params)
+    results_b = engine_b.run(bars_by_tf, variant_params, timeframes=htf_timeframes)
     t1 = time.time()
     logger.info("Config B done in %.1fs", t1 - t0)
 
@@ -131,7 +133,7 @@ def main() -> int:
     check_prims = ["swing_points", "displacement", "fvg", "mss",
                     "order_block", "liquidity_sweep"]
     for prim in check_prims:
-        for tf in ["5m", "15m"]:
+        for tf in ["5m", "15m", "1H", "4H"]:
             cnt_a = _count_detections(results_a, prim, tf)
             cnt_b = _count_detections(results_b, prim, tf)
             diff = "SAME" if cnt_a == cnt_b else f"DIFF({cnt_b - cnt_a:+d})"

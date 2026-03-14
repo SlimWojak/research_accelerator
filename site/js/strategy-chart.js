@@ -172,7 +172,8 @@ class SChainHighlightPrimitive {
       const x1 = ts.timeToCoordinate(b.startTS);
       // endTS with 1-bar offset for width
       const endTS = b.endTS || b.startTS;
-      const barWidth = sApp.tf === '5m' ? 300 : 900; // Add 1 bar width
+      const barWidthMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400 };
+      const barWidth = barWidthMap[sApp.tf] || 900; // Add 1 bar width
       const x2 = ts.timeToCoordinate(endTS + barWidth);
       computed.push({
         x1, x2,
@@ -469,8 +470,9 @@ function findStrategyNearestCandleTime(detTime) {
   // Exact match
   if (_sCandleTimeSet.has(ts)) return ts;
 
-  // Find nearest candle time (within 15 min for 5m, 1h for 15m)
-  const maxDiff = sApp.tf === '5m' ? 900 : 3600;
+  // Find nearest candle time (within tolerance per TF)
+  const maxDiffMap = { '5m': 900, '15m': 3600, '1H': 7200, '4H': 28800 };
+  const maxDiff = maxDiffMap[sApp.tf] || 3600;
   let best = null;
   let bestDiff = Infinity;
   for (const ct of _sCandleTimesArr) {
@@ -488,7 +490,8 @@ function findStrategyNearestCandleTime(detTime) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function filterStrategyDetectionsByDay(detections, dayKey) {
-  if (!detections || !detections.length || !dayKey) return [];
+  if (!detections || !detections.length) return [];
+  if (!dayKey) return detections;  // null day = show all (HTF week view)
   return detections.filter(det => {
     // Primary: use properties.forex_day
     const fd = det.properties && det.properties.forex_day;
@@ -505,10 +508,10 @@ function filterStrategyDetectionsByDay(detections, dayKey) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function getStrategySessionBandsForDay(dayKey) {
-  if (!sApp.sessionData || !dayKey) return [];
+  if (!sApp.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   return sApp.sessionData
-    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
+    .filter(b => VISIBLE_SESSIONS.has(b.session) && (!dayKey || b.forex_day === dayKey))
     .map(b => ({
       startTS: toTS(b.start_time),
       endTS: toTS(b.end_time),

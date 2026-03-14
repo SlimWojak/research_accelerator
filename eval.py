@@ -55,7 +55,7 @@ def _load_bars(args) -> tuple[dict, int]:
         logger.info("Loaded %d 1m bars from CSV: %s", len(bars_1m), data_path)
 
         bars_by_tf = {"1m": bars_1m}
-        for tf in ["5m", "15m"]:
+        for tf in ["5m", "15m", "1H", "4H"]:
             bars_by_tf[tf] = aggregate(bars_1m, tf)
             logger.info("Aggregated to %s: %d bars", tf, len(bars_by_tf[tf]))
 
@@ -78,7 +78,7 @@ def _load_bars(args) -> tuple[dict, int]:
                      len(bars_1m), pair, start_date, end_date)
 
         bars_by_tf = {"1m": bars_1m}
-        for tf in ["5m", "15m"]:
+        for tf in ["5m", "15m", "1H", "4H"]:
             bars_by_tf[tf] = aggregate(bars_1m, tf)
             logger.info("Aggregated to %s: %d bars", tf, len(bars_by_tf[tf]))
 
@@ -471,8 +471,9 @@ def cmd_compare(args) -> int:
         # Run cascade A: all primitives use variant_a (plus any config overrides)
         vbp_a = dict(variant_by_primitive) if variant_by_primitive else {}
         runner_a = EvaluationRunner(config, variant=variant_a, variant_by_primitive=vbp_a)
+        htf_timeframes = ["1m", "5m", "15m", "1H", "4H"]
         logger.info("Running cascade with variant_a=%s...", variant_a)
-        results_a = runner_a.run_locked(bars_by_tf)
+        results_a = runner_a.run_locked(bars_by_tf, timeframes=htf_timeframes)
 
         # Run cascade B: mss + order_block use variant_b, rest use variant_a
         vbp_b = dict(variant_by_primitive) if variant_by_primitive else {}
@@ -480,7 +481,7 @@ def cmd_compare(args) -> int:
         vbp_b["order_block"] = variant_b
         runner_b = EvaluationRunner(config, variant=variant_a, variant_by_primitive=vbp_b)
         logger.info("Running cascade with variant_b=%s (mss+order_block)...", variant_b)
-        results_b = runner_b.run_locked(bars_by_tf)
+        results_b = runner_b.run_locked(bars_by_tf, timeframes=htf_timeframes)
 
         config_name_a = f"locked_{variant_a}"
         config_name_b = f"locked_{variant_b}"
@@ -505,7 +506,7 @@ def cmd_compare(args) -> int:
         )
 
         logger.info("Running locked baseline (variant=%s)...", variant_a)
-        locked_results = runner.run_locked(bars_by_tf)
+        locked_results = runner.run_locked(bars_by_tf, timeframes=["1m", "5m", "15m", "1H", "4H"])
 
         output = serialize_evaluation_run(
             results_by_config={"current_locked": locked_results},

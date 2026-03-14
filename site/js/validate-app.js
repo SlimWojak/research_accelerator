@@ -277,6 +277,22 @@ function renderDayTabs() {
   if (!vApp.currentWeek) return;
 
   const days = vApp.currentWeek.forex_days || [];
+  const htf = isHTF(vApp.tf);
+
+  // Show "All" tab when HTF is active
+  if (htf) {
+    const allBtn = document.createElement('button');
+    allBtn.className = 'day-tab' + (vApp.day === null ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.addEventListener('click', () => {
+      if (vApp.day === null) return;
+      vApp.day = null;
+      renderDayTabs();
+      refreshValidateChart();
+    });
+    container.appendChild(allBtn);
+  }
+
   for (const d of days) {
     const btn = document.createElement('button');
     btn.className = 'day-tab' + (d === vApp.day ? ' active' : '');
@@ -296,7 +312,9 @@ function renderDayTabs() {
  * TF Buttons
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-const V_TF_OPTIONS = ['1m', '5m', '15m'];
+const V_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
+
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
 
 function renderTFButtons() {
   const container = document.getElementById('tf-group');
@@ -310,8 +328,22 @@ function renderTFButtons() {
     btn.dataset.tf = tf;
     btn.addEventListener('click', () => {
       if (tf === vApp.tf) return;
+      const wasHTF = isHTF(vApp.tf);
+      const nowHTF = isHTF(tf);
       vApp.tf = tf;
+
+      // Transition HTF ↔ LTF day selection
+      if (!wasHTF && nowHTF) {
+        // Switching TO HTF: show all days (week view)
+        vApp.day = null;
+      } else if (wasHTF && !nowHTF) {
+        // Switching FROM HTF to LTF: select first forex day
+        const days = vApp.currentWeek ? (vApp.currentWeek.forex_days || []) : [];
+        vApp.day = days.length > 0 ? days[0] : null;
+      }
+
       renderTFButtons();
+      renderDayTabs();
       refreshValidateChart();
     });
     container.appendChild(btn);
@@ -401,7 +433,8 @@ function getDetCountForPrimitive(primKey) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function filterValidateDetectionsByDay(detections, dayKey) {
-  if (!detections || !detections.length || !dayKey) return [];
+  if (!detections || !detections.length) return [];
+  if (!dayKey) return detections;  // null day = show all (HTF week view)
   return detections.filter(det => {
     // Primary: use properties.forex_day
     const fd = det.properties && det.properties.forex_day;

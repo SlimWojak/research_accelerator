@@ -559,7 +559,7 @@ function renderDayTabs(container) {
  * TF Switching Buttons
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-const TF_OPTIONS = ['1m', '5m', '15m'];
+const TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
 
 function renderTFButtons(container) {
   container.innerHTML = '';
@@ -572,6 +572,8 @@ function renderTFButtons(container) {
       if (tf === app.tf) return;
       app.tf = tf;
       renderTFButtons(container);
+      // Sync page-level TF buttons
+      if (typeof renderCompareTFButtons === 'function') renderCompareTFButtons();
       refreshChart();
     });
     container.appendChild(btn);
