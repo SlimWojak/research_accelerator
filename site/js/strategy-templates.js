@@ -1,7 +1,25 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  * strategy-templates.js — Template save/load persistence
  *                         for the Strategy Designer page
+ *
+ * When serve.py is running (localhost), disk persistence works via API.
+ * When on static hosting (GitHub Pages), localStorage is used automatically.
  * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Server Detection ──────────────────────────────────────────────────────── */
+
+let _stServerAvailable = null;
+
+async function isSTServerAvailable() {
+  if (_stServerAvailable !== null) return _stServerAvailable;
+  try {
+    const resp = await fetch('/api/strategies', { method: 'GET' });
+    _stServerAvailable = resp.ok;
+  } catch (e) {
+    _stServerAvailable = false;
+  }
+  return _stServerAvailable;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Save Template
@@ -24,6 +42,7 @@ async function saveTemplate() {
   // Sanitize name for URL (alphanumeric, hyphens, underscores only)
   const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
   
+  // Try server first
   try {
     const resp = await fetch(`/api/strategies/${safeName}`, {
       method: 'POST',
@@ -43,12 +62,34 @@ async function saveTemplate() {
           btn.style.background = '';
         }, 1500);
       }
-    } else {
-      alert(`Save failed: ${resp.statusText}`);
+      return;
+    }
+  } catch (e) { /* server not available */ }
+
+  // Fallback: localStorage
+  try {
+    localStorage.setItem('ra_strategy_' + safeName, JSON.stringify(def));
+    // Maintain an index of saved strategy names
+    const index = JSON.parse(localStorage.getItem('ra_strategy_index') || '[]');
+    if (!index.includes(safeName)) {
+      index.push(safeName);
+      index.sort();
+    }
+    localStorage.setItem('ra_strategy_index', JSON.stringify(index));
+
+    console.log(`Strategy "${name}" saved to localStorage as ${safeName}`);
+    const btn = document.getElementById('btn-save-template');
+    if (btn) {
+      btn.textContent = 'Saved!';
+      btn.style.background = 'var(--teal)';
+      setTimeout(() => {
+        btn.textContent = 'Save';
+        btn.style.background = '';
+      }, 1500);
     }
   } catch (e) {
     console.error('Save error:', e);
-    alert(`Save error: ${e.message}`);
+    alert('Save error: ' + e.message);
   }
 }
 
@@ -57,10 +98,15 @@ async function saveTemplate() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 async function loadTemplateList() {
+  // Try server first
   try {
     const resp = await fetch('/api/strategies');
-    if (!resp.ok) return [];
-    return await resp.json();
+    if (resp.ok) return await resp.json();
+  } catch (e) { /* server not available */ }
+
+  // Fallback: localStorage
+  try {
+    return JSON.parse(localStorage.getItem('ra_strategy_index') || '[]');
   } catch (e) {
     console.error('Load list error:', e);
     return [];
@@ -72,47 +118,60 @@ async function loadTemplateList() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 async function loadTemplate(name) {
+  let def = null;
+
+  // Try server first
   try {
     const resp = await fetch(`/api/strategies/${name}`);
-    if (!resp.ok) {
-      alert(`Load failed: ${resp.statusText}`);
-      return;
+    if (resp.ok) {
+      def = await resp.json();
     }
-    const def = await resp.json();
-    
-    // Apply template to sApp state
-    sApp.templateName = def.name || name;
-    sApp.direction = def.direction || 'bearish';
-    sApp.steps = (def.steps || []).map(s => ({
-      ...s,
-      _advancedExpanded: false,
-    }));
-    sApp.gates = def.gates || { kill_zone: ['lokz', 'nyokz'], asia_range_tier: ['tight', 'mid'] };
-    
-    // Update UI
-    const nameInput = document.getElementById('template-name');
-    if (nameInput) nameInput.value = sApp.templateName;
-    
-    // Update direction buttons
-    const bullBtn = document.getElementById('btn-bull');
-    const bearBtn = document.getElementById('btn-bear');
-    if (bullBtn && bearBtn) {
-      bullBtn.className = 'direction-btn' + (sApp.direction === 'bullish' ? ' active-bull' : '');
-      bearBtn.className = 'direction-btn' + (sApp.direction === 'bearish' ? ' active-bear' : '');
-    }
-    
-    // Re-render chain builder and gates
-    renderChainBuilder();
-    renderGates();
-    
-    // Re-evaluate chain
-    evaluateChain();
-    
-    console.log(`Template "${name}" loaded`);
-  } catch (e) {
-    console.error('Load error:', e);
-    alert(`Load error: ${e.message}`);
+  } catch (e) { /* server not available */ }
+
+  // Fallback: localStorage
+  if (!def) {
+    try {
+      const stored = localStorage.getItem('ra_strategy_' + name);
+      if (stored) {
+        def = JSON.parse(stored);
+      }
+    } catch (e) { /* parse error */ }
   }
+
+  if (!def) {
+    alert('Load failed: strategy not found');
+    return;
+  }
+
+  // Apply template to sApp state
+  sApp.templateName = def.name || name;
+  sApp.direction = def.direction || 'bearish';
+  sApp.steps = (def.steps || []).map(s => ({
+    ...s,
+    _advancedExpanded: false,
+  }));
+  sApp.gates = def.gates || { kill_zone: ['lokz', 'nyokz'], asia_range_tier: ['tight', 'mid'] };
+  
+  // Update UI
+  const nameInput = document.getElementById('template-name');
+  if (nameInput) nameInput.value = sApp.templateName;
+  
+  // Update direction buttons
+  const bullBtn = document.getElementById('btn-bull');
+  const bearBtn = document.getElementById('btn-bear');
+  if (bullBtn && bearBtn) {
+    bullBtn.className = 'direction-btn' + (sApp.direction === 'bullish' ? ' active-bull' : '');
+    bearBtn.className = 'direction-btn' + (sApp.direction === 'bearish' ? ' active-bear' : '');
+  }
+  
+  // Re-render chain builder and gates
+  renderChainBuilder();
+  renderGates();
+  
+  // Re-evaluate chain
+  evaluateChain();
+  
+  console.log(`Template "${name}" loaded`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -161,6 +220,100 @@ function showLoadDialog() {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Export / Import Strategies
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Export all saved strategies as a single JSON file download.
+ */
+function exportStrategies() {
+  loadTemplateList().then(async function(names) {
+    var strategies = {};
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      // Try server first
+      try {
+        var resp = await fetch('/api/strategies/' + name);
+        if (resp.ok) { strategies[name] = await resp.json(); continue; }
+      } catch (e) { /* server not available */ }
+      // Fallback: localStorage
+      var stored = localStorage.getItem('ra_strategy_' + name);
+      if (stored) {
+        try { strategies[name] = JSON.parse(stored); } catch (e) { /* skip */ }
+      }
+    }
+
+    var exportData = {
+      type: 'ra_strategies_export',
+      strategies: strategies,
+      exportedAt: new Date().toISOString(),
+    };
+
+    var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ra_strategies.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+
+/**
+ * Import strategies from a JSON file. Prompts for file selection.
+ */
+function importStrategies() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.addEventListener('change', async function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    try {
+      var text = await file.text();
+      var data = JSON.parse(text);
+      if (data.type !== 'ra_strategies_export' || !data.strategies) {
+        alert('Unrecognized file format');
+        return;
+      }
+      var count = 0;
+      var entries = Object.entries(data.strategies);
+      for (var i = 0; i < entries.length; i++) {
+        var name = entries[i][0];
+        var def = entries[i][1];
+        var saved = false;
+        // Try server first
+        try {
+          var resp = await fetch('/api/strategies/' + name, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(def),
+          });
+          if (resp.ok) { saved = true; }
+        } catch (e) { /* server not available */ }
+        // Fallback: localStorage
+        if (!saved) {
+          localStorage.setItem('ra_strategy_' + name, JSON.stringify(def));
+          var index = JSON.parse(localStorage.getItem('ra_strategy_index') || '[]');
+          if (!index.includes(name)) {
+            index.push(name);
+            index.sort();
+          }
+          localStorage.setItem('ra_strategy_index', JSON.stringify(index));
+        }
+        count++;
+      }
+      alert('Imported ' + count + ' strategies');
+    } catch (err) {
+      alert('Import error: ' + err.message);
+    }
+  });
+  input.click();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

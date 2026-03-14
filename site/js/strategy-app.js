@@ -416,6 +416,21 @@ function updateMetadata() {
     });
   }
 
+  // Wire export/import strategy buttons
+  const exportStrBtn = document.getElementById('btn-export-strategies');
+  if (exportStrBtn) {
+    exportStrBtn.addEventListener('click', () => {
+      if (typeof exportStrategies === 'function') exportStrategies();
+    });
+  }
+
+  const importStrBtn = document.getElementById('btn-import-strategies');
+  if (importStrBtn) {
+    importStrBtn.addEventListener('click', () => {
+      if (typeof importStrategies === 'function') importStrategies();
+    });
+  }
+
   // Wire drill-down close button
   const drillDownClose = document.getElementById('drill-down-close');
   if (drillDownClose) {

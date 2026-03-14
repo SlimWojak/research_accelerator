@@ -17,6 +17,21 @@
  *   Lock records POSTed to /api/lock-records/{week} and written to disk
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Server Detection ──────────────────────────────────────────────────────── */
+
+let _vgtServerAvailable = null;
+
+async function isVGTServerAvailable() {
+  if (_vgtServerAvailable !== null) return _vgtServerAvailable;
+  try {
+    const resp = await fetch('/api/strategies', { method: 'GET' });
+    _vgtServerAvailable = resp.ok;
+  } catch (e) {
+    _vgtServerAvailable = false;
+  }
+  return _vgtServerAvailable;
+}
+
 /* ── Ground Truth State ────────────────────────────────────────────────────── */
 
 let _vgtLabels = [];            // Current week's labels array
@@ -44,19 +59,27 @@ const VGT_LABEL_OPTIONS = [
 
 /**
  * Load labels for the current week from disk (via static file serving).
+ * Falls back to localStorage when server is unavailable.
  * Returns the labels array (or empty array if 404).
  */
 async function loadVGTLabels() {
   if (!vApp.currentWeek) { _vgtLabels = []; return; }
   const weekId = vApp.currentWeek.week;
+
+  // Try server first
   try {
     const resp = await fetch('data/labels/' + weekId + '.json');
     if (resp.ok) {
       const data = await resp.json();
       _vgtLabels = Array.isArray(data) ? data : [];
-    } else {
-      _vgtLabels = [];
+      return;
     }
+  } catch (_) { /* server not available */ }
+
+  // Fallback: localStorage
+  try {
+    const stored = localStorage.getItem('ra_labels_' + weekId);
+    _vgtLabels = stored ? JSON.parse(stored) : [];
   } catch (_) {
     _vgtLabels = [];
   }
@@ -64,18 +87,27 @@ async function loadVGTLabels() {
 
 /**
  * Save the full labels array to disk via POST.
+ * Falls back to localStorage when server is unavailable.
  */
 async function saveVGTLabels() {
   if (!vApp.currentWeek) return;
   const weekId = vApp.currentWeek.week;
+
+  // Try server first
   try {
-    await fetch('/api/labels/' + weekId, {
+    const resp = await fetch('/api/labels/' + weekId, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(_vgtLabels, null, 2),
     });
+    if (resp.ok) return;
+  } catch (e) { /* server not available */ }
+
+  // Fallback: localStorage
+  try {
+    localStorage.setItem('ra_labels_' + weekId, JSON.stringify(_vgtLabels));
   } catch (e) {
-    console.warn('Failed to save labels to disk:', e.message);
+    console.warn('Failed to save labels:', e.message);
   }
 }
 
@@ -133,15 +165,56 @@ function _getDetForexDay(detId) {
 
 function exportVGTLabels() {
   const weekId = vApp.currentWeek ? vApp.currentWeek.week : 'unknown';
-  const blob = new Blob([JSON.stringify(_vgtLabels, null, 2)], { type: 'application/json' });
+  const data = {
+    type: 'ra_validation_export',
+    week: weekId,
+    labels: _vgtLabels || [],
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'labels_' + weekId + '.json';
+  a.download = 'ra_labels_' + weekId + '.json';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Import labels from a JSON file. Prompts for file selection.
+ */
+function importVGTLabels() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.addEventListener('change', async function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    try {
+      var text = await file.text();
+      var data = JSON.parse(text);
+      if (data.type === 'ra_validation_export') {
+        _vgtLabels = data.labels || [];
+      } else if (Array.isArray(data)) {
+        // Backwards compatible: raw labels array
+        _vgtLabels = data;
+      } else {
+        alert('Unrecognized file format');
+        return;
+      }
+      // Save to server/localStorage
+      await saveVGTLabels();
+      // Rebuild rings and update counts
+      rebuildVGTRings();
+      updateLabelCounts();
+      alert('Imported ' + _vgtLabels.length + ' labels');
+    } catch (err) {
+      alert('Import error: ' + err.message);
+    }
+  });
+  input.click();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -582,31 +655,44 @@ async function handleVRecordLock() {
   };
 
   var weekId = vApp.currentWeek.week;
+  var saved = false;
+
+  // Try server first
   try {
     var resp = await fetch('/api/lock-records/' + weekId, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record, null, 2),
     });
-    if (resp.ok) {
-      // Visual feedback
-      var btn = document.getElementById('btn-vrecord-lock');
-      if (btn) {
-        var origText = btn.textContent;
-        btn.textContent = '✓ Lock Recorded!';
-        btn.style.background = 'var(--teal)';
-        btn.style.borderColor = 'var(--teal)';
-        btn.style.color = '#fff';
-        setTimeout(function() {
-          btn.textContent = origText;
-          btn.style.background = '';
-          btn.style.borderColor = '';
-          btn.style.color = '';
-        }, 2000);
-      }
+    if (resp.ok) saved = true;
+  } catch (e) { /* server not available */ }
+
+  // Fallback: localStorage
+  if (!saved) {
+    try {
+      localStorage.setItem('ra_lock_record_' + weekId, JSON.stringify(record));
+      saved = true;
+    } catch (e) {
+      console.warn('Failed to save lock record:', e.message);
     }
-  } catch (e) {
-    console.warn('Failed to save lock record:', e.message);
+  }
+
+  if (saved) {
+    // Visual feedback
+    var btn = document.getElementById('btn-vrecord-lock');
+    if (btn) {
+      var origText = btn.textContent;
+      btn.textContent = '✓ Lock Recorded!';
+      btn.style.background = 'var(--teal)';
+      btn.style.borderColor = 'var(--teal)';
+      btn.style.color = '#fff';
+      setTimeout(function() {
+        btn.textContent = origText;
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 2000);
+    }
   }
 }
 

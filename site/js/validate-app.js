@@ -464,6 +464,13 @@ function filterValidateDetectionsByDay(detections, dayKey) {
     });
   }
 
+  var importBtn = document.getElementById('btn-import-labels');
+  if (importBtn) {
+    importBtn.addEventListener('click', function() {
+      if (typeof importVGTLabels === 'function') importVGTLabels();
+    });
+  }
+
   var lockBtn = document.getElementById('btn-lock-panel');
   if (lockBtn) {
     lockBtn.addEventListener('click', function() {
