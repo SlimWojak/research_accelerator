@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
- * strategy-chain.js — Chain builder UI logic + evaluator STUB
+ * strategy-chain.js — Chain builder UI logic + evaluator engine
  *                     for the Strategy Designer page
  * ═══════════════════════════════════════════════════════════════════════════════ */
 

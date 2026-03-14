@@ -381,7 +381,7 @@ function refreshStrategyChart() {
     });
   });
 
-  // TODO: Task 6 will implement chain highlight overlay rendering here
+  // Chain highlight overlays are rendered via updateChainOverlays()
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
