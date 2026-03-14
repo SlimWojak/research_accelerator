@@ -493,8 +493,11 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     }
     # NOTE: W1 (weekly) skipped — 5-day data windows are too small for weekly aggregation
 
-    # Run cascade at locked params
-    results = runner.run_locked(bars_by_tf)
+    # Run cascade at locked params (all TFs including HTF)
+    results = runner.run_locked(
+        bars_by_tf,
+        timeframes=["1m", "5m", "15m", "1H", "4H"],
+    )
 
     # Filter detections to only those passing locked thresholds
     locked_thresholds = _extract_locked_thresholds(config)

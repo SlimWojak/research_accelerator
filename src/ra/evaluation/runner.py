@@ -171,6 +171,7 @@ class EvaluationRunner:
         bars_by_tf: dict[str, pd.DataFrame],
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        timeframes: Optional[list[str]] = None,
     ) -> dict[str, dict[str, DetectionResult]]:
         """Run cascade with all locked params.
 
@@ -180,6 +181,8 @@ class EvaluationRunner:
             bars_by_tf: Mapping of timeframe -> bar DataFrame.
             start_date: Optional start date for data windowing.
             end_date: Optional end date for data windowing.
+            timeframes: List of timeframes for TF-specific detectors.
+                Defaults to ["1m", "5m", "15m"] (CascadeEngine default).
 
         Returns:
             Nested dict: results[primitive_name][timeframe] -> DetectionResult.
@@ -192,7 +195,7 @@ class EvaluationRunner:
 
         # Run cascade
         engine = self._build_engine()
-        results = engine.run(filtered_bars, params)
+        results = engine.run(filtered_bars, params, timeframes=timeframes)
 
         return results
 
