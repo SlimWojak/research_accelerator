@@ -258,7 +258,6 @@ function renderDayTabs() {
 
   const htf = isHTF(sApp.tf);
 
-  // "All" tab — visible when HTF is active
   if (htf) {
     const allBtn = document.createElement('button');
     allBtn.className = 'day-tab' + (sApp.day === null ? ' active' : '');
@@ -267,7 +266,7 @@ function renderDayTabs() {
       if (sApp.day === null) return;
       sApp.day = null;
       renderDayTabs();
-      refreshStrategyChart();
+      if (typeof scrollStrategyToDay === 'function') scrollStrategyToDay(null);
     });
     container.appendChild(allBtn);
   }
@@ -282,7 +281,7 @@ function renderDayTabs() {
       if (d === sApp.day) return;
       sApp.day = d;
       renderDayTabs();
-      refreshStrategyChart();
+      if (typeof scrollStrategyToDay === 'function') scrollStrategyToDay(d);
     });
     container.appendChild(btn);
   }

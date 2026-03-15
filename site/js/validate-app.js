@@ -304,7 +304,6 @@ function renderDayTabs() {
   const days = vApp.currentWeek.forex_days || [];
   const htf = isHTF(vApp.tf);
 
-  // Show "All" tab when HTF is active
   if (htf) {
     const allBtn = document.createElement('button');
     allBtn.className = 'day-tab' + (vApp.day === null ? ' active' : '');
@@ -313,7 +312,7 @@ function renderDayTabs() {
       if (vApp.day === null) return;
       vApp.day = null;
       renderDayTabs();
-      refreshValidateChart();
+      if (typeof scrollValidateToDay === 'function') scrollValidateToDay(null);
     });
     container.appendChild(allBtn);
   }
@@ -327,7 +326,7 @@ function renderDayTabs() {
       if (d === vApp.day) return;
       vApp.day = d;
       renderDayTabs();
-      refreshValidateChart();
+      if (typeof scrollValidateToDay === 'function') scrollValidateToDay(d);
     });
     container.appendChild(btn);
   }

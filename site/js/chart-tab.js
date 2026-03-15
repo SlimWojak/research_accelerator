@@ -8,9 +8,41 @@
 
 let _chartInitialized = false;
 let _sessionPrimitive = null;
-let _allMarkers = [];       // All built markers (unfiltered) for current day/tf
-let _candleTimeSet = null;  // Current candle time set
-let _candleTimesArr = null; // Current candle times array
+let _allMarkers = [];
+let _candleTimeSet = null;
+let _candleTimesArr = null;
+let _cScrollSyncActive = false;
+
+function cDayRange(dayStr) {
+  const d = new Date(dayStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
+  const prevDate = d.toISOString().split('T')[0];
+  return { from: toTS(prevDate + 'T17:00:00'), to: toTS(dayStr + 'T16:59:00') };
+}
+
+function scrollCompareToDay(dayStr) {
+  if (!app.chart) return;
+  _cScrollSyncActive = true;
+  if (dayStr) {
+    app.chart.timeScale().setVisibleRange(cDayRange(dayStr));
+  } else {
+    app.chart.timeScale().fitContent();
+  }
+  setTimeout(() => { _cScrollSyncActive = false; }, 200);
+}
+
+function highlightCompareDayTab(dayStr) {
+  const container = document.getElementById('chart-day-tabs');
+  if (!container) return;
+  container.querySelectorAll('.chart-day-tab').forEach(btn => {
+    const isAll = btn.textContent === 'All';
+    if (dayStr === null) {
+      btn.classList.toggle('active', isAll);
+    } else {
+      btn.classList.toggle('active', btn.dataset.day === dayStr);
+    }
+  });
+}
 
 /** Reset chart tab state so it re-initializes on next activation. */
 function resetChartTab() {
@@ -706,7 +738,6 @@ function renderSessionLegend(container) {
 function renderDayTabs(container) {
   container.innerHTML = '';
 
-  // "All" tab — visible when HTF is active
   if (isHTF(app.tf)) {
     const allBtn = document.createElement('button');
     allBtn.className = 'chart-day-tab' + (app.day === null ? ' active' : '');
@@ -715,7 +746,7 @@ function renderDayTabs(container) {
       if (app.day === null) return;
       app.day = null;
       renderDayTabs(container);
-      refreshChart();
+      scrollCompareToDay(null);
     });
     container.appendChild(allBtn);
   }
@@ -729,7 +760,7 @@ function renderDayTabs(container) {
       if (d.key === app.day) return;
       app.day = d.key;
       renderDayTabs(container);
-      refreshChart();
+      scrollCompareToDay(d.key);
     });
     container.appendChild(btn);
   }
@@ -827,9 +858,21 @@ function createLWChart(container) {
   const sessionPrimitive = new SessionBandsPrimitive();
   candleSeries.attachPrimitive(sessionPrimitive);
 
-  // Subscribe to visible range changes to update primitives
-  chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+  // Subscribe to visible range changes
+  chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
     if (sessionPrimitive._requestUpdate) sessionPrimitive._requestUpdate();
+    // Scroll → day tab sync
+    if (_cScrollSyncActive || !range || range.from == null || range.to == null) return;
+    if (!app.day) return; // skip sync on HTF "All"
+    const center = Math.floor((range.from + range.to) / 2);
+    for (const dk of DAY_KEYS) {
+      const r = cDayRange(dk);
+      if (center >= r.from && center <= r.to && dk !== app.day) {
+        app.day = dk;
+        highlightCompareDayTab(dk);
+        break;
+      }
+    }
   });
 
   return { chart, candleSeries, sessionPrimitive };
@@ -845,7 +888,6 @@ async function refreshChart() {
   let raw;
 
   if (app.weekMode && app.weekData && app.weekData.candleData) {
-    // Week mode: candles from weekData (all days in one object)
     const candleData = app.weekData.candleData;
     if (!candleData || !candleData[app.tf]) {
       app.candleSeries.setData([]);
@@ -855,27 +897,18 @@ async function refreshChart() {
       updateDetectionSummary();
       return;
     }
+    // Always load ALL candles (continuous timeline)
     raw = candleData[app.tf];
-    // Filter to a specific day when app.day is set (null = show all / week view)
-    if (app.day) {
-      raw = raw.filter(c => getForexDay(c.time) === app.day);
-    }
   } else {
-    // Fixture mode: load per-day candle files
-    if (app.day) {
-      const candleData = await loadCandles(app.day);
-      raw = (candleData && candleData[app.tf]) ? candleData[app.tf] : [];
-    } else {
-      // HTF "All" view: merge candles from all days
-      const allBars = [];
-      for (const dk of DAY_KEYS) {
-        const cd = await loadCandles(dk);
-        if (cd && cd[app.tf]) {
-          for (const c of cd[app.tf]) allBars.push(c);
-        }
+    // Fixture mode: always merge candles from all days
+    const allBars = [];
+    for (const dk of DAY_KEYS) {
+      const cd = await loadCandles(dk);
+      if (cd && cd[app.tf]) {
+        for (const c of cd[app.tf]) allBars.push(c);
       }
-      raw = allBars;
     }
+    raw = allBars;
   }
 
   if (!raw || raw.length === 0) {
@@ -898,31 +931,31 @@ async function refreshChart() {
 
   app.candleSeries.setData(data);
 
-  // Build candle time lookup sets
   _candleTimeSet = new Set(data.map(c => c.time));
   _candleTimesArr = data.map(c => c.time);
 
-  // Build all markers (unfiltered) and store
+  // Build markers for ALL days
   _allMarkers = buildMarkers(_candleTimeSet, _candleTimesArr);
-
-  // Apply toggle filters
   rebuildMarkers();
 
-  // Session bands
+  // Session bands for ALL days
   let bands;
   if (app.weekMode && app.weekData && app.weekData.sessionData) {
-    bands = getWeekModeSessionBandsForDay(app.day);
+    bands = getWeekModeSessionBandsForDay(null);
   } else {
-    bands = getSessionBandsForDay(app.day);
+    bands = getSessionBandsForDay(null);
   }
   if (_sessionPrimitive) {
     _sessionPrimitive.setBands(bands);
   }
 
-  // Fit content
-  app.chart.timeScale().fitContent();
+  // Scroll to selected day or fit all
+  if (app.day) {
+    scrollCompareToDay(app.day);
+  } else {
+    app.chart.timeScale().fitContent();
+  }
 
-  // Force primitive update after layout settles
   requestAnimationFrame(() => {
     if (_sessionPrimitive && _sessionPrimitive._requestUpdate) {
       _sessionPrimitive._requestUpdate();
@@ -934,10 +967,8 @@ async function refreshChart() {
     });
   });
 
-  // Update detection count summary
   updateDetectionSummary();
 
-  // Rebuild ground truth rings after markers rebuild
   if (typeof rebuildGTRings === 'function') {
     setTimeout(() => rebuildGTRings(), 100);
   }

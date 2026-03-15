@@ -9,10 +9,42 @@
 let _sChartCreated = false;
 let _sSessionPrimitive = null;
 let _sChainHighlightPrimitive = null;
-let _sAllMarkers = [];         // All built markers (unfiltered) for current day/tf
-let _sCandleTimeSet = null;    // Current candle time set
-let _sCandleTimesArr = null;   // Current candle times array
+let _sAllMarkers = [];
+let _sCandleTimeSet = null;
+let _sCandleTimesArr = null;
 let _sResizeObserver = null;
+let _sScrollSyncActive = false;
+
+function sDayRange(dayStr) {
+  const d = new Date(dayStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
+  const prevDate = d.toISOString().split('T')[0];
+  return { from: toTS(prevDate + 'T17:00:00'), to: toTS(dayStr + 'T16:59:00') };
+}
+
+function scrollStrategyToDay(dayStr) {
+  if (!sApp.chart) return;
+  _sScrollSyncActive = true;
+  if (dayStr) {
+    sApp.chart.timeScale().setVisibleRange(sDayRange(dayStr));
+  } else {
+    sApp.chart.timeScale().fitContent();
+  }
+  setTimeout(() => { _sScrollSyncActive = false; }, 200);
+}
+
+function highlightStrategyDayTab(dayStr) {
+  const container = document.getElementById('day-tabs');
+  if (!container) return;
+  container.querySelectorAll('.day-tab').forEach(btn => {
+    const isAll = !btn.dataset.day;
+    if (dayStr === null) {
+      btn.classList.toggle('active', isAll);
+    } else {
+      btn.classList.toggle('active', btn.dataset.day === dayStr);
+    }
+  });
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Session Bands Primitive (ISeriesPrimitive 3-class pattern)
@@ -258,9 +290,22 @@ function createStrategyChart() {
   candleSeries.attachPrimitive(chainHighlightPrimitive);
 
   // Subscribe to visible range changes
-  chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+  chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
     if (sessionPrimitive._requestUpdate) sessionPrimitive._requestUpdate();
     if (chainHighlightPrimitive._requestUpdate) chainHighlightPrimitive._requestUpdate();
+    // Scroll → day tab sync
+    if (_sScrollSyncActive || !range || range.from == null || range.to == null) return;
+    if (!sApp.currentWeek || !sApp.day) return;
+    const center = Math.floor((range.from + range.to) / 2);
+    const days = sApp.currentWeek.forex_days || [];
+    for (const dk of days) {
+      const r = sDayRange(dk);
+      if (center >= r.from && center <= r.to && dk !== sApp.day) {
+        sApp.day = dk;
+        highlightStrategyDayTab(dk);
+        break;
+      }
+    }
   });
 
   // Resize observer for responsive chart
@@ -308,7 +353,6 @@ function refreshStrategyChart() {
     return;
   }
 
-  // Get candle data for current TF
   const raw = sApp.candleData[sApp.tf];
   if (!raw || !raw.length) {
     sApp.candleSeries.setData([]);
@@ -318,54 +362,38 @@ function refreshStrategyChart() {
     return;
   }
 
-  // Map candle data — filter by current day
-  let candles = raw.map(c => ({
+  // Always load ALL candles for the week (continuous timeline)
+  const chartData = raw.map(c => ({
     time: toTS(c.time),
     open: c.open,
     high: c.high,
     low: c.low,
     close: c.close,
-    _rawTime: c.time,
-  })).filter(b => b.time != null);
-
-  // Filter candles to the selected forex day
-  if (sApp.day) {
-    candles = candles.filter(c => getForexDay(c._rawTime) === sApp.day);
-  }
-
-  candles.sort((a, b) => a.time - b.time);
-
-  // Set candle data (strip the _rawTime helper)
-  const chartData = candles.map(c => ({
-    time: c.time,
-    open: c.open,
-    high: c.high,
-    low: c.low,
-    close: c.close,
-  }));
+  })).filter(b => b.time != null)
+    .sort((a, b) => a.time - b.time);
 
   sApp.candleSeries.setData(chartData);
 
-  // Build candle time lookup sets
   _sCandleTimeSet = new Set(chartData.map(c => c.time));
   _sCandleTimesArr = chartData.map(c => c.time);
 
-  // Build all markers (filtered by direction)
+  // Build markers for ALL days (filtered by direction only)
   _sAllMarkers = buildStrategyMarkers();
-
-  // Apply markers
   rebuildStrategyMarkers();
 
-  // Session bands for current day
-  const bands = getStrategySessionBandsForDay(sApp.day);
+  // Session bands for ALL days
+  const bands = getStrategySessionBandsForDay(null);
   if (_sSessionPrimitive) {
     _sSessionPrimitive.setBands(bands);
   }
 
-  // Fit content
-  sApp.chart.timeScale().fitContent();
+  // Scroll to selected day or fit all
+  if (sApp.day) {
+    scrollStrategyToDay(sApp.day);
+  } else {
+    sApp.chart.timeScale().fitContent();
+  }
 
-  // Force primitive update after layout settles
   requestAnimationFrame(() => {
     if (_sSessionPrimitive && _sSessionPrimitive._requestUpdate) {
       _sSessionPrimitive._requestUpdate();
@@ -376,8 +404,6 @@ function refreshStrategyChart() {
       }
     });
   });
-
-  // Chain highlight overlays are rendered via updateChainOverlays()
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -393,13 +419,9 @@ function buildStrategyMarkers() {
   for (const [primName, byTf] of Object.entries(sApp.detectionData.detections_by_primitive)) {
     const primColor = sPrimColor(primName);
 
-    // Get detections for current TF (or 'global' for primitives that don't have per-TF data)
     const tfDets = byTf[sApp.tf] || byTf['global'] || [];
 
-    // Filter to current day
-    const dayDets = filterStrategyDetectionsByDay(tfDets, sApp.day);
-
-    for (const det of dayDets) {
+    for (const det of tfDets) {
       const barTime = findStrategyNearestCandleTime(det.time);
       if (barTime == null) continue;
 
