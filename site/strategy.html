@@ -339,6 +339,33 @@
   }
   .step-remove-btn:hover { color: var(--red); }
 
+  /* ── Step TF Selector ─────────────────────────────────────────────────── */
+
+  .step-tf {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 0 8px;
+  }
+  .step-tf-label {
+    font-size: 11px;
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .step-tf-select {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    outline: none;
+  }
+  .step-tf-select:focus { border-color: var(--blue); }
+
   /* ── Step Defaults Display ───────────────────────────────────────────── */
 
   .step-defaults {

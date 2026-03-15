@@ -65,6 +65,8 @@ const S_TIMING_OPTIONS = [
   { value: 'within_bars_5', label: 'Within 5 bars' },
   { value: 'within_bars_10', label: 'Within 10 bars' },
   { value: 'within_bars_20', label: 'Within 20 bars' },
+  { value: 'within_hours_4', label: 'Within 4 hours' },
+  { value: 'within_hours_8', label: 'Within 8 hours' },
 ];
 
 /* ── Session Legend Metadata ────────────────────────────────────────────────── */

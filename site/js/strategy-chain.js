@@ -30,6 +30,7 @@ function addStep() {
   const newStep = {
     step: sApp.steps.length + 1,
     primitive: firstPrim.key,
+    tf: null,             // per-step TF override (null = inherit chart TF)
     label: firstPrim.label,
     direction_match: 'same',
     constraints: { ...firstPrim.defaults },
@@ -65,6 +66,12 @@ function updateStepPrimitive(index, primitiveKey) {
 
 function updateStepTiming(index, timingWindow) {
   sApp.steps[index].timing = { mode: 'after_previous', window: timingWindow };
+  evaluateChain();
+}
+
+function updateStepTF(index, tf) {
+  sApp.steps[index].tf = tf;
+  renderChainBuilder();
   evaluateChain();
 }
 
@@ -109,6 +116,40 @@ function renderStepCard(step, index) {
   header.appendChild(select);
   header.appendChild(removeBtn);
   card.appendChild(header);
+
+  // TF selector for this step
+  const tfDiv = document.createElement('div');
+  tfDiv.className = 'step-tf';
+
+  const tfLabel = document.createElement('span');
+  tfLabel.className = 'step-tf-label';
+  tfLabel.textContent = 'TF:';
+
+  const tfSelect = document.createElement('select');
+  tfSelect.className = 'step-tf-select';
+
+  // "Chart TF" option = inherit from global
+  const inheritOpt = document.createElement('option');
+  inheritOpt.value = '';
+  inheritOpt.textContent = `Chart TF (${sApp.tf})`;
+  if (!step.tf) inheritOpt.selected = true;
+  tfSelect.appendChild(inheritOpt);
+
+  for (const tf of S_TF_OPTIONS) {
+    const opt = document.createElement('option');
+    opt.value = tf;
+    opt.textContent = tf;
+    if (step.tf === tf) opt.selected = true;
+    tfSelect.appendChild(opt);
+  }
+
+  tfSelect.addEventListener('change', () => {
+    updateStepTF(index, tfSelect.value || null);
+  });
+
+  tfDiv.appendChild(tfLabel);
+  tfDiv.appendChild(tfSelect);
+  card.appendChild(tfDiv);
 
   // Smart defaults display
   const defaults = document.createElement('div');
@@ -292,6 +333,7 @@ function getChainDefinition() {
     steps: sApp.steps.map(s => ({
       step: s.step,
       primitive: s.primitive,
+      tf: s.tf || null,
       label: s.label,
       direction_match: s.direction_match,
       constraints: s.constraints,
@@ -305,14 +347,14 @@ function getChainDefinition() {
  * Chain Evaluator — Detection Index Builder
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-function buildDetectionIndex(detectionData, tf) {
+function buildDetectionIndex(detectionData, tfs) {
   // Pre-index all detections for fast lookup during chain evaluation.
-  // Input: sApp.detectionData (enriched format), current TF
+  // Input: sApp.detectionData (enriched format), array of TFs to index
   // Output: Object structured as:
-  //   index[forex_day][primitive_key] = sorted array of detection objects
+  //   index[tf][forex_day][primitive_key] = sorted array of detection objects
   //
   // Also builds a kill_zone sub-index:
-  //   kzIndex[forex_day][kill_zone][primitive_key] = sorted array
+  //   kzIndex[tf][forex_day][kill_zone][primitive_key] = sorted array
   //
   // Detections come from detectionData.detections_by_primitive[primName][tf]
   // or detectionData.detections_by_primitive[primName]['global'] for global primitives
@@ -326,24 +368,29 @@ function buildDetectionIndex(detectionData, tf) {
   const index = {};
   const kzIndex = {};
   
-  for (const [primName, byTf] of Object.entries(detectionData.detections_by_primitive)) {
-    const dets = byTf[tf] || byTf['global'] || [];
-    for (const det of dets) {
-      const fd = det.properties?.forex_day || extractDayFromTime(det.time);
-      if (!fd) continue;
-      
-      // Day-level index
-      if (!index[fd]) index[fd] = {};
-      if (!index[fd][primName]) index[fd][primName] = [];
-      index[fd][primName].push(det);
-      
-      // Kill zone sub-index
-      const kz = det.tags?.kill_zone || det.properties?.kill_zone || null;
-      if (kz && kz !== 'NONE') {
-        if (!kzIndex[fd]) kzIndex[fd] = {};
-        if (!kzIndex[fd][kz]) kzIndex[fd][kz] = {};
-        if (!kzIndex[fd][kz][primName]) kzIndex[fd][kz][primName] = [];
-        kzIndex[fd][kz][primName].push(det);
+  for (const tf of tfs) {
+    index[tf] = {};
+    kzIndex[tf] = {};
+    
+    for (const [primName, byTf] of Object.entries(detectionData.detections_by_primitive)) {
+      const dets = byTf[tf] || byTf['global'] || [];
+      for (const det of dets) {
+        const fd = det.properties?.forex_day || extractDayFromTime(det.time);
+        if (!fd) continue;
+        
+        // Day-level index
+        if (!index[tf][fd]) index[tf][fd] = {};
+        if (!index[tf][fd][primName]) index[tf][fd][primName] = [];
+        index[tf][fd][primName].push(det);
+        
+        // Kill zone sub-index
+        const kz = det.tags?.kill_zone || det.properties?.kill_zone || null;
+        if (kz && kz !== 'NONE') {
+          if (!kzIndex[tf][fd]) kzIndex[tf][fd] = {};
+          if (!kzIndex[tf][fd][kz]) kzIndex[tf][fd][kz] = {};
+          if (!kzIndex[tf][fd][kz][primName]) kzIndex[tf][fd][kz][primName] = [];
+          kzIndex[tf][fd][kz][primName].push(det);
+        }
       }
     }
   }
@@ -523,9 +570,10 @@ function matchesConstraints(det, constraints, chainContext) {
  * Chain Evaluator — Timing Window Check
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-function matchesTiming(detA, detB, timingWindow) {
+function matchesTiming(detA, detB, timingWindow, stepTF) {
   // Check if detB is within the timing window of detA.
   // detB must be at or after detA in time.
+  // stepTF: optional per-step TF for bar-based timing calculations
   
   const timeA = sToTS(detA.time);
   const timeB = sToTS(detB.time);
@@ -560,12 +608,18 @@ function matchesTiming(detA, detB, timingWindow) {
     const barA = detA.properties?.bar_index;
     const barB = detB.properties?.bar_index;
     if (barA == null || barB == null) {
-      // Fall back to time-based approximation
+      // Fall back to time-based approximation using step's TF
       const tfSecondsMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400 };
-      const tfSeconds = tfSecondsMap[sApp.tf] || 300;
+      const tfSeconds = tfSecondsMap[stepTF || sApp.tf] || 300;
       return (timeB - timeA) <= maxBars * tfSeconds;
     }
     return (barB - barA) >= 0 && (barB - barA) <= maxBars;
+  }
+  
+  // Cross-TF-friendly: within_hours_N timing
+  if (timingWindow && timingWindow.startsWith('within_hours_')) {
+    const maxHours = parseInt(timingWindow.split('_')[2]);
+    return (timeB - timeA) <= maxHours * 3600;
   }
   
   return true; // Unknown timing, allow
@@ -640,7 +694,9 @@ function evaluateChain() {
   }
   
   const chainDef = getChainDefinition();
-  const { index, kzIndex } = buildDetectionIndex(sApp.detectionData, sApp.tf);
+  // Index all available TFs to support cross-TF chain evaluation
+  const allTFs = S_TF_OPTIONS;
+  const { index, kzIndex } = buildDetectionIndex(sApp.detectionData, allTFs);
   
   // Get all forex days to evaluate
   const days = sApp.currentWeek?.forex_days || [];
@@ -648,12 +704,10 @@ function evaluateChain() {
   const results = []; // ChainMatch[]
   
   for (const day of days) {
-    const dayDets = index[day];
-    if (!dayDets) continue;
-    
-    // Check asia_range gate for this day
-    if (chainDef.gates.asia_range_tier && chainDef.gates.asia_range_tier.length > 0) {
-      const asiaDets = dayDets['asia_range'] || [];
+    // Check asia_range gate for this day (use chart TF for gate checks)
+    const gateDayDets = index[sApp.tf]?.[day];
+    if (chainDef.gates.asia_range_tier && chainDef.gates.asia_range_tier.length > 0 && gateDayDets) {
+      const asiaDets = gateDayDets['asia_range'] || [];
       if (asiaDets.length > 0) {
         const asiaRangePips = asiaDets[0].properties?.range_pips;
         let tier = 'wide';
@@ -663,8 +717,11 @@ function evaluateChain() {
       }
     }
     
-    // Get Step 1 candidates
+    // Get Step 1 candidates (using step's TF or global TF)
     const step1 = chainDef.steps[0];
+    const step1TF = step1.tf || sApp.tf;
+    const step1DayDets = index[step1TF]?.[day];
+    if (!step1DayDets) continue;
     const step1Primitives = Array.isArray(step1.primitive) ? step1.primitive : [step1.primitive];
     
     // Map primitive keys to detection data keys
@@ -674,7 +731,7 @@ function evaluateChain() {
     for (const primKey of step1Primitives) {
       const dataKey = mapPrimKey(primKey);
       if (!dataKey) continue;
-      const candidates = dayDets[dataKey] || [];
+      const candidates = step1DayDets[dataKey] || [];
       
       for (const candidate of candidates) {
         // Check direction
@@ -715,17 +772,20 @@ function evaluateChain() {
           let bestCandidate = null;
           let bestFailReason = 'No matching detection found';
           
+          const stepTF = stepDef.tf || sApp.tf;
+          const stepDayDets = index[stepTF]?.[day];
+          
           for (const sPrimKey of stepPrimitives) {
             const sDataKey = mapPrimKey(sPrimKey);
             if (!sDataKey) continue;
-            const stepCandidates = dayDets[sDataKey] || [];
+            const stepCandidates = stepDayDets ? (stepDayDets[sDataKey] || []) : [];
             
             for (const sc of stepCandidates) {
               // Check direction
               if (!matchesDirection(sc, stepDef.direction_match, chainDef.direction)) continue;
               
-              // Check timing
-              if (!matchesTiming(prevDet, sc, stepDef.timing.window)) continue;
+              // Check timing (pass step's TF for bar-based timing calculations)
+              if (!matchesTiming(prevDet, sc, stepDef.timing.window, stepTF)) continue;
               
               // Check constraints
               const scCheck = matchesConstraints(sc, stepDef.constraints, chainContext);
@@ -850,9 +910,10 @@ function updateFunnelBar() {
     if (i > 0) html += '<span class="funnel-arrow">→</span>';
     const step = sApp.steps[i];
     const prim = S_PRIMITIVES.find(p => p.key === step.primitive);
+    const tfTag = step.tf ? ` (${step.tf})` : '';
     html += `<div class="funnel-item">
       <span class="funnel-count">${stepCounts[i]}</span>
-      <span class="funnel-label">${prim ? prim.label : step.primitive}</span>
+      <span class="funnel-label">${prim ? prim.label : step.primitive}${tfTag}</span>
     </div>`;
   }
   
