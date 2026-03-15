@@ -186,6 +186,11 @@ const PRIMITIVE_MARKERS = {
   displacement:        { shape_high: 'square',    shape_low: 'square',   color: '#e040fb', label: 'Displacement' },
   order_block:         { shape_high: 'square',    shape_low: 'square',   color: '#448aff', label: 'Order Block' },
   fvg:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#69f0ae', label: 'FVG' },
+  ote:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#ffb74d', label: 'OTE' },
+  asia_range:          { shape_high: 'square',    shape_low: 'square',   color: '#e91e63', label: 'Asia Range' },
+  htf_liquidity:       { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#8bc34a', label: 'HTF Liquidity' },
+  session_liquidity:   { shape_high: 'square',    shape_low: 'square',   color: '#795548', label: 'Session Liquidity' },
+  reference_levels:    { shape_high: 'circle',    shape_low: 'circle',   color: '#607d8b', label: 'Ref Levels' },
 };
 
 /* ── Multi-Config Color Palettes ───────────────────────────────────────────── */

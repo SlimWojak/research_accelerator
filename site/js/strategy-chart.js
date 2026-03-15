@@ -4,6 +4,22 @@
  *                     for the Strategy Designer page
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Per-Primitive Marker Styles (unified across tools) ─────────────────── */
+
+const S_MARKER_STYLES = {
+  swing_points:        { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#00e5ff' },
+  liquidity_sweep:     { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ff9800' },
+  mss:                 { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ffeb3b' },
+  displacement:        { shape_high: 'square',    shape_low: 'square',   color: '#e040fb' },
+  order_block:         { shape_high: 'square',    shape_low: 'square',   color: '#448aff' },
+  fvg:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#69f0ae' },
+  ote:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#ffb74d' },
+  asia_range:          { shape_high: 'square',    shape_low: 'square',   color: '#e91e63' },
+  htf_liquidity:       { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#8bc34a' },
+  session_liquidity:   { shape_high: 'square',    shape_low: 'square',   color: '#795548' },
+  reference_levels:    { shape_high: 'circle',    shape_low: 'circle',   color: '#607d8b' },
+};
+
 /* ── Chart-specific state ──────────────────────────────────────────────────── */
 
 let _sChartCreated = false;
@@ -328,6 +344,70 @@ function createStrategyChart() {
     }
   });
 
+  // Tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.className = 'chart-tooltip';
+  tooltip.style.display = 'none';
+  container.appendChild(tooltip);
+
+  chart.subscribeCrosshairMove((param) => {
+    if (!param || !param.time || !param.point) {
+      tooltip.style.display = 'none';
+      return;
+    }
+
+    // Find markers at this time
+    const timeMarkers = _sAllMarkers.filter(m => m.time === param.time);
+    if (timeMarkers.length === 0) {
+      tooltip.style.display = 'none';
+      return;
+    }
+
+    // Build tooltip content from the first marker's detection
+    const marker = timeMarkers[0];
+    const det = marker._det;
+    if (!det) { tooltip.style.display = 'none'; return; }
+
+    const style = S_MARKER_STYLES[marker._primitive];
+    const label = S_PRIMITIVES.find(p => p.key === marker._primitive)?.label || marker._primitive;
+    const color = style ? style.color : '#787b86';
+
+    let html = `<div style="color:${color};font-weight:600;margin-bottom:4px;">${label}</div>`;
+    html += `<div>Direction: ${det.direction}</div>`;
+    html += `<div>Time: ${det.time}</div>`;
+    if (det.price) html += `<div>Price: ${det.price.toFixed(5)}</div>`;
+
+    // Primitive-specific properties
+    const p = det.properties || {};
+    if (marker._primitive === 'mss') {
+      if (p.break_type) html += `<div>Break: ${p.break_type}</div>`;
+      if (p.displacement?.quality_grade) html += `<div>Displacement: ${p.displacement.quality_grade}</div>`;
+    } else if (marker._primitive === 'liquidity_sweep') {
+      if (p.level_price) html += `<div>Level: ${p.level_price.toFixed(5)}</div>`;
+      if (p.breach_pips) html += `<div>Breach: ${p.breach_pips.toFixed(1)} pips</div>`;
+      if (p.qualified_sweep != null) html += `<div>Qualified: ${p.qualified_sweep}</div>`;
+    } else if (marker._primitive === 'fvg') {
+      if (p.top != null) html += `<div>Range: ${p.bottom?.toFixed(5)} – ${p.top?.toFixed(5)}</div>`;
+    } else if (marker._primitive === 'displacement') {
+      if (p.quality_grade) html += `<div>Grade: ${p.quality_grade}</div>`;
+      if (p.atr_multiple) html += `<div>ATR mult: ${p.atr_multiple.toFixed(2)}</div>`;
+    } else if (marker._primitive === 'order_block') {
+      if (p.zone_body) html += `<div>Zone: ${JSON.stringify(p.zone_body)}</div>`;
+    } else if (marker._primitive === 'ote') {
+      if (p.fib_levels) html += `<div>Fibs: ${p.fib_levels.lower?.toFixed(5)} – ${p.fib_levels.upper?.toFixed(5)}</div>`;
+    }
+
+    // Show multiple markers at same time
+    if (timeMarkers.length > 1) {
+      html += `<div style="margin-top:4px;color:var(--muted);font-size:10px;">+${timeMarkers.length - 1} more</div>`;
+    }
+
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    tooltip.style.left = param.point.x + 16 + 'px';
+    tooltip.style.top = param.point.y + 16 + 'px';
+  });
+
   // Resize observer for responsive chart
   if (_sResizeObserver) _sResizeObserver.disconnect();
   _sResizeObserver = new ResizeObserver(() => {
@@ -442,6 +522,7 @@ function buildStrategyMarkers() {
   const markers = [];
 
   for (const [primName, byTf] of Object.entries(sApp.detectionData.detections_by_primitive)) {
+    const style = S_MARKER_STYLES[primName];
     const primColor = sPrimColor(primName);
 
     const tfDets = byTf[sApp.tf] || byTf['global'] || [];
@@ -460,12 +541,13 @@ function buildStrategyMarkers() {
       markers.push({
         time: barTime,
         position: isBearish ? 'aboveBar' : 'belowBar',
-        shape: isBearish ? 'arrowDown' : 'arrowUp',
-        color: primColor,
+        shape: style ? (isBearish ? style.shape_high : style.shape_low) : (isBearish ? 'arrowDown' : 'arrowUp'),
+        color: style ? style.color : primColor,
         size: 1,
         text: '',
         _primitive: primName,
         _detId: det.id,
+        _det: det,
       });
     }
   }
@@ -490,11 +572,27 @@ function buildStrategyMarkers() {
 function rebuildStrategyMarkers() {
   if (!sApp.candleSeries) return;
 
-  // Sort by time (required by LWC)
-  _sAllMarkers.sort((a, b) => a.time - b.time);
+  // Determine which primitives are in the current chain
+  const chainPrimKeys = new Set();
+  for (const step of sApp.steps) {
+    chainPrimKeys.add(step.primitive);
+    // Map aliases: htf_eqh_eql in chain maps to htf_liquidity in detection data
+    if (step.primitive === 'htf_eqh_eql') chainPrimKeys.add('htf_liquidity');
+  }
+  const hasChain = chainPrimKeys.size > 0;
+
+  const rendered = _sAllMarkers.map(m => {
+    if (hasChain && !chainPrimKeys.has(m._primitive)) {
+      // Dim non-chain primitives
+      return { ...m, color: '#3a3e49', size: 0.5 };
+    }
+    return m;
+  });
+
+  rendered.sort((a, b) => a.time - b.time);
 
   try {
-    sApp.candleSeries.setMarkers(_sAllMarkers);
+    sApp.candleSeries.setMarkers(rendered);
   } catch (e) {
     console.warn('setMarkers error:', e);
   }
@@ -550,6 +648,7 @@ function filterStrategyDetectionsByDay(detections, dayKey) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function getStrategySessionBandsForDay(dayKey) {
+  if (sApp.tf === '4H') return [];
   if (!sApp.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   const htf = isHTF(sApp.tf);
@@ -821,6 +920,34 @@ function updateStepMarkers() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function sPrimColor(key) {
+  const s = S_MARKER_STYLES[key];
+  if (s) return s.color;
   const p = S_PRIMITIVES.find(x => x.key === key);
   return p ? p.color : '#787b86';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Primitive Legend Panel
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function renderPrimitiveLegend() {
+  const container = document.getElementById('prim-legend');
+  if (!container) return;
+
+  const shapeSymbols = {
+    arrowUp: '▲', arrowDown: '▼', square: '■', circle: '●',
+  };
+
+  let html = '<div class="legend-title">Primitives</div>';
+  for (const [key, style] of Object.entries(S_MARKER_STYLES)) {
+    const label = S_PRIMITIVES.find(p => p.key === key)?.label
+      || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const symbol = shapeSymbols[style.shape_low] || '●';
+    html += `<div class="legend-item">
+      <span class="legend-swatch" style="background:${style.color}"></span>
+      <span class="legend-shape" style="color:${style.color}">${symbol}</span>
+      <span>${label}</span>
+    </div>`;
+  }
+  container.innerHTML = html;
 }

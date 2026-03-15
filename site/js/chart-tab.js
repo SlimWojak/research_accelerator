@@ -688,6 +688,7 @@ function renderDetectionSummary(container) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function getSessionBandsForDay(dayKey) {
+  if (app.tf === '4H') return [];
   if (!app.sessionBoundaries) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   const htfAll = !dayKey && isHTF(app.tf);
@@ -1001,6 +1002,7 @@ async function refreshChart() {
  * Get session bands for a day in week mode (from weekData.sessionData).
  */
 function getWeekModeSessionBandsForDay(dayKey) {
+  if (app.tf === '4H') return [];
   if (!app.weekData || !app.weekData.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   const htfAll = !dayKey && isHTF(app.tf);

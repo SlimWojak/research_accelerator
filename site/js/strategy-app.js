@@ -444,6 +444,9 @@ function updateMetadata() {
   populateWeekPicker();
   renderSessionLegend();
 
+  // Render primitive legend panel
+  if (typeof renderPrimitiveLegend === 'function') renderPrimitiveLegend();
+
   // Wire direction buttons
   const btnBull = document.getElementById('btn-bull');
   const btnBear = document.getElementById('btn-bear');

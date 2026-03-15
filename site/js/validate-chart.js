@@ -4,6 +4,22 @@
  *                     the Phase 3.5 Validation Mode page
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Per-Primitive Marker Styles (unified across tools) ─────────────────── */
+
+const V_MARKER_STYLES = {
+  swing_points:        { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#00e5ff' },
+  liquidity_sweep:     { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ff9800' },
+  mss:                 { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ffeb3b' },
+  displacement:        { shape_high: 'square',    shape_low: 'square',   color: '#e040fb' },
+  order_block:         { shape_high: 'square',    shape_low: 'square',   color: '#448aff' },
+  fvg:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#69f0ae' },
+  ote:                 { shape_high: 'circle',    shape_low: 'circle',   color: '#ffb74d' },
+  asia_range:          { shape_high: 'square',    shape_low: 'square',   color: '#e91e63' },
+  htf_liquidity:       { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#8bc34a' },
+  session_liquidity:   { shape_high: 'square',    shape_low: 'square',   color: '#795548' },
+  reference_levels:    { shape_high: 'circle',    shape_low: 'circle',   color: '#607d8b' },
+};
+
 /* ── Chart-specific state ──────────────────────────────────────────────────── */
 
 let _vChartCreated = false;
@@ -339,6 +355,7 @@ function buildValidateMarkers() {
   const markers = [];
 
   for (const [primName, byTf] of Object.entries(vApp.detectionData.detections_by_primitive)) {
+    const style = V_MARKER_STYLES[primName];
     const primColor = vPrimColor(primName);
 
     const tfDets = byTf[vApp.tf] || byTf['global'] || [];
@@ -353,8 +370,8 @@ function buildValidateMarkers() {
       markers.push({
         time: barTime,
         position: isBearish ? 'aboveBar' : 'belowBar',
-        shape: isBearish ? 'arrowDown' : 'arrowUp',
-        color: primColor,
+        shape: style ? (isBearish ? style.shape_high : style.shape_low) : (isBearish ? 'arrowDown' : 'arrowUp'),
+        color: style ? style.color : primColor,
         size: 1,
         text: '',
         _primitive: primName,
@@ -435,6 +452,7 @@ function findValidateNearestCandleTime(detTime) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function getValidateSessionBandsForDay(dayKey) {
+  if (vApp.tf === '4H') return [];
   if (!vApp.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
   const htf = isHTF(vApp.tf);
