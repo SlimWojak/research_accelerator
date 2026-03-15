@@ -166,6 +166,57 @@ async function loadWeekData(weekId) {
   if (loading) loading.classList.add('hidden');
 }
 
+/* ── Multi-week HTF loading ────────────────────────────────────────────────── */
+
+let _sHTFAllWeeksLoaded = false;
+
+async function loadAllWeeksHTF_strategy() {
+  if (_sHTFAllWeeksLoaded) return;
+  const loading = document.getElementById('loading-overlay');
+  if (loading) loading.classList.remove('hidden');
+
+  try {
+    const fetches = sApp.weeks.map(w => Promise.all([
+      fetch(`data/candles/${w.week}.json`).then(r => r.ok ? r.json() : null),
+      fetch(`data/detections/${w.week}.json`).then(r => r.ok ? r.json() : null),
+      fetch(`data/sessions/${w.week}.json`).then(r => r.ok ? r.json() : null),
+    ]));
+    const results = await Promise.all(fetches);
+
+    const merged = {};
+    for (const tf of ['1H', '4H']) { merged[tf] = []; }
+    const mergedDets = {};
+    const mergedSessions = [];
+
+    for (const [candles, dets, sessions] of results) {
+      if (candles) {
+        for (const tf of ['1H', '4H']) {
+          if (candles[tf]) merged[tf].push(...candles[tf]);
+        }
+      }
+      if (dets && dets.detections_by_primitive) {
+        for (const [prim, byTf] of Object.entries(dets.detections_by_primitive)) {
+          if (!mergedDets[prim]) mergedDets[prim] = {};
+          for (const [tf, arr] of Object.entries(byTf)) {
+            if (!mergedDets[prim][tf]) mergedDets[prim][tf] = [];
+            mergedDets[prim][tf].push(...arr);
+          }
+        }
+      }
+      if (sessions) mergedSessions.push(...sessions);
+    }
+
+    sApp.candleData = merged;
+    sApp.detectionData = { detections_by_primitive: mergedDets };
+    sApp.sessionData = mergedSessions;
+    _sHTFAllWeeksLoaded = true;
+  } catch (e) {
+    console.error('Failed to load all weeks for HTF:', e);
+  }
+
+  if (loading) loading.classList.add('hidden');
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Week Picker
  * ═══════════════════════════════════════════════════════════════════════════════ */
@@ -305,25 +356,32 @@ function renderTFButtons() {
     btn.className = 'tf-btn' + (tf === sApp.tf ? ' active' : '');
     btn.textContent = tf;
     btn.dataset.tf = tf;
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (tf === sApp.tf) return;
       const wasHTF = isHTF(sApp.tf);
       const nowHTF = isHTF(tf);
       sApp.tf = tf;
 
-      // Transition HTF ↔ LTF day selection
       if (!wasHTF && nowHTF) {
-        // Switching TO HTF: show all days (week view)
         sApp.day = null;
+        renderTFButtons();
+        renderDayTabs();
+        await loadAllWeeksHTF_strategy();
+        refreshStrategyChart();
+        if (sApp.steps.length > 0) evaluateChain();
       } else if (wasHTF && !nowHTF) {
-        // Switching FROM HTF to LTF: select first forex day
         const days = sApp.currentWeek ? (sApp.currentWeek.forex_days || []) : [];
         sApp.day = days.length > 0 ? days[0] : null;
+        if (sApp.currentWeek) await loadWeekData(sApp.currentWeek.week);
+        renderTFButtons();
+        renderDayTabs();
+        refreshStrategyChart();
+        if (sApp.steps.length > 0) evaluateChain();
+      } else {
+        renderTFButtons();
+        renderDayTabs();
+        refreshStrategyChart();
       }
-
-      renderTFButtons();
-      renderDayTabs();
-      refreshStrategyChart();
     });
     container.appendChild(btn);
   }

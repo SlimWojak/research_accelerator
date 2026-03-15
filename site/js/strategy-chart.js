@@ -15,6 +15,11 @@ let _sCandleTimesArr = null;
 let _sResizeObserver = null;
 let _sScrollSyncActive = false;
 
+function sWeekRange(weekEntry) {
+  if (!weekEntry) return null;
+  return { from: toTS(weekEntry.start + 'T00:00:00'), to: toTS(weekEntry.end + 'T23:59:00') };
+}
+
 function sDayRange(dayStr) {
   const d = new Date(dayStr + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() - 1);
@@ -293,10 +298,25 @@ function createStrategyChart() {
   chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
     if (sessionPrimitive._requestUpdate) sessionPrimitive._requestUpdate();
     if (chainHighlightPrimitive._requestUpdate) chainHighlightPrimitive._requestUpdate();
-    // Scroll → day tab sync
+    // Scroll sync
     if (_sScrollSyncActive || !range || range.from == null || range.to == null) return;
-    if (!sApp.currentWeek || !sApp.day) return;
     const center = Math.floor((range.from + range.to) / 2);
+
+    if (isHTF(sApp.tf) && _sHTFAllWeeksLoaded && sApp.weeks.length > 0) {
+      for (const w of sApp.weeks) {
+        const wStart = toTS(w.start + 'T00:00:00');
+        const wEnd = toTS(w.end + 'T23:59:00');
+        if (center >= wStart && center <= wEnd && w.week !== (sApp.currentWeek && sApp.currentWeek.week)) {
+          sApp.currentWeek = w;
+          const picker = document.getElementById('week-picker');
+          if (picker) picker.value = w.week;
+          break;
+        }
+      }
+      return;
+    }
+
+    if (!sApp.currentWeek || !sApp.day) return;
     const days = sApp.currentWeek.forex_days || [];
     for (const dk of days) {
       const r = sDayRange(dk);
@@ -387,9 +407,14 @@ function refreshStrategyChart() {
     _sSessionPrimitive.setBands(bands);
   }
 
-  // Scroll to selected day or fit all
+  // Scroll to selected day, or week on HTF, or fit all
   if (sApp.day) {
     scrollStrategyToDay(sApp.day);
+  } else if (isHTF(sApp.tf) && _sHTFAllWeeksLoaded && sApp.currentWeek) {
+    _sScrollSyncActive = true;
+    const wr = sWeekRange(sApp.currentWeek);
+    if (wr) sApp.chart.timeScale().setVisibleRange(wr);
+    setTimeout(() => { _sScrollSyncActive = false; }, 200);
   } else {
     sApp.chart.timeScale().fitContent();
   }

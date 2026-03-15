@@ -670,35 +670,50 @@ function renderCompareTFButtons() {
     const btn = document.createElement('button');
     btn.className = 'tf-btn' + (tf === app.tf ? ' active' : '');
     btn.textContent = tf;
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (tf === app.tf) return;
       const wasHTF = isHTF(app.tf);
       const nowHTF = isHTF(tf);
       app.tf = tf;
 
-      if (!wasHTF && nowHTF) {
+      if (!wasHTF && nowHTF && app.weekManifest.length > 0) {
         app.day = null;
-      } else if (wasHTF && !nowHTF && !app.day) {
+        renderCompareTFButtons();
+        const chartTFGroup = document.getElementById('chart-tf-group');
+        if (chartTFGroup && typeof renderTFButtons === 'function') renderTFButtons(chartTFGroup);
+        const dayTabsEl = document.getElementById('chart-day-tabs');
+        if (dayTabsEl && typeof renderDayTabs === 'function') renderDayTabs(dayTabsEl);
+        await loadAllWeeksHTF_compare();
+        if (typeof resetChartTab === 'function') resetChartTab();
+        if (typeof switchTab === 'function') switchTab(app.activeTab);
+      } else if (wasHTF && !nowHTF) {
         app.day = DAY_KEYS.length > 0 ? DAY_KEYS[0] : null;
-      }
-
-      renderCompareTFButtons();
-      // Also sync the in-chart TF buttons if they exist
-      const chartTFGroup = document.getElementById('chart-tf-group');
-      if (chartTFGroup && typeof renderTFButtons === 'function') {
-        renderTFButtons(chartTFGroup);
-      }
-      // Re-render day tabs (shows/hides "All" tab)
-      const dayTabsEl = document.getElementById('chart-day-tabs');
-      if (dayTabsEl && typeof renderDayTabs === 'function') {
-        renderDayTabs(dayTabsEl);
-      }
-      // Trigger chart + stats refresh
-      if (typeof refreshChart === 'function') refreshChart();
-      if (typeof resetStatsTab === 'function') {
-        resetStatsTab();
-        if (app.activeTab === 'stats' && typeof initStatsTab === 'function') {
-          initStatsTab();
+        // Restore single-week or fixture mode
+        if (app.currentCompareWeek) {
+          await onCompareWeekSelect();
+        } else if (app.evalData) {
+          app.weekMode = false;
+          app.weekData = null;
+          deriveDaysFromData(app.evalData);
+          derivePrimitivesFromData(app.evalData);
+          if (typeof resetChartTab === 'function') resetChartTab();
+        }
+        renderCompareTFButtons();
+        const chartTFGroup = document.getElementById('chart-tf-group');
+        if (chartTFGroup && typeof renderTFButtons === 'function') renderTFButtons(chartTFGroup);
+        const dayTabsEl = document.getElementById('chart-day-tabs');
+        if (dayTabsEl && typeof renderDayTabs === 'function') renderDayTabs(dayTabsEl);
+        if (typeof switchTab === 'function') switchTab(app.activeTab);
+      } else {
+        renderCompareTFButtons();
+        const chartTFGroup = document.getElementById('chart-tf-group');
+        if (chartTFGroup && typeof renderTFButtons === 'function') renderTFButtons(chartTFGroup);
+        const dayTabsEl = document.getElementById('chart-day-tabs');
+        if (dayTabsEl && typeof renderDayTabs === 'function') renderDayTabs(dayTabsEl);
+        if (typeof refreshChart === 'function') refreshChart();
+        if (typeof resetStatsTab === 'function') {
+          resetStatsTab();
+          if (app.activeTab === 'stats' && typeof initStatsTab === 'function') initStatsTab();
         }
       }
     });
@@ -883,6 +898,71 @@ async function loadCompareWeekManifest() {
     /* weeks.json not available — no week mode */
     console.info('Week manifest not found — week mode disabled.');
   }
+}
+
+let _cHTFAllWeeksLoaded = false;
+
+async function loadAllWeeksHTF_compare() {
+  if (_cHTFAllWeeksLoaded) return;
+  setLoading(true);
+  try {
+    const fetches = app.weekManifest.map(w => Promise.all([
+      fetchJSON(`data/candles/${w.week}.json`),
+      fetchJSON(`data/detections/${w.week}.json`),
+      fetchJSON(`data/sessions/${w.week}.json`),
+    ]));
+    const results = await Promise.all(fetches);
+
+    const merged = {};
+    for (const tf of ['1H', '4H']) { merged[tf] = []; }
+    const mergedDets = {};
+    const mergedSessions = [];
+
+    for (const [candles, dets, sessions] of results) {
+      if (candles) {
+        for (const tf of ['1H', '4H']) {
+          if (candles[tf]) merged[tf].push(...candles[tf]);
+        }
+      }
+      if (dets && dets.detections_by_primitive) {
+        for (const [prim, byTf] of Object.entries(dets.detections_by_primitive)) {
+          if (!mergedDets[prim]) mergedDets[prim] = {};
+          for (const [tf, arr] of Object.entries(byTf)) {
+            if (!mergedDets[prim][tf]) mergedDets[prim][tf] = [];
+            mergedDets[prim][tf].push(...arr);
+          }
+        }
+      }
+      if (sessions) mergedSessions.push(...sessions);
+    }
+
+    app.weekMode = true;
+    app.weekData = {
+      candleData: merged,
+      detectionData: { detections_by_primitive: mergedDets },
+      sessionData: mergedSessions,
+    };
+
+    // Derive all days/primitives from the merged data
+    const allDays = [];
+    for (const w of app.weekManifest) {
+      if (w.forex_days) allDays.push(...w.forex_days);
+    }
+    DAY_KEYS = [...new Set(allDays)].sort();
+    const SHORT_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    DAY_LABELS = DAY_KEYS.map(d => {
+      const dt = new Date(d + 'T00:00:00Z');
+      return `${SHORT_DAYS[dt.getUTCDay()]} ${SHORT_MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}`;
+    });
+    DAYS = DAY_KEYS.map((k, i) => ({ key: k, label: DAY_LABELS[i] }));
+
+    deriveWeekModePrimitives(app.weekData.detectionData);
+    _cHTFAllWeeksLoaded = true;
+  } catch (e) {
+    console.error('Failed to load all weeks for HTF:', e);
+  }
+  setLoading(false);
 }
 
 /**

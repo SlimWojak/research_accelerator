@@ -13,6 +13,11 @@ let _vCandleTimeSet = null;
 let _vCandleTimesArr = null;
 let _vResizeObserver = null;
 
+function vWeekRange(weekEntry) {
+  if (!weekEntry) return null;
+  return { from: toTS(weekEntry.start + 'T00:00:00'), to: toTS(weekEntry.end + 'T23:59:00') };
+}
+
 function highlightValidateDayTab(dayStr) {
   const container = document.getElementById('day-tabs');
   if (!container) return;
@@ -165,10 +170,26 @@ function createValidateChart() {
   // Subscribe to visible range changes
   chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
     if (sessionPrimitive._requestUpdate) sessionPrimitive._requestUpdate();
-    // Scroll → day tab sync
     if (_vScrollSyncActive || !range || range.from == null || range.to == null) return;
-    if (!vApp.currentWeek || !vApp.day) return; // skip sync on HTF "All"
+
     const center = Math.floor((range.from + range.to) / 2);
+
+    if (isHTF(vApp.tf) && _vHTFAllWeeksLoaded && vApp.weeks.length > 0) {
+      // Week-level scroll sync on HTF
+      for (const w of vApp.weeks) {
+        const wStart = toTS(w.start + 'T00:00:00');
+        const wEnd = toTS(w.end + 'T23:59:00');
+        if (center >= wStart && center <= wEnd && w.week !== (vApp.currentWeek && vApp.currentWeek.week)) {
+          vApp.currentWeek = w;
+          const picker = document.getElementById('week-picker');
+          if (picker) picker.value = w.week;
+          break;
+        }
+      }
+      return;
+    }
+
+    if (!vApp.currentWeek || !vApp.day) return;
     const days = vApp.currentWeek.forex_days || [];
     for (const dk of days) {
       const r = vDayRange(dk);
@@ -281,9 +302,14 @@ function refreshValidateChart() {
     _vSessionPrimitive.setBands(bands);
   }
 
-  // Scroll to selected day or fit all
+  // Scroll to selected day, or week on HTF, or fit all
   if (vApp.day) {
     scrollValidateToDay(vApp.day);
+  } else if (isHTF(vApp.tf) && _vHTFAllWeeksLoaded && vApp.currentWeek) {
+    _vScrollSyncActive = true;
+    const wr = vWeekRange(vApp.currentWeek);
+    if (wr) vApp.chart.timeScale().setVisibleRange(wr);
+    setTimeout(() => { _vScrollSyncActive = false; }, 200);
   } else {
     vApp.chart.timeScale().fitContent();
   }

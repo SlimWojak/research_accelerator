@@ -13,6 +13,11 @@ let _candleTimeSet = null;
 let _candleTimesArr = null;
 let _cScrollSyncActive = false;
 
+function cWeekRange(weekEntry) {
+  if (!weekEntry) return null;
+  return { from: toTS(weekEntry.start + 'T00:00:00'), to: toTS(weekEntry.end + 'T23:59:00') };
+}
+
 function cDayRange(dayStr) {
   const d = new Date(dayStr + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() - 1);
@@ -859,10 +864,25 @@ function createLWChart(container) {
   // Subscribe to visible range changes
   chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
     if (sessionPrimitive._requestUpdate) sessionPrimitive._requestUpdate();
-    // Scroll → day tab sync
+    // Scroll sync
     if (_cScrollSyncActive || !range || range.from == null || range.to == null) return;
-    if (!app.day) return; // skip sync on HTF "All"
     const center = Math.floor((range.from + range.to) / 2);
+
+    if (isHTF(app.tf) && _cHTFAllWeeksLoaded && app.weekManifest && app.weekManifest.length > 0) {
+      for (const w of app.weekManifest) {
+        const wStart = toTS(w.start + 'T00:00:00');
+        const wEnd = toTS(w.end + 'T23:59:00');
+        if (center >= wStart && center <= wEnd && w.week !== (app.currentCompareWeek && app.currentCompareWeek.week)) {
+          app.currentCompareWeek = w;
+          const picker = document.getElementById('week-picker-compare');
+          if (picker) picker.value = w.week;
+          break;
+        }
+      }
+      return;
+    }
+
+    if (!app.day) return;
     for (const dk of DAY_KEYS) {
       const r = cDayRange(dk);
       if (center >= r.from && center <= r.to && dk !== app.day) {
@@ -947,9 +967,14 @@ async function refreshChart() {
     _sessionPrimitive.setBands(bands);
   }
 
-  // Scroll to selected day or fit all
+  // Scroll to selected day, or week on HTF, or fit all
   if (app.day) {
     scrollCompareToDay(app.day);
+  } else if (isHTF(app.tf) && _cHTFAllWeeksLoaded && app.currentCompareWeek) {
+    _cScrollSyncActive = true;
+    const wr = cWeekRange(app.currentCompareWeek);
+    if (wr) app.chart.timeScale().setVisibleRange(wr);
+    setTimeout(() => { _cScrollSyncActive = false; }, 200);
   } else {
     app.chart.timeScale().fitContent();
   }

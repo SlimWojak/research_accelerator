@@ -161,6 +161,61 @@ async function loadWeekData(weekId) {
   if (loading) loading.classList.add('hidden');
 }
 
+/* ── Multi-week HTF loading ────────────────────────────────────────────────── */
+
+let _vHTFAllWeeksLoaded = false;
+
+async function loadAllWeeksHTF() {
+  if (_vHTFAllWeeksLoaded) return;
+  const loading = document.getElementById('loading-overlay');
+  if (loading) loading.classList.remove('hidden');
+
+  try {
+    const fetches = vApp.weeks.map(w => Promise.all([
+      fetch(`data/candles/${w.week}.json`).then(r => r.ok ? r.json() : null),
+      fetch(`data/detections/${w.week}.json`).then(r => r.ok ? r.json() : null),
+      fetch(`data/sessions/${w.week}.json`).then(r => r.ok ? r.json() : null),
+    ]));
+    const results = await Promise.all(fetches);
+
+    // Merge candles by TF
+    const merged = {};
+    for (const tf of ['1H', '4H']) { merged[tf] = []; }
+    // Merge detections
+    const mergedDets = {};
+    // Merge sessions
+    const mergedSessions = [];
+
+    for (let i = 0; i < results.length; i++) {
+      const [candles, dets, sessions] = results[i];
+      if (candles) {
+        for (const tf of ['1H', '4H']) {
+          if (candles[tf]) merged[tf].push(...candles[tf]);
+        }
+      }
+      if (dets && dets.detections_by_primitive) {
+        for (const [prim, byTf] of Object.entries(dets.detections_by_primitive)) {
+          if (!mergedDets[prim]) mergedDets[prim] = {};
+          for (const [tf, arr] of Object.entries(byTf)) {
+            if (!mergedDets[prim][tf]) mergedDets[prim][tf] = [];
+            mergedDets[prim][tf].push(...arr);
+          }
+        }
+      }
+      if (sessions) mergedSessions.push(...sessions);
+    }
+
+    vApp.candleData = merged;
+    vApp.detectionData = { detections_by_primitive: mergedDets };
+    vApp.sessionData = mergedSessions;
+    _vHTFAllWeeksLoaded = true;
+  } catch (e) {
+    console.error('Failed to load all weeks for HTF:', e);
+  }
+
+  if (loading) loading.classList.add('hidden');
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Week Picker
  * ═══════════════════════════════════════════════════════════════════════════════ */
@@ -350,25 +405,31 @@ function renderTFButtons() {
     btn.className = 'tf-btn' + (tf === vApp.tf ? ' active' : '');
     btn.textContent = tf;
     btn.dataset.tf = tf;
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (tf === vApp.tf) return;
       const wasHTF = isHTF(vApp.tf);
       const nowHTF = isHTF(tf);
       vApp.tf = tf;
 
-      // Transition HTF ↔ LTF day selection
       if (!wasHTF && nowHTF) {
-        // Switching TO HTF: show all days (week view)
         vApp.day = null;
+        renderTFButtons();
+        renderDayTabs();
+        await loadAllWeeksHTF();
+        refreshValidateChart();
       } else if (wasHTF && !nowHTF) {
-        // Switching FROM HTF to LTF: select first forex day
         const days = vApp.currentWeek ? (vApp.currentWeek.forex_days || []) : [];
         vApp.day = days.length > 0 ? days[0] : null;
+        // Restore single-week data
+        if (vApp.currentWeek) await loadWeekData(vApp.currentWeek.week);
+        renderTFButtons();
+        renderDayTabs();
+        refreshValidateChart();
+      } else {
+        renderTFButtons();
+        renderDayTabs();
+        refreshValidateChart();
       }
-
-      renderTFButtons();
-      renderDayTabs();
-      refreshValidateChart();
     });
     container.appendChild(btn);
   }
