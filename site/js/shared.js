@@ -656,6 +656,8 @@ async function loadSessionBoundaries() {
 
 const COMPARE_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
 
+function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
+
 /**
  * Render TF buttons in the page-level compare-tf-group container.
  * Syncs with app.tf and triggers chart + stats refresh on change.
@@ -670,12 +672,26 @@ function renderCompareTFButtons() {
     btn.textContent = tf;
     btn.addEventListener('click', () => {
       if (tf === app.tf) return;
+      const wasHTF = isHTF(app.tf);
+      const nowHTF = isHTF(tf);
       app.tf = tf;
+
+      if (!wasHTF && nowHTF) {
+        app.day = null;
+      } else if (wasHTF && !nowHTF && !app.day) {
+        app.day = DAY_KEYS.length > 0 ? DAY_KEYS[0] : null;
+      }
+
       renderCompareTFButtons();
       // Also sync the in-chart TF buttons if they exist
       const chartTFGroup = document.getElementById('chart-tf-group');
       if (chartTFGroup && typeof renderTFButtons === 'function') {
         renderTFButtons(chartTFGroup);
+      }
+      // Re-render day tabs (shows/hides "All" tab)
+      const dayTabsEl = document.getElementById('chart-day-tabs');
+      if (dayTabsEl && typeof renderDayTabs === 'function') {
+        renderDayTabs(dayTabsEl);
       }
       // Trigger chart + stats refresh
       if (typeof refreshChart === 'function') refreshChart();

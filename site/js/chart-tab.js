@@ -116,11 +116,10 @@ class SessionBandsPrimitive {
  */
 function filterDetectionsByDay(detections, dayKey) {
   if (!detections || !detections.length) return [];
+  if (!dayKey) return detections; // null/undefined = all days (HTF week view)
   return detections.filter(det => {
-    // Primary: use tags.forex_day
     const fd = det.tags && det.tags.forex_day;
     if (fd) return fd === dayKey;
-    // Fallback: compute forex day from time string
     const t = det.time || '';
     return getForexDay(t) === dayKey;
   });
@@ -607,7 +606,7 @@ function renderDetectionSummary(container) {
   let html = '<div class="detection-summary">';
   html += '<div class="detection-summary-header">';
   html += `<span class="summary-title">Detections</span>`;
-  html += `<span class="summary-meta">${app.tf} · ${dayLabel(app.day)}</span>`;
+  html += `<span class="summary-meta">${app.tf} · ${app.day ? dayLabel(app.day) : 'All'}</span>`;
   html += '</div>';
 
   // Table header — include variant name if available
@@ -656,16 +655,25 @@ function renderDetectionSummary(container) {
 function getSessionBandsForDay(dayKey) {
   if (!app.sessionBoundaries) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
+  const htfAll = !dayKey && isHTF(app.tf);
   return app.sessionBoundaries
-    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
-    .map(b => ({
-      startTS: toTS(b.start_time),
-      endTS: toTS(b.end_time),
-      color: b.color,
-      border: b.border,
-      session: b.session,
-      label: b.label,
-    }))
+    .filter(b => VISIBLE_SESSIONS.has(b.session) && (htfAll || b.forex_day === dayKey))
+    .map(b => {
+      let color = b.color;
+      let border = b.border;
+      if (htfAll) {
+        color = color.replace(/[\d.]+\)$/, m => (parseFloat(m) * 0.4).toFixed(2) + ')');
+        border = border.replace(/[\d.]+\)$/, m => (parseFloat(m) * 0.5).toFixed(2) + ')');
+      }
+      return {
+        startTS: toTS(b.start_time),
+        endTS: toTS(b.end_time),
+        color,
+        border,
+        session: b.session,
+        label: b.label,
+      };
+    })
     .filter(b => b.startTS != null && b.endTS != null);
 }
 
@@ -697,6 +705,21 @@ function renderSessionLegend(container) {
 
 function renderDayTabs(container) {
   container.innerHTML = '';
+
+  // "All" tab — visible when HTF is active
+  if (isHTF(app.tf)) {
+    const allBtn = document.createElement('button');
+    allBtn.className = 'chart-day-tab' + (app.day === null ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.addEventListener('click', () => {
+      if (app.day === null) return;
+      app.day = null;
+      renderDayTabs(container);
+      refreshChart();
+    });
+    container.appendChild(allBtn);
+  }
+
   for (const d of DAYS) {
     const btn = document.createElement('button');
     btn.className = 'chart-day-tab' + (d.key === app.day ? ' active' : '');
@@ -727,10 +750,22 @@ function renderTFButtons(container) {
     btn.dataset.tf = tf;
     btn.addEventListener('click', () => {
       if (tf === app.tf) return;
+      const wasHTF = isHTF(app.tf);
+      const nowHTF = isHTF(tf);
       app.tf = tf;
+
+      if (!wasHTF && nowHTF) {
+        app.day = null;
+      } else if (wasHTF && !nowHTF && !app.day) {
+        app.day = DAY_KEYS.length > 0 ? DAY_KEYS[0] : null;
+      }
+
       renderTFButtons(container);
       // Sync page-level TF buttons
       if (typeof renderCompareTFButtons === 'function') renderCompareTFButtons();
+      // Re-render day tabs (shows/hides "All" tab)
+      const dayTabsEl = document.getElementById('chart-day-tabs');
+      if (dayTabsEl) renderDayTabs(dayTabsEl);
       refreshChart();
     });
     container.appendChild(btn);
@@ -807,31 +842,49 @@ function createLWChart(container) {
 async function refreshChart() {
   if (!app.chart || !app.candleSeries) return;
 
-  // Week mode: load candles from weekData; Fixture mode: load per-day candles
-  let candleData;
+  let raw;
+
   if (app.weekMode && app.weekData && app.weekData.candleData) {
-    candleData = app.weekData.candleData;
+    // Week mode: candles from weekData (all days in one object)
+    const candleData = app.weekData.candleData;
+    if (!candleData || !candleData[app.tf]) {
+      app.candleSeries.setData([]);
+      _allMarkers = [];
+      rebuildMarkers();
+      if (_sessionPrimitive) _sessionPrimitive.setBands([]);
+      updateDetectionSummary();
+      return;
+    }
+    raw = candleData[app.tf];
+    // Filter to a specific day when app.day is set (null = show all / week view)
+    if (app.day) {
+      raw = raw.filter(c => getForexDay(c.time) === app.day);
+    }
   } else {
-    candleData = await loadCandles(app.day);
+    // Fixture mode: load per-day candle files
+    if (app.day) {
+      const candleData = await loadCandles(app.day);
+      raw = (candleData && candleData[app.tf]) ? candleData[app.tf] : [];
+    } else {
+      // HTF "All" view: merge candles from all days
+      const allBars = [];
+      for (const dk of DAY_KEYS) {
+        const cd = await loadCandles(dk);
+        if (cd && cd[app.tf]) {
+          for (const c of cd[app.tf]) allBars.push(c);
+        }
+      }
+      raw = allBars;
+    }
   }
 
-  if (!candleData || !candleData[app.tf]) {
+  if (!raw || raw.length === 0) {
     app.candleSeries.setData([]);
     _allMarkers = [];
     rebuildMarkers();
     if (_sessionPrimitive) _sessionPrimitive.setBands([]);
     updateDetectionSummary();
     return;
-  }
-
-  // Map candle data — in week mode, filter to current day
-  let raw = candleData[app.tf];
-  if (app.weekMode) {
-    // Filter candles to the current forex day
-    raw = raw.filter(c => {
-      const fd = getForexDay(c.time);
-      return fd === app.day;
-    });
   }
 
   const data = raw.map(c => ({
@@ -855,7 +908,7 @@ async function refreshChart() {
   // Apply toggle filters
   rebuildMarkers();
 
-  // Session bands — in week mode use weekData.sessionData
+  // Session bands
   let bands;
   if (app.weekMode && app.weekData && app.weekData.sessionData) {
     bands = getWeekModeSessionBandsForDay(app.day);
@@ -896,16 +949,25 @@ async function refreshChart() {
 function getWeekModeSessionBandsForDay(dayKey) {
   if (!app.weekData || !app.weekData.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
+  const htfAll = !dayKey && isHTF(app.tf);
   return app.weekData.sessionData
-    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
-    .map(b => ({
-      startTS: toTS(b.start_time),
-      endTS: toTS(b.end_time),
-      color: b.color,
-      border: b.border,
-      session: b.session,
-      label: b.label,
-    }))
+    .filter(b => VISIBLE_SESSIONS.has(b.session) && (htfAll || b.forex_day === dayKey))
+    .map(b => {
+      let color = b.color;
+      let border = b.border;
+      if (htfAll) {
+        color = color.replace(/[\d.]+\)$/, m => (parseFloat(m) * 0.4).toFixed(2) + ')');
+        border = border.replace(/[\d.]+\)$/, m => (parseFloat(m) * 0.5).toFixed(2) + ')');
+      }
+      return {
+        startTS: toTS(b.start_time),
+        endTS: toTS(b.end_time),
+        color,
+        border,
+        session: b.session,
+        label: b.label,
+      };
+    })
     .filter(b => b.startTS != null && b.endTS != null);
 }
 
