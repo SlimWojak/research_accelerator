@@ -63,6 +63,31 @@ const V_SESSION_META = [
   { key: 'nyokz', label: 'NYOKZ 07:00–10:00', color: 'rgba(247,197,72,0.5)' },
 ];
 
+/* ── Forex Day Utility ─────────────────────────────────────────────────────── */
+
+/**
+ * Compute the forex day (YYYY-MM-DD) a timestamp belongs to.
+ * Forex day starts at 17:00 NY — a candle at/after 17:00 belongs to the NEXT day.
+ * @param {string} rawTimeStr — e.g. "2025-09-28T20:00:00-04:00" or "2025-09-28T20:00:00"
+ * @returns {string} YYYY-MM-DD forex day
+ */
+function getForexDay(rawTimeStr) {
+  if (!rawTimeStr) return '';
+  // Strip TZ offset to get local NY time
+  const clean = rawTimeStr.replace(/[+-]\d{2}:\d{2}$/, '');
+  const tPart = (clean.split('T')[1]) || '';
+  const hour = parseInt(tPart.split(':')[0], 10);
+  const datePart = clean.split('T')[0];
+
+  if (hour >= 17) {
+    // After 17:00 NY → belongs to NEXT forex day
+    const d = new Date(datePart + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
+  return datePart;
+}
+
 /* ── Timestamp Conversion ──────────────────────────────────────────────────── */
 
 function toTS(s) {
@@ -439,10 +464,9 @@ function filterValidateDetectionsByDay(detections, dayKey) {
     // Primary: use properties.forex_day
     const fd = det.properties && det.properties.forex_day;
     if (fd) return fd === dayKey;
-    // Fallback: parse date from time string (strip timezone)
+    // Fallback: compute forex day from time string
     const t = det.time || '';
-    const clean = t.replace(/[+-]\d{2}:\d{2}$/, '');
-    return clean.startsWith(dayKey);
+    return getForexDay(t) === dayKey;
   });
 }
 

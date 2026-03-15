@@ -120,9 +120,9 @@ function filterDetectionsByDay(detections, dayKey) {
     // Primary: use tags.forex_day
     const fd = det.tags && det.tags.forex_day;
     if (fd) return fd === dayKey;
-    // Fallback: parse date from time string
+    // Fallback: compute forex day from time string
     const t = det.time || '';
-    return t.startsWith(dayKey);
+    return getForexDay(t) === dayKey;
   });
 }
 

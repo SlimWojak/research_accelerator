@@ -226,13 +226,9 @@ function refreshValidateChart() {
     _rawTime: c.time,
   })).filter(b => b.time != null);
 
-  // Filter candles to the selected day
+  // Filter candles to the selected forex day
   if (vApp.day) {
-    candles = candles.filter(c => {
-      // Strip timezone, check date prefix
-      const clean = (c._rawTime || '').replace(/[+-]\d{2}:\d{2}$/, '');
-      return clean.startsWith(vApp.day);
-    });
+    candles = candles.filter(c => getForexDay(c._rawTime) === vApp.day);
   }
 
   candles.sort((a, b) => a.time - b.time);
@@ -396,15 +392,26 @@ function findValidateNearestCandleTime(detTime) {
 function getValidateSessionBandsForDay(dayKey) {
   if (!vApp.sessionData) return [];
   const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
+  const htf = isHTF(vApp.tf);
+
   return vApp.sessionData
     .filter(b => VISIBLE_SESSIONS.has(b.session) && (!dayKey || b.forex_day === dayKey))
-    .map(b => ({
-      startTS: toTS(b.start_time),
-      endTS: toTS(b.end_time),
-      color: b.color,
-      border: b.border,
-      session: b.session,
-      label: b.label,
-    }))
+    .map(b => {
+      let color = b.color;
+      let border = b.border;
+      // Reduce opacity on HTF week view to prevent solid color stacking
+      if (htf && !dayKey) {
+        color = color.replace(/([\d.]+)\)$/, (_, a) => (parseFloat(a) * 0.4).toFixed(2) + ')');
+        border = border.replace(/([\d.]+)\)$/, (_, a) => (parseFloat(a) * 0.5).toFixed(2) + ')');
+      }
+      return {
+        startTS: toTS(b.start_time),
+        endTS: toTS(b.end_time),
+        color,
+        border,
+        session: b.session,
+        label: b.label,
+      };
+    })
     .filter(b => b.startTS != null && b.endTS != null);
 }
