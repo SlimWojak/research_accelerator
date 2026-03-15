@@ -297,7 +297,9 @@ function getForexDay(rawTimeStr) {
  */
 function toTS(s) {
   if (!s) return null;
-  const clean = s.includes('T') ? s : s.replace(' ', 'T');
+  // Strip timezone offset if present (e.g., -04:00, +00:00)
+  let clean = s.replace(/[+-]\d{2}:\d{2}$/, '');
+  clean = clean.includes('T') ? clean : clean.replace(' ', 'T');
   const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
   return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
 }
