@@ -209,10 +209,9 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
       const tfData = primData.per_tf[app.tf];
       if (!tfData || !tfData.detections) continue;
 
-      const dayDets = filterDetectionsByDay(tfData.detections, app.day);
+      const dayDets = filterDetectionsByDay(tfData.detections, null);
 
       for (const det of dayDets) {
-        // Filter displacement to VALID+ grades only (WEAK/None are tagged but not display-worthy)
         if (prim === 'displacement') {
           const grade = det.properties && det.properties.quality_grade;
           if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
@@ -297,10 +296,9 @@ function buildWeekModeMarkers(candleTimesSet, candleTimesArr) {
     if (!byTf) continue;
 
     const tfDets = byTf[app.tf] || [];
-    const dayDets = filterDetectionsByDay(tfDets, app.day);
+    const dayDets = filterDetectionsByDay(tfDets, null);
 
     for (const det of dayDets) {
-      // Filter displacement to VALID+ grades only
       if (prim === 'displacement') {
         const grade = det.properties && det.properties.quality_grade;
         if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
