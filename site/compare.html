@@ -1646,6 +1646,50 @@
   .tf-btn:hover { color: #d1d4dc; border-color: #4a4e59; }
   .tf-btn.active { background: #2962ff; color: #fff; border-color: #2962ff; }
 
+  /* ── Week Picker (detection mode) ──────────────────────────────────── */
+
+  .week-picker-group-compare {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+  }
+
+  .week-picker-label-compare {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  #week-picker-compare {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    max-width: 340px;
+  }
+
+  #week-picker-compare:focus { border-color: var(--blue); }
+  #week-picker-compare option { background: var(--bg); color: var(--text); }
+
+  .week-mode-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--yellow);
+    background: rgba(247,197,72,0.12);
+    border: 1px solid rgba(247,197,72,0.3);
+    border-radius: 3px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+
   /* ── Responsive ──────────────────────────────────────────────────────── */
 
   @media (max-width: 1280px) {
@@ -1689,6 +1733,11 @@
     <button class="tab-btn" data-tab="heatmap">Heatmap</button>
     <button class="tab-btn" data-tab="walkforward">Walk-Forward</button>
     <div class="tf-group" id="compare-tf-group"></div>
+    <div class="week-picker-group-compare" id="week-picker-group-compare">
+      <span class="week-picker-label-compare">Week</span>
+      <select id="week-picker-compare"><option value="">— Calibration fixtures —</option></select>
+    </div>
+    <span id="week-mode-badge" class="week-mode-badge" style="display:none;">WEEK MODE</span>
   </div>
 
   <!-- Tab Content Area -->

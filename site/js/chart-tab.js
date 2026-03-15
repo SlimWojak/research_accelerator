@@ -154,6 +154,11 @@ function findNearestCandleTime(detTime, candleTimeSet, candleTimes) {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function buildMarkers(candleTimesSet, candleTimesArr) {
+  // Week mode: build markers from detection data directly
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    return buildWeekModeMarkers(candleTimesSet, candleTimesArr);
+  }
+
   if (!app.evalData || !app.evalData.per_config) return [];
 
   const configs = app.evalData.configs || [];
@@ -241,6 +246,94 @@ function buildMarkers(candleTimesSet, candleTimesArr) {
   });
 }
 
+/**
+ * Build markers from week detection data (detection mode).
+ * Uses the flat detections_by_primitive structure instead of Schema 4A per_config.
+ */
+function buildWeekModeMarkers(candleTimesSet, candleTimesArr) {
+  const detData = app.weekData.detectionData;
+  if (!detData || !detData.detections_by_primitive) return [];
+
+  const dbp = detData.detections_by_primitive;
+  const markers = [];
+  const colors = CONFIG_COLORS[0]; // Use primary color palette
+  const configName = detData.config || 'locked_a8ra_v1';
+
+  for (const prim of PRIMITIVES) {
+    // sweep_continuation is virtual — read from liquidity_sweep
+    const dataPrim = (prim === 'sweep_continuation') ? 'liquidity_sweep' : prim;
+    const byTf = dbp[dataPrim];
+    if (!byTf) continue;
+
+    const tfDets = byTf[app.tf] || [];
+    const dayDets = filterDetectionsByDay(tfDets, app.day);
+
+    for (const det of dayDets) {
+      // Filter displacement to VALID+ grades only
+      if (prim === 'displacement') {
+        const grade = det.properties && det.properties.quality_grade;
+        if (grade !== 'VALID' && grade !== 'STRONG' && grade !== 'DECISIVE') continue;
+      }
+
+      // Only render whitelisted liquidity_sweep types
+      const detType = det.properties && det.properties.type;
+      if (prim === 'liquidity_sweep' && detType !== 'SWEEP' && detType !== 'CONTINUATION') continue;
+
+      // Split continuations
+      const isContinuation = (prim === 'liquidity_sweep' && detType === 'CONTINUATION');
+      if (prim === 'sweep_continuation' && detType !== 'CONTINUATION') continue;
+      if (prim === 'liquidity_sweep' && detType === 'CONTINUATION') continue;
+      const effectivePrim = isContinuation ? 'sweep_continuation' : prim;
+
+      const barTime = findNearestCandleTime(det.time, candleTimesSet, candleTimesArr);
+      if (barTime == null) continue;
+
+      const dir = det.direction;
+      const pm = PRIMITIVE_MARKERS[effectivePrim];
+      let position, shape, markerColor, text;
+
+      if (pm) {
+        const isHigh = dir === 'high' || dir === 'bearish';
+        position = isHigh ? 'aboveBar' : 'belowBar';
+        shape = isHigh ? pm.shape_high : pm.shape_low;
+        markerColor = pm.color;
+        text = (dataPrim === 'swing_points') ? (dir === 'high' ? 'SWH' : 'SWL')
+             : isContinuation ? 'C' : '';
+      } else {
+        const isBullish = dir === 'bullish' || dir === 'high';
+        position = isBullish ? 'belowBar' : 'aboveBar';
+        shape = isBullish ? 'arrowUp' : 'arrowDown';
+        markerColor = colors.base;
+        text = '';
+      }
+
+      markers.push({
+        time: barTime,
+        position,
+        shape,
+        color: markerColor,
+        size: 1,
+        text,
+        _config: configName,
+        _primitive: effectivePrim,
+        _detId: det.id,
+      });
+    }
+  }
+
+  // Sort by time (required by LWC)
+  markers.sort((a, b) => a.time - b.time);
+
+  // Deduplicate
+  const seen = new Set();
+  return markers.filter(m => {
+    const k = `${m.time}_${m.position}_${m._config}_${m._primitive}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
  * rebuildMarkers — Filter markers by toggle state and apply to chart
  * ═══════════════════════════════════════════════════════════════════════════════ */
@@ -275,10 +368,17 @@ function rebuildMarkers() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function initToggles() {
-  if (!app.evalData) return;
-
   // Config toggles: all on by default
-  const configs = app.evalData.configs || [];
+  let configs;
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    const configName = app.weekData.detectionData.config || 'locked_a8ra_v1';
+    configs = [configName];
+  } else if (app.evalData) {
+    configs = app.evalData.configs || [];
+  } else {
+    return;
+  }
+
   const ct = {};
   for (const c of configs) {
     ct[c] = true;
@@ -298,8 +398,15 @@ function initToggles() {
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function renderConfigToggles(container) {
-  if (!app.evalData) return;
-  const configs = app.evalData.configs || [];
+  let configs;
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    const configName = app.weekData.detectionData.config || 'locked_a8ra_v1';
+    configs = [configName];
+  } else if (app.evalData) {
+    configs = app.evalData.configs || [];
+  } else {
+    return;
+  }
   container.innerHTML = '';
 
   const wrapper = document.createElement('div');
@@ -391,6 +498,11 @@ function _markerSymbol(shape) {
  * Returns: { configName: { primitiveName: count } }
  */
 function getDetectionCountsForDay() {
+  // Week mode: read from detection data directly
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    return getWeekModeDetectionCountsForDay();
+  }
+
   const result = {};
   if (!app.evalData || !app.evalData.per_config) return result;
 
@@ -438,13 +550,58 @@ function getDetectionCountsForDay() {
   return result;
 }
 
+/**
+ * Get detection counts for week mode (single config from detection data).
+ */
+function getWeekModeDetectionCountsForDay() {
+  const result = {};
+  const detData = app.weekData.detectionData;
+  if (!detData || !detData.detections_by_primitive) return result;
+
+  const configName = detData.config || 'locked_a8ra_v1';
+  const dbp = detData.detections_by_primitive;
+  result[configName] = {};
+
+  for (const prim of PRIMITIVES) {
+    const dataPrim = (prim === 'sweep_continuation') ? 'liquidity_sweep' : prim;
+    const byTf = dbp[dataPrim];
+    if (!byTf) {
+      result[configName][prim] = 0;
+      continue;
+    }
+    const tfDets = byTf[app.tf] || [];
+    let dayDets = filterDetectionsByDay(tfDets, app.day);
+    if (prim === 'displacement') {
+      dayDets = dayDets.filter(det => {
+        const g = det.properties && det.properties.quality_grade;
+        return g === 'VALID' || g === 'STRONG' || g === 'DECISIVE';
+      });
+    } else if (prim === 'sweep_continuation') {
+      dayDets = dayDets.filter(det => det.properties && det.properties.type === 'CONTINUATION');
+    } else if (prim === 'liquidity_sweep') {
+      dayDets = dayDets.filter(det => {
+        const t = det.properties && det.properties.type;
+        return t === 'SWEEP';
+      });
+    }
+    result[configName][prim] = dayDets.length;
+  }
+  return result;
+}
+
 function renderDetectionSummary(container) {
-  if (!app.evalData) {
+  if (!app.evalData && !app.weekMode) {
     container.innerHTML = '';
     return;
   }
 
-  const configs = app.evalData.configs || [];
+  let configs;
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    const configName = app.weekData.detectionData.config || 'locked_a8ra_v1';
+    configs = [configName];
+  } else {
+    configs = app.evalData.configs || [];
+  }
   const counts = getDetectionCountsForDay();
 
   let html = '<div class="detection-summary">';
@@ -650,8 +807,14 @@ function createLWChart(container) {
 async function refreshChart() {
   if (!app.chart || !app.candleSeries) return;
 
-  // Load candle data for current day
-  const candleData = await loadCandles(app.day);
+  // Week mode: load candles from weekData; Fixture mode: load per-day candles
+  let candleData;
+  if (app.weekMode && app.weekData && app.weekData.candleData) {
+    candleData = app.weekData.candleData;
+  } else {
+    candleData = await loadCandles(app.day);
+  }
+
   if (!candleData || !candleData[app.tf]) {
     app.candleSeries.setData([]);
     _allMarkers = [];
@@ -661,8 +824,16 @@ async function refreshChart() {
     return;
   }
 
-  // Map candle data
-  const raw = candleData[app.tf];
+  // Map candle data — in week mode, filter to current day
+  let raw = candleData[app.tf];
+  if (app.weekMode) {
+    // Filter candles to the current forex day
+    raw = raw.filter(c => {
+      const fd = getForexDay(c.time);
+      return fd === app.day;
+    });
+  }
+
   const data = raw.map(c => ({
     time: toTS(c.time),
     open: c.open,
@@ -684,8 +855,13 @@ async function refreshChart() {
   // Apply toggle filters
   rebuildMarkers();
 
-  // Session bands
-  const bands = getSessionBandsForDay(app.day);
+  // Session bands — in week mode use weekData.sessionData
+  let bands;
+  if (app.weekMode && app.weekData && app.weekData.sessionData) {
+    bands = getWeekModeSessionBandsForDay(app.day);
+  } else {
+    bands = getSessionBandsForDay(app.day);
+  }
   if (_sessionPrimitive) {
     _sessionPrimitive.setBands(bands);
   }
@@ -715,6 +891,25 @@ async function refreshChart() {
 }
 
 /**
+ * Get session bands for a day in week mode (from weekData.sessionData).
+ */
+function getWeekModeSessionBandsForDay(dayKey) {
+  if (!app.weekData || !app.weekData.sessionData) return [];
+  const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
+  return app.weekData.sessionData
+    .filter(b => b.forex_day === dayKey && VISIBLE_SESSIONS.has(b.session))
+    .map(b => ({
+      startTS: toTS(b.start_time),
+      endTS: toTS(b.end_time),
+      color: b.color,
+      border: b.border,
+      session: b.session,
+      label: b.label,
+    }))
+    .filter(b => b.startTS != null && b.endTS != null);
+}
+
+/**
  * Update the detection count summary panel (called after day/TF change).
  */
 function updateDetectionSummary() {
@@ -735,6 +930,22 @@ function updateDetectionSummary() {
  */
 function renderVariantSelector(container) {
   if (!container) return;
+
+  // In week mode, show week info instead of fixture selector
+  if (app.weekMode && app.currentCompareWeek) {
+    container.style.display = '';
+    const w = app.currentCompareWeek;
+    container.innerHTML = `
+      <span class="toggle-group-label">Week Mode</span>
+      <div class="variant-info-row" style="color:var(--yellow);">
+        <span class="variant-info-label">${w.week} (${w.start} → ${w.end})</span>
+      </div>
+      <div class="variant-info-row">
+        <span class="variant-info-label">${w.detection_count.toLocaleString()} detections</span>
+      </div>
+    `;
+    return;
+  }
 
   const fixtures = typeof getAvailableFixtures === 'function' ? getAvailableFixtures() : [];
   const hasMultipleFixtures = fixtures.length > 1;
@@ -797,12 +1008,18 @@ function renderVariantSelector(container) {
  * Render config/variant color legend in the controls bar.
  */
 function renderConfigLegend(container) {
-  if (!container || !app.evalData) {
-    if (container) container.innerHTML = '';
+  if (!container) return;
+
+  let configs;
+  if (app.weekMode && app.weekData && app.weekData.detectionData) {
+    const configName = app.weekData.detectionData.config || 'locked_a8ra_v1';
+    configs = [configName];
+  } else if (app.evalData) {
+    configs = app.evalData.configs || [];
+  } else {
+    container.innerHTML = '';
     return;
   }
-
-  const configs = app.evalData.configs || [];
   let html = '<div class="config-legend">';
   for (let ci = 0; ci < configs.length; ci++) {
     const cfgName = configs[ci];

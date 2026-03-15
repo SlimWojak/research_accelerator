@@ -31,6 +31,12 @@ const app = {
   // Chart refs (set by chart-tab.js)
   chart: null,
   candleSeries: null,
+
+  // Detection week mode state (compare.html week browsing)
+  weekMode: false,          // true when viewing a walk-forward week
+  weekData: null,           // { candleData, detectionData, sessionData }
+  weekManifest: [],         // weeks.json content
+  currentCompareWeek: null, // current week manifest entry
 };
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
@@ -497,7 +503,18 @@ async function loadFixtureByKey(fixtureKey) {
  * Switch to a different fixture file. Reloads all data and re-renders the active tab.
  */
 async function switchFixture(fixtureKey) {
-  if (fixtureKey === app.activeVariantFixture) return;
+  if (fixtureKey === app.activeVariantFixture && !app.weekMode) return;
+
+  // Clear week mode when switching to a fixture
+  if (app.weekMode) {
+    app.weekMode = false;
+    app.weekData = null;
+    app.currentCompareWeek = null;
+    const badge = document.getElementById('week-mode-badge');
+    if (badge) badge.style.display = 'none';
+    const weekPicker = document.getElementById('week-picker-compare');
+    if (weekPicker) weekPicker.value = '';
+  }
 
   setLoading(true);
   hideError();
@@ -721,6 +738,9 @@ async function bootApp() {
     // Render page-level TF selector
     renderCompareTFButtons();
 
+    // Load week manifest for detection mode (non-blocking)
+    loadCompareWeekManifest();
+
     // Render initial tab
     switchTab(app.activeTab);
 
@@ -749,6 +769,21 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(panel => {
     panel.classList.toggle('hidden', panel.id !== `tab-${tabId}`);
   });
+
+  // In week mode, non-chart tabs show a message since they need Schema 4A data
+  if (app.weekMode && tabId !== 'chart') {
+    const panel = document.getElementById(`tab-${tabId}`);
+    if (panel) {
+      panel.innerHTML = `
+        <div class="tab-placeholder">
+          <div class="ph-icon">📊</div>
+          <div class="ph-title">Week Mode</div>
+          <div class="ph-desc">This tab requires calibration fixture data (Schema 4A). Select "— Calibration fixtures —" from the week picker to view ${tabId} data.</div>
+        </div>
+      `;
+    }
+    return;
+  }
 
   // Fire tab init (future workers implement these)
   if (tabId === 'chart' && typeof initChartTab === 'function') {
@@ -791,4 +826,231 @@ function renderMetadata() {
     <span class="meta-item" title="Configs"><span class="meta-label">Configs</span> ${(d.configs || []).join(', ')}</span>
     ${variantMeta}
   `;
+}
+
+/**
+ * Render week-mode metadata when in detection mode (replaces fixture metadata).
+ */
+function renderWeekModeMetadata() {
+  const el = document.getElementById('run-metadata');
+  if (!el || !app.currentCompareWeek) return;
+
+  const w = app.currentCompareWeek;
+  el.innerHTML = `
+    <span class="meta-item" title="Mode"><span class="meta-label">Mode</span> Detection</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-item" title="Week"><span class="meta-label">Week</span> ${w.week}</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-item" title="Range"><span class="meta-label">Range</span> ${w.start} → ${w.end}</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-item" title="Detections"><span class="meta-label">Detections</span> ${w.detection_count.toLocaleString()}</span>
+    <span class="meta-sep">·</span>
+    <span class="meta-item" title="Config"><span class="meta-label">Config</span> locked_a8ra_v1</span>
+  `;
+}
+
+/* ── Week Mode (Detection Browsing) ────────────────────────────────────────── */
+
+/**
+ * Load the week manifest (data/weeks.json) and populate the compare week picker.
+ */
+async function loadCompareWeekManifest() {
+  try {
+    const resp = await fetch('data/weeks.json?_cb=' + Date.now());
+    if (resp.ok) {
+      app.weekManifest = await resp.json();
+      populateCompareWeekPicker();
+    }
+  } catch (e) {
+    /* weeks.json not available — no week mode */
+    console.info('Week manifest not found — week mode disabled.');
+  }
+}
+
+/**
+ * Populate the compare week picker dropdown from the manifest.
+ */
+function populateCompareWeekPicker() {
+  const picker = document.getElementById('week-picker-compare');
+  if (!picker) return;
+
+  picker.innerHTML = '';
+
+  // Default option: back to calibration fixtures
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '— Calibration fixtures —';
+  picker.appendChild(placeholder);
+
+  if (app.weekManifest.length === 0) return;
+
+  for (const w of app.weekManifest) {
+    const opt = document.createElement('option');
+    opt.value = w.week;
+    opt.textContent = `${w.week} (${w.start} → ${w.end}) · ${w.detection_count.toLocaleString()} dets`;
+    picker.appendChild(opt);
+  }
+
+  picker.addEventListener('change', onCompareWeekSelect);
+}
+
+/**
+ * Handle week picker change: switch to week mode or back to fixture mode.
+ */
+async function onCompareWeekSelect() {
+  const picker = document.getElementById('week-picker-compare');
+  const weekId = picker.value;
+
+  if (!weekId) {
+    // Switching back to fixture mode
+    exitWeekMode();
+    return;
+  }
+
+  // Find manifest entry
+  const weekEntry = app.weekManifest.find(w => w.week === weekId);
+  if (!weekEntry) return;
+
+  setLoading(true);
+  hideError();
+
+  try {
+    // Load week data in parallel
+    const [candleData, detectionData, sessionData] = await Promise.all([
+      fetchJSON(`data/candles/${weekId}.json`),
+      fetchJSON(`data/detections/${weekId}.json`),
+      fetchJSON(`data/sessions/${weekId}.json`),
+    ]);
+
+    app.weekMode = true;
+    app.currentCompareWeek = weekEntry;
+    app.weekData = {
+      candleData: candleData,
+      detectionData: detectionData,
+      sessionData: sessionData,
+    };
+
+    // Derive primitives from detection data for week mode
+    deriveWeekModePrimitives(detectionData);
+
+    // Derive day tabs from the week's forex_days
+    deriveWeekModeDays(weekEntry);
+
+    // Update UI indicators
+    const badge = document.getElementById('week-mode-badge');
+    if (badge) badge.style.display = '';
+
+    // Update metadata bar
+    renderWeekModeMetadata();
+
+    // Reset chart so it re-initializes with new data
+    if (typeof resetChartTab === 'function') resetChartTab();
+    if (typeof resetStatsTab === 'function') resetStatsTab();
+
+    // Switch to chart tab (primary view for week mode)
+    switchTab('chart');
+
+  } catch (err) {
+    console.error('Error loading week data:', err);
+    showError('Failed to load week data: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/**
+ * Exit week mode and return to fixture mode.
+ */
+function exitWeekMode() {
+  if (!app.weekMode) return;
+
+  app.weekMode = false;
+  app.weekData = null;
+  app.currentCompareWeek = null;
+
+  // Hide week mode badge
+  const badge = document.getElementById('week-mode-badge');
+  if (badge) badge.style.display = 'none';
+
+  // Re-derive days and primitives from fixture data
+  if (app.evalData) {
+    deriveDaysFromData(app.evalData);
+    derivePrimitivesFromData(app.evalData);
+  }
+
+  // Restore fixture metadata
+  renderMetadata();
+
+  // Reset chart and stats tabs to rebuild
+  if (typeof resetChartTab === 'function') resetChartTab();
+  if (typeof resetStatsTab === 'function') resetStatsTab();
+
+  // Re-render current tab
+  switchTab(app.activeTab);
+}
+
+/**
+ * Derive PRIMITIVES list from week detection data (detection mode).
+ */
+function deriveWeekModePrimitives(detectionData) {
+  if (!detectionData || !detectionData.detections_by_primitive) return;
+
+  const primSet = new Set();
+  const dbp = detectionData.detections_by_primitive;
+  let hasContinuations = false;
+
+  for (const [prim, byTf] of Object.entries(dbp)) {
+    for (const [tf, dets] of Object.entries(byTf)) {
+      if (TF_KEYS.has(tf) && dets && dets.length > 0) {
+        primSet.add(prim);
+        // Check for continuations in liquidity_sweep
+        if (prim === 'liquidity_sweep' && !hasContinuations) {
+          hasContinuations = dets.some(
+            d => d.properties && d.properties.type === 'CONTINUATION'
+          );
+        }
+        break;
+      }
+    }
+  }
+
+  if (hasContinuations) {
+    primSet.add('sweep_continuation');
+  }
+
+  if (primSet.size > 0) {
+    PRIMITIVES = Array.from(primSet).sort();
+  }
+}
+
+/**
+ * Derive DAY_KEYS / DAYS from a week manifest entry's forex_days.
+ */
+function deriveWeekModeDays(weekEntry) {
+  const SHORT_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let days = (weekEntry.forex_days || []).slice();
+
+  // Filter to weekdays
+  days = days.filter(d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    const dow = dt.getUTCDay();
+    return dow >= 1 && dow <= 5;
+  });
+
+  DAY_KEYS = days;
+  DAY_LABELS = days.map(d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    const dow = SHORT_DAYS[dt.getUTCDay()];
+    const mon = SHORT_MONTHS[dt.getUTCMonth()];
+    const day = dt.getUTCDate();
+    return `${dow} ${mon} ${day}`;
+  });
+  DAYS = DAY_KEYS.map((k, i) => ({ key: k, label: DAY_LABELS[i] }));
+
+  if (DAYS.length > 0) {
+    app.day = DAY_KEYS.length > 1 ? DAY_KEYS[1] : DAY_KEYS[0];
+  }
 }
