@@ -365,14 +365,29 @@ def full_detection(det) -> dict:
 
 def build_candle_json(bars_by_tf: dict) -> dict:
     """Build candle JSON with arrays for all timeframes (1m/5m/15m/1H/4H/1D)."""
-    def bars_to_list(df: pd.DataFrame) -> list[dict]:
+    def bars_to_list(df: pd.DataFrame, tf: str = "") -> list[dict]:
         records = []
         for _, row in df.iterrows():
-            ts = row["timestamp_ny"]
-            if hasattr(ts, "isoformat"):
-                time_str = ts.isoformat()
+            if tf == "1D":
+                # For daily bars: use the forex_day date as the canonical
+                # timestamp so charts label bars by trading day, not by
+                # the bar's raw open time (Sunday evening for Monday's bar).
+                fd = row.get("forex_day", "")
+                if not fd:
+                    continue
+                # Skip Saturday forex_day bars (Friday post-17:00 rump data)
+                fd_date = date.fromisoformat(fd)
+                if fd_date.isoweekday() == 6:
+                    continue
+                # The bar represents trading from 17:00 (fd-1) to 17:00 (fd).
+                # Use forex_day at 00:00 UTC for clean chart display.
+                time_str = f"{fd}T00:00:00"
             else:
-                time_str = str(ts)
+                ts = row["timestamp_ny"]
+                if hasattr(ts, "isoformat"):
+                    time_str = ts.isoformat()
+                else:
+                    time_str = str(ts)
             records.append({
                 "time": time_str,
                 "open": float(row["open"]),
@@ -382,7 +397,7 @@ def build_candle_json(bars_by_tf: dict) -> dict:
             })
         return records
 
-    return {tf: bars_to_list(df) for tf, df in bars_by_tf.items()}
+    return {tf: bars_to_list(df, tf) for tf, df in bars_by_tf.items()}
 
 
 def build_session_boundaries(bars_1m: pd.DataFrame) -> list[dict]:
