@@ -180,7 +180,7 @@ async function loadAllWeeksHTF() {
 
     // Merge candles by TF
     const merged = {};
-    for (const tf of ['1H', '4H']) { merged[tf] = []; }
+    for (const tf of ['1H', '4H', '1D']) { merged[tf] = []; }
     // Merge detections
     const mergedDets = {};
     // Merge sessions
@@ -189,7 +189,7 @@ async function loadAllWeeksHTF() {
     for (let i = 0; i < results.length; i++) {
       const [candles, dets, sessions] = results[i];
       if (candles) {
-        for (const tf of ['1H', '4H']) {
+        for (const tf of ['1H', '4H', '1D']) {
           if (candles[tf]) merged[tf].push(...candles[tf]);
         }
       }
@@ -391,7 +391,7 @@ function renderDayTabs() {
  * TF Buttons
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-const V_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
+const V_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
 function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
 

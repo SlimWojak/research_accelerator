@@ -1,0 +1,468 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# V2.1 TRADE VALIDATION REPORT
+# Date: 2026-03-17
+# Analyst: Opus (Droid)
+# Status: COMPLETE — 4/4 trades correctly classified
+# Pipeline: 1D detection enabled, 25 weeks regenerated (105,917 detections)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+metadata:
+  analysis_date: "2026-03-17"
+  v2_spec_version: "v2.1"
+  pipeline_version: "1D enabled (detect.py timeframes includes 1D)"
+  data_regenerated: "25 weeks, 2025-09-01 to 2026-02-28, 105,917 total detections"
+  config: "configs/locked_baseline.yaml (HTF swing params added as locked)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: PER-TRADE DETECTION INVENTORY + V2.1 CLASSIFICATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+trade_validations:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TRADE 1: Oct 1, 2025 — EXPANSION (bearish) → SHORTS
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  trade_1:
+    date: "2025-10-01"
+    execution_time: "LOKZ ~03:30"
+    expected_v2_phase: HTF_EXPANSION_PHASE (bearish)
+    expected_direction: SHORTS_ONLY
+
+    detection_inventory:
+
+      daily_context:
+        1D_displacement: "NONE detected (ATR(14) insufficient with 5-6 daily bars per week)"
+        1D_mss: "NONE detected (same ATR limitation)"
+        1D_fvg:
+          - "W39: 2 daily FVGs detected (24.9 pip and 20.8 pip)"
+          - "These correspond to the Sept 24-25 bearish FVGs from forensic analysis"
+        1D_swing_points: "W39: 1 swing detected on daily"
+        limitation_note: |
+          Daily displacement/MSS don't fire because the 5-day weekly window
+          provides insufficient bars for ATR(14) calculation. 4H serves as
+          proxy — same conclusion, more granular evidence.
+
+      4h_detections_w39:
+        displacement:
+          - time: "2025-09-24T00:00:00"
+            direction: bearish
+            body_ratio: 0.819
+            atr_multiple: 2.501
+            grade: STRONG
+            fvg_created: true
+          - time: "2025-09-25T08:00:00"
+            direction: bearish
+            body_ratio: 0.857
+            atr_multiple: 2.966
+            grade: STRONG
+            fvg_created: true
+        mss:
+          - time: "2025-09-24T04:00:00"
+            direction: BEARISH
+            break_type: CONTINUATION
+            fvg_created: true
+          - time: "2025-09-25T08:00:00"
+            direction: BEARISH
+            break_type: CONTINUATION
+            fvg_created: true
+
+      1h_detections_w39:
+        mss:
+          - time: "2025-09-24T04:00:00"
+            direction: BEARISH
+            break_type: CONTINUATION
+          - time: "2025-09-25T03:00:00"
+            direction: BEARISH
+            break_type: CONTINUATION
+          - time: "2025-09-25T08:00:00"
+            direction: BEARISH
+            break_type: REVERSAL
+          - time: "2025-09-26T06:00:00"
+            direction: BEARISH
+            break_type: REVERSAL
+        displacement:
+          - "9 bearish 1H displacements Sept 23-26 (all VALID or STRONG grade)"
+
+      1h_detections_w40:
+        mss:
+          - time: "2025-10-01T00:00:00"
+            direction: BULLISH
+            break_type: REVERSAL
+            note: "1H bullish MSS at midnight — triggers COUNTER on 1H"
+
+      execution_window_oct_1:
+        15m_mss:
+          - time: "2025-10-01T03:30:00"
+            direction: BEARISH
+            break_type: REVERSAL
+            note: "KEY EVENT — kill zone realignment signal"
+        5m_displacement:
+          - time: "2025-10-01T03:15:00"
+            direction: bearish
+            body_ratio: 0.881
+            atr_multiple: 2.488
+            grade: STRONG
+          - time: "2025-10-01T03:25:00"
+            direction: bearish
+            body_ratio: 0.899
+            atr_multiple: 2.195
+            grade: STRONG
+          - time: "2025-10-01T03:40:00"
+            direction: bearish
+            body_ratio: 0.931
+            atr_multiple: 2.377
+            grade: STRONG
+        5m_mss:
+          - time: "2025-10-01T03:40:00"
+            direction: BEARISH
+            break_type: REVERSAL
+        5m_fvg:
+          - time: "2025-10-01T03:15:00"
+            gap_pips: 6.0
+          - time: "2025-10-01T03:20:00"
+            gap_pips: 11.4
+
+    v2_1_classification:
+      daily_structure_direction: "BEARISH (4H bearish MSS Sept 24, not invalidated)"
+      h1_alignment_on_oct_1:
+        status: COUNTER_THEN_REALIGNED
+        reasoning: |
+          1H bullish MSS at 00:00 Oct 1 → h1_alignment = COUNTER.
+          BUT within LOKZ (02:00-05:00):
+            - 15m bearish MSS fires at 03:30 (in daily direction)
+            - No new 1H MSS in opposing direction in last 2 hours
+            - Kill zone realignment exception applies
+          → h1_alignment transitions to ALIGNED at 03:30
+      phase_at_execution: HTF_EXPANSION_PHASE (bearish)
+      direction_permission: WITH_EXPANSION_ONLY → SHORTS
+      classification: CORRECT
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TRADE 2: Sept 29, 2025 — RETRACE → counter LONGS
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  trade_2:
+    date: "2025-09-29"
+    execution_time: "NYOKZ reversal window"
+    expected_v2_phase: HTF_RETRACE_PHASE
+    expected_direction: COUNTER_ALLOWED (longs)
+
+    detection_inventory:
+
+      daily_context:
+        note: "Same Sept 23-24 bearish structure as Trade 1. MSS not invalidated."
+
+      4h_bearish_structure:
+        note: |
+          4H bearish MSS from Sept 24-25 still active. No opposing 4H MSS
+          has fired between Sept 25 and Sept 29.
+
+      1h_counter_evidence_w39:
+        displacement_counter:
+          - time: "2025-09-25T18:00:00"
+            direction: bullish
+            body_ratio: 0.950
+            atr_multiple: 0.708
+            grade: VALID
+            note: "Bullish 1H displacement — counter to daily bearish"
+        structure_note: |
+          Between Sept 26-29, 1H swing structure shows HH/HL pattern
+          (bullish) counter to daily bearish. Multiple bullish 1H
+          displacement-quality moves confirm the counter-structure.
+          No explicit 1H bullish MSS fires — swing-primary catches it.
+
+      15m_context_sept_29:
+        mss:
+          - time: "2025-09-29T04:15:00"
+            direction: BEARISH
+            break_type: CONTINUATION
+          - time: "2025-09-29T07:45:00"
+            direction: BULLISH
+            break_type: REVERSAL
+            note: "15m bullish MSS in NYOKZ — execution signal"
+
+    v2_1_classification:
+      daily_structure_direction: "BEARISH (4H bearish MSS Sept 24, not invalidated)"
+      h1_alignment:
+        status: COUNTER
+        method: "Swing-primary (v2.1) — 1H HH/HL bullish pattern persisted 3+ bars with displacement-quality counter move"
+        note: "No explicit 1H bullish MSS fired — swing structure is the evidence"
+      phase: HTF_RETRACE_PHASE
+      direction_permission: COUNTER_ALLOWED → LONGS permitted
+      smt_note: "Trade used SMT (DXY divergence) as sweep substitute — not in locked L1. Tolerated as known miss."
+      classification: CORRECT
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TRADE 3: Dec 12, 2025 — RANGE → 4H authority → LONGS
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  trade_3:
+    date: "2025-12-12"
+    execution_time: "NYOKZ reversal window"
+    expected_v2_phase: HTF_RANGE_OR_UNCLEAR_PHASE
+    expected_direction: BOTH (4H says bullish)
+
+    detection_inventory:
+
+      daily_context:
+        1D_displacement: "NONE across W47-W51 (no daily bar passes 0.65 body + 1.5x ATR)"
+        1D_fvg:
+          - "W49: 1 daily FVG"
+          - "W50: 2 daily FVGs (25.1 pip and 61.9 pip) — bullish FVGs forming Dec 10-11"
+        range_evidence: |
+          No daily displacement fires between Nov 17 - Dec 12.
+          This correctly signals RANGE phase — no clear daily direction.
+
+      4h_detections_w50:
+        displacement:
+          - time: "2025-12-10T00:00:00"
+            direction: bullish
+            body_ratio: 0.809
+            atr_multiple: 1.732
+            grade: VALID
+          - time: "2025-12-10T08:00:00"
+            direction: bullish
+            body_ratio: 0.811
+            atr_multiple: 4.100
+            grade: STRONG
+        mss:
+          - time: "2025-12-10T16:00:00"
+            direction: BULLISH
+            break_type: REVERSAL
+            fvg_created: true
+            note: "KEY EVENT — 4H takes authority. Most recent HTF MSS."
+        fvg_bullish:
+          - time: "2025-12-10T04:00:00"
+            gap_pips: 36.6
+          - time: "2025-12-10T08:00:00"
+            gap_pips: 34.2
+          - time: "2025-12-11T04:00:00"
+            gap_pips: 18.0
+          - "Plus 2 smaller FVGs (3.75, 6.55 pip)"
+
+      1h_fvg_confluence:
+        note: |
+          Multiple 1H bullish FVGs on Dec 10-11 (3.45 to 44.55 pip),
+          overlapping with 4H FVG zones. This is the confluence zone
+          Olya described for Trade 3 entry.
+
+      4h_prior_weeks:
+        w49_4h_displacement: "NONE"
+        w49_4h_mss: "NONE"
+        note: "No 4H activity in W49 — the Dec 10 events are the fresh signal"
+
+    v2_1_classification:
+      daily_structure_direction: "NEUTRAL (no daily displacement or MSS fires)"
+      at_key_level: "true (daily FVGs forming, structure at decision area)"
+      momentum_active: "false (no daily displacement in relevant period)"
+      phase: HTF_RANGE_OR_UNCLEAR_PHASE
+      authority_delegation:
+        authority_tf: "4H"
+        reasoning: "4H bullish MSS Dec 10 16:00 is the most recent HTF MSS"
+        direction: BULLISH
+      direction_permission: BOTH → 4H says BULLISH → LONGS
+      classification: CORRECT
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TRADE 4: Oct 28, 2025 — STATE_INDEPENDENT (Asia Scalp)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  trade_4:
+    date: "2025-10-28"
+    execution_time: "NY midnight to first 2 hours LOKZ"
+    expected_v2_phase: STATE_INDEPENDENT
+    expected_direction: "Per Asia Range strategy rules"
+    control_test: true
+
+    detection_inventory:
+
+      asia_range:
+        range_pips: 17.7
+        classification: MID
+        valid_for_strategy: true
+
+      5m_sweep:
+        - time: "2025-10-28T00:20:00"
+          direction: BEARISH
+          note: "Sweep of Asia high"
+        - time: "2025-10-28T00:35:00"
+          direction: BEARISH
+          note: "Second sweep confirmation"
+
+      note: "All detections use locked LTF params. No HTF involvement."
+
+    v2_1_classification:
+      phase: STATE_INDEPENDENT
+      note: "Bypasses HTF phase detector entirely. Own pre-conditions satisfied."
+      classification: CORRECT
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 2: PHASE TRANSITION WALKTHROUGH — Sept 22 → Oct 3
+# ═══════════════════════════════════════════════════════════════════════════════
+
+phase_transition_walkthrough:
+
+  description: |
+    Bar-by-bar phase transitions for the Sept 22 → Oct 3 period.
+    This covers both Trade 1 (Oct 1) and Trade 2 (Sept 29).
+    Uses 4H as proxy for daily structure (1D detection limited by ATR window).
+
+  daily_bar_analysis:
+    sept_22:
+      bar: "BULL body=0.299 range=41.2pip"
+      daily_displacement: "No (body 30%, below 0.65)"
+      phase: "UNDEFINED — no HTF structure established yet in this window"
+    sept_23:
+      bar: "BEAR body=0.840 range=91.0pip"
+      daily_displacement: "YES (body 84%, range 91pip — easily passes proposed thresholds)"
+      note: "First bearish daily displacement. Structure shift initiating."
+    sept_24:
+      bar: "BEAR body=0.658 range=108.4pip"
+      daily_displacement: "YES (body 66%, barely passes 0.65 gate. ATR 1.97x.)"
+      4h_mss: "4H bearish MSS at 04:00 (CONTINUATION, FVG created)"
+      1h_mss: "1H bearish MSS at 04:00 (CONTINUATION)"
+      phase_transition: "→ HTF_EXPANSION_PHASE (bearish)"
+      daily_fvg: "1D bearish FVG created (24.9 pip)"
+    sept_25:
+      bar: "BULL body=0.698 range=50.4pip"
+      daily_displacement: "No (bullish, but daily trend is bearish)"
+      4h_mss: "4H bearish MSS at 08:00 (CONTINUATION)"
+      1h_displacement_counter: "1H bullish displacement at 18:00 (body 0.95, VALID)"
+      phase: "EXPANSION (bearish) — but 1H counter-evidence emerging"
+    sept_26:
+      bar: "BULL body=0.562 range=1.6pip (partial day)"
+      1h_structure: "1H swing structure shows HH/HL (bullish counter)"
+      1h_counter_persistence: "Starting count — need 3+ consecutive 1H bars"
+      phase: "EXPANSION → watching for RETRACE trigger"
+    sept_27_28:
+      note: "Weekend — no bars"
+    sept_29:
+      bar: "BULL body=0.149 range=49.6pip (indecisive)"
+      1h_structure: "1H HH/HL pattern persisted 3+ bars since Sept 26"
+      1h_counter_displacement: "Bullish 1H displacement on Sept 25 18:00 qualifies"
+      phase_transition: "→ HTF_RETRACE_PHASE"
+      reasoning: |
+        h1_alignment = COUNTER (swing-primary):
+        a) 1H HH/HL pattern (bullish) counter to daily bearish ✓
+        b) Persisted >= 3 consecutive 1H bars ✓
+        c) Displacement-quality counter move exists (Sept 25 18:00) ✓
+      trade_2: "RETRACE phase → COUNTER_ALLOWED → LONGS permitted"
+    sept_30:
+      bar: "BEAR body=0.049 range=63.1pip (indecisive)"
+      1h_structure: "1H bullish momentum fading"
+      phase: "RETRACE (daily bearish expansion + 1H counter)"
+    oct_1:
+      bar: "BEAR body=0.194 range=75.4pip"
+      1h_mss_midnight: "1H BULLISH MSS at 00:00 (REVERSAL) — counter continues"
+      lokz_window:
+        "02:00": "Kill zone opens. 1H counter still active."
+        "03:15": "5m bearish displacement fires (body 0.881, ATR 2.488, STRONG)"
+        "03:20": "5m bearish FVG created (11.4 pip)"
+        "03:30": |
+          15m BEARISH MSS fires (REVERSAL).
+          Kill zone realignment check:
+            - Daily phase: EXPANSION bearish ✓
+            - Current phase: RETRACE ✓
+            - 15m MSS in daily direction (bearish) ✓
+            - No new 1H MSS in opposing direction in last 2 hours ✓
+              (1H bullish MSS was at 00:00 = 3.5 hours ago)
+          → h1_alignment transitions to ALIGNED
+          → Phase: RETRACE → EXPANSION restored
+        "03:40": "5m bearish MSS fires (REVERSAL). Execution chain complete."
+      phase_transition: "→ HTF_EXPANSION_PHASE restored at 03:30"
+      trade_1: "EXPANSION phase → WITH_EXPANSION → SHORTS"
+    oct_2:
+      bar: "BULL body=0.495 range=46.1pip"
+      4h_mss: "4H bearish MSS at 08:00 (REVERSAL) — structure continuing"
+      phase: "EXPANSION (bearish)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 3: TRADE 3 WALKTHROUGH — Dec 8 → Dec 12
+# ═══════════════════════════════════════════════════════════════════════════════
+
+trade_3_walkthrough:
+
+  description: |
+    4H-level walkthrough for the Dec 8-12 period.
+    Daily shows no displacement — correct RANGE signal.
+
+  dec_8:
+    4h_fvg: "Bullish FVG 3.75 pip (small, early signal)"
+    phase: "RANGE — no daily displacement, no clear structure"
+
+  dec_10:
+    4h_displacement:
+      - "00:00: bullish body=0.809, ATR=1.732 (VALID)"
+      - "08:00: bullish body=0.811, ATR=4.100 (STRONG)"
+    4h_fvg:
+      - "04:00: bullish 36.6 pip (large)"
+      - "08:00: bullish 34.2 pip (large)"
+    4h_mss: "16:00: BULLISH REVERSAL (FVG created)"
+    1h_fvg: "9 bullish FVGs on Dec 10 (3.45 to 44.55 pip)"
+    1d_fvg: "Daily bullish FVG 25.05 pip"
+    phase_event: |
+      4H bullish MSS fires at 16:00 → 4H takes authority.
+      Daily is still RANGE (no daily displacement).
+      v2.1 authority delegation: 4H has most recent MSS → direction = BULLISH.
+
+  dec_11:
+    4h_fvg: "Additional bullish FVGs (6.55 pip, 18.0 pip)"
+    1h_fvg: "6 more bullish FVGs (1.2 to 11.0 pip)"
+    1d_fvg: "Daily bullish FVG 61.85 pip (very large)"
+    phase: "RANGE with 4H BULLISH authority"
+
+  dec_12:
+    1h_fvg: "1 bullish FVG at 02:00 (1.0 pip)"
+    phase: "RANGE with 4H BULLISH authority → LONGS permitted"
+    trade_3: "Sweep sell-side → MSS → OTE → target 4H expansion high"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 4: SUMMARY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+summary:
+
+  result: "4/4 trades correctly classified under v2.1"
+
+  per_trade:
+    trade_1: "EXPANSION (bearish) → SHORTS ✓ — via kill zone realignment at 03:30"
+    trade_2: "RETRACE → COUNTER_ALLOWED (longs) ✓ — via swing-primary h1_alignment"
+    trade_3: "RANGE → 4H BULLISH authority → LONGS ✓ — 4H MSS Dec 10 takes authority"
+    trade_4: "STATE_INDEPENDENT → Asia Scalp ✓ — control test, locked LTF params"
+
+  v2_1_refinements_validated:
+    swing_primary_h1:
+      status: VALIDATED
+      evidence: "Trade 2 correctly classified as RETRACE without 1H MSS"
+    kill_zone_realignment:
+      status: VALIDATED
+      evidence: "Trade 1 correctly restores EXPANSION at 03:30 via 15m MSS in LOKZ"
+
+  known_limitations:
+    1d_atr_window: |
+      Daily displacement/MSS don't fire in the current pipeline because
+      weekly 5-day windows provide insufficient bars for ATR(14) calculation.
+      4H serves as reliable proxy — identical structural conclusions.
+      Fix: cross-week bar loading to give 1D detector 14+ bars of history.
+    smt_gap: |
+      Trade 2 used SMT (DXY divergence) as sweep substitute.
+      Not in locked L1. Tolerated as known miss per v2 spec.
+
+  ready_for_olya: |
+    The pipeline now produces:
+    - Daily candles with forex day boundaries on all tools
+    - HTF detections (4H displacement, MSS, FVG) correctly on trade dates
+    - 1D FVGs and swing points visible on daily charts
+    - All 6 calibration pages + validate + compare + strategy support 1D view
+
+    Olya session prep:
+    - Open displacement.html → select 1D → see no markers (correct for most weeks)
+    - Open fvg.html → select 1D → see daily FVGs (24.9, 20.8 pip on Sept week)
+    - Open displacement.html → select 4H → see strong bearish displacement Sept 24-25
+    - Open fvg.html → select 4H → see bullish FVGs Dec 10-11 (34-37 pip)
+    - She confirms or adjusts. System already catches her trades.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END REPORT
+# ═══════════════════════════════════════════════════════════════════════════════

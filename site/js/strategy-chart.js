@@ -225,7 +225,7 @@ class SChainHighlightPrimitive {
       const x1 = ts.timeToCoordinate(b.startTS);
       // endTS with 1-bar offset for width
       const endTS = b.endTS || b.startTS;
-      const barWidthMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400 };
+      const barWidthMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400, '1D': 86400 };
       const barWidth = barWidthMap[sApp.tf] || 900; // Add 1 bar width
       const x2 = ts.timeToCoordinate(endTS + barWidth);
       computed.push({
@@ -612,7 +612,7 @@ function findStrategyNearestCandleTime(detTime) {
   if (_sCandleTimeSet.has(ts)) return ts;
 
   // Find nearest candle time (within tolerance per TF)
-  const maxDiffMap = { '5m': 900, '15m': 3600, '1H': 7200, '4H': 28800 };
+  const maxDiffMap = { '5m': 900, '15m': 3600, '1H': 7200, '4H': 28800, '1D': 172800 };
   const maxDiff = maxDiffMap[sApp.tf] || 3600;
   let best = null;
   let bestDiff = Infinity;

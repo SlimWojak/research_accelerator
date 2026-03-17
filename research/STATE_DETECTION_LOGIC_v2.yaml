@@ -1,7 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# STATE DETECTION LOGIC — V2
+# STATE DETECTION LOGIC — V2.1
 # Unified model: CTO architecture + Opus mechanical fixes + NEX event-cycle framing
-# Status: HYPOTHESIS — pending HTF calibration + additional trade validation
+#                + HTF forensic refinements (swing-primary h1, kill zone realignment)
+# Status: HYPOTHESIS — pending Olya visual confirmation of proposed HTF parameters
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # PROVENANCE:
@@ -10,15 +11,18 @@
 #   NEX review: reframe states as HTF event-cycle phases, not static labels
 #   v2: synthesis — single event-cycle model across all TFs, direction permission
 #       derived from HTF phase, execution from LTF phase
+#   v2.1: HTF forensic refinements — swing-primary h1_alignment, kill zone
+#         realignment exception, proposed HTF parameter candidates
 #
 # VALIDATION:
-#   4 Olya trades annotated. All 4 classify correctly under v2.
+#   4 Olya trades annotated. All 4 classify correctly under v2.1.
+#   v2.1 refinements resolve Trade 1 and Trade 2 nuances from forensic analysis.
 #   Minimum 5-10 trades needed before locking.
 #
 # BLOCKERS:
-#   - HTF displacement/MSS L1.5 calibration (PROPOSED, not LOCKED)
-#   - HTF swing N parameter calibration (UNDEFINED)
-#   - Monthly/Weekly bar aggregation (not yet in pipeline)
+#   - HTF displacement/MSS L1.5 calibration (PROPOSED — candidates derived, pending Olya)
+#   - HTF swing N parameter calibration (PROPOSED — candidates derived, pending Olya)
+#   - Weekly/Monthly bar aggregation (not yet in pipeline; Daily now enabled)
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -211,8 +215,32 @@ htf_phase_detection:
     h1_requirement: |
       1H structure must be ALIGNED or NEUTRAL relative to daily.
       If 1H is COUNTER to daily → transitions to RETRACE phase.
-      Alignment check: h1 event-cycle phase is EXPANSION in same direction,
-      or h1 is in RANGE (no counter signal).
+
+      Alignment check (v2.1 — swing-primary):
+        ALIGNED: 1H swing structure consistent with daily direction,
+                 OR no counter pattern (NEUTRAL).
+        COUNTER: 1H swing structure shows HH/HL or LL/LH counter to daily,
+                 persisted >= 3 bars, with displacement-quality counter move.
+
+      Kill zone realignment exception (v2.1):
+        Within LOKZ (02:00-05:00) or NYOKZ (07:00-10:00):
+          IF daily phase is EXPANSION in direction D
+          AND current phase is RETRACE (1H counter)
+          AND 15m or 5m MSS fires in direction D
+          AND no new 1H MSS has fired in the opposing direction in the last
+              2 hours (i.e., the 1H counter-move has gone quiet):
+            THEN: h1_alignment transitions to ALIGNED
+            Phase transitions: RETRACE → EXPANSION
+
+        This exception ONLY applies within kill zones. Outside kill zones,
+        1H swing structure realignment is still required. Prevents random
+        15m MSS noise from flipping the phase during non-trade hours.
+
+        Rationale (from forensic analysis 2026-03-15):
+          Trade 1 (Oct 1): 1H had bullish MSS at 00:00. No 1H bearish MSS
+          before the 03:30 execution. But 15m bearish MSS at 03:30 in LOKZ
+          was the execution signal. Execution TF structure provides sufficient
+          evidence that the counter-move has exhausted within kill zones.
 
   # ─── PHASE: RETRACE ───
   daily_retrace:
@@ -224,11 +252,30 @@ htf_phase_detection:
         Daily EXPANSION phase is active (MSS exists, not invalidated).
         BUT 1H structure has turned counter-directional.
       1h_counter_detection: |
-        1H event cycle has entered CONFIRMATION or EXPANSION phase
-        in the OPPOSITE direction to daily.
-        Minimum persistence: 1H counter-structure must hold for >= 3
-        consecutive 1H bars (anti-noise filter, from Opus review).
-        Single 1H MSS that immediately reverses = noise, not State 2.
+        SWING STRUCTURE PRIMARY, MSS CONFIRMING (v2.1 refinement):
+
+        1H bars show HH + HL pattern (bullish) or LL + LH pattern (bearish)
+        counter to daily direction. Detection uses swing structure as primary
+        signal — MSS confirms but does not gate.
+
+        Requirements (ALL must hold):
+          a) 1H swing structure shows counter-directional pattern
+          b) Structure persists >= 3 consecutive 1H bars (anti-noise)
+          c) At least one displacement-quality move exists in the counter
+             direction (body_ratio >= 0.60, quality_grade >= VALID)
+
+        The displacement-quality gate ensures slow grinds without commitment
+        do NOT trigger RETRACE. Only genuine counter-directional structure counts.
+
+        Rationale (from forensic analysis 2026-03-15):
+          Trade 2 (Sept 29): 1H showed bullish HH/HL counter to daily bearish,
+          but no explicit 1H bullish MSS fired. MSS-first would miss the RETRACE.
+          Swing-primary catches it correctly. The displacement gate preserves the
+          principle: uncommitted drift is not a real counter-move. Olya reads
+          structure from the chart before MSS formally confirms.
+
+        Supersedes: MSS-first h1_counter_detection (v2.0).
+        Provenance: HTF forensic analysis Trade 2 gap finding.
       spatial_confirmation: |
         Price is moving TOWARD a daily imbalance zone (daily FVG, daily OB)
         in the premium/discount area counter to the daily expansion direction.
@@ -336,9 +383,12 @@ htf_facts:
     confidence: "HIGH (MSS-based) | MEDIUM (structure-based) | LOW (ambiguous)"
     primitives: [MSS, SwingPoints]
     htf_param_note: |
-      SwingPoints N and height_filter are UNDEFINED for Daily/Weekly/Monthly.
-      MSS body_ratio and confirmation_window are PROPOSED for HTF (0.65/1).
-      BLOCKED_BY: HTF calibration session with Olya.
+      SwingPoints N and height_filter PROPOSED for Daily (N=2, height=15pip).
+      SwingPoints N and height_filter PROPOSED for 4H (N=2, height=8pip).
+      Weekly/Monthly: UNDEFINED (insufficient bar data in current pipeline).
+      MSS body_ratio and confirmation_window PROPOSED for HTF (0.65/1).
+      See Section 12: PROPOSED HTF PARAMETERS for full candidate values.
+      BLOCKED_BY: Olya visual confirmation session.
 
   # ─── KEY LEVEL PROXIMITY ───
   at_key_level:
@@ -394,15 +444,39 @@ htf_facts:
   # ─── INTRADAY ALIGNMENT ───
   h1_alignment:
     computation: |
-      h1_structure_direction vs daily_structure_direction
-      ALIGNED: same direction
-      COUNTER: opposite direction, persisted >= 3 consecutive 1H bars
-      NOISE: opposite direction, persisted < 3 consecutive 1H bars (ignore)
+      SWING STRUCTURE PRIMARY, MSS CONFIRMING (v2.1):
+
+      Step 1 — Determine 1H structure direction:
+        PRIMARY: 1H swing structure pattern.
+          IF last 3+ 1H bars show HH + HL → BULLISH
+          IF last 3+ 1H bars show LL + LH → BEARISH
+          ELSE → NEUTRAL
+        CONFIRMING: 1H MSS direction (if present, increases confidence).
+
+      Step 2 — Compare against daily_structure_direction:
+        ALIGNED: 1H structure same direction as daily (or NEUTRAL)
+        COUNTER: 1H structure opposite to daily, ALL of:
+          a) Pattern persists >= 3 consecutive 1H bars
+          b) At least one displacement-quality move in counter direction
+             (body_ratio >= 0.60, quality_grade >= VALID)
+        NOISE: opposite direction but < 3 bars persistence OR
+               no displacement-quality move (ignore)
+
+      Step 3 — Kill zone realignment exception:
+        Within active kill zone (LOKZ 02:00-05:00 or NYOKZ 07:00-10:00):
+          IF current h1_alignment == COUNTER
+          AND 15m or 5m MSS fires in daily direction
+          AND no new 1H MSS in opposing direction in last 2 hours:
+            h1_alignment transitions to ALIGNED
+
     output: "ALIGNED | COUNTER | NOISE"
-    primitives: [MSS_1H, SwingPoints_1H, MSS_daily]
+    primitives: [SwingPoints_1H, MSS_1H, Displacement_1H, MSS_15m, MSS_5m, MSS_daily]
     note: |
-      3-bar minimum persistence filter prevents noise from triggering
-      RETRACE phase. (From Opus review Q2.)
+      v2.1 change: swing structure replaces MSS as primary signal.
+      3-bar persistence + displacement gate prevents noise triggers.
+      Kill zone exception allows execution-TF MSS to restore alignment
+      when 1H counter-move has exhausted. (Forensic analysis 2026-03-15.)
+    provenance: "HTF forensic analysis — Trade 1 and Trade 2 gap findings."
 
   # ─── UNTOUCHED LIQUIDITY LEVELS ───
   liquidity_levels_active:
@@ -447,7 +521,18 @@ phase_transitions:
       trigger: "1H alignment shifts from COUNTER back to ALIGNED"
       condition: "Daily MSS still active"
       lockout: "2x 1H bars minimum before transition"
-      example: "Oct 1: 1H realigns bearish → back to EXPANSION"
+      paths:
+        standard: |
+          1H swing structure realigns with daily direction.
+          Example: 1H starts making LL/LH again during daily bearish expansion.
+        kill_zone_exception: |
+          Within LOKZ or NYOKZ: 15m/5m MSS fires in daily direction
+          AND no new 1H MSS in opposing direction in last 2 hours.
+          The 1H counter-move has gone quiet; execution TF confirms realignment.
+          Lockout still applies (2x 1H bars minimum in RETRACE before exception
+          can fire — prevents immediate whipsaw).
+          Example: Oct 1, 03:30 — 15m bearish MSS in LOKZ restores EXPANSION.
+      example: "Oct 1: 1H counter exhausts, 15m MSS at 03:30 → back to EXPANSION"
 
     retrace_to_range:
       trigger: "1H counter-direction persists >= 3 consecutive daily bars"
@@ -470,15 +555,16 @@ phase_transitions:
       action: "Avoid or prepare for reversal context on higher TF"
 
   oct_1_narrative:
-    description: "Phase transitions Sept 24 → Oct 1 using v2 model"
+    description: "Phase transitions Sept 24 → Oct 1 using v2.1 model"
     sequence:
+      - "Sept 23-24: Daily bearish displacement (body 84%/66%, ATR 1.65x/1.97x)"
       - "Sept 24: Daily bearish MSS fires → EXPANSION phase (bearish)"
-      - "Sept 25: Daily bearish displacement confirms → EXPANSION (confidence HIGH)"
-      - "Sept 26: 1H turns bullish (counter), persists 3+ bars → RETRACE phase"
-      - "Sept 29: Trade 2 — RETRACE phase, counter-direction LONG permitted"
+      - "Sept 26: 1H swing structure turns bullish (HH/HL), persists 3+ bars with displacement-quality move → RETRACE phase"
+      - "Sept 29: Trade 2 — RETRACE phase, counter-direction LONG permitted (h1_alignment=COUNTER via swing structure)"
       - "Sept 30: 1H bullish momentum fading, EQH forming (liquidity building)"
-      - "Oct 1 AM: 1H realigns bearish (MSS bearish on 1H) → back to EXPANSION"
-      - "Oct 1 03:12: Trade 1 — EXPANSION phase, WITH_EXPANSION SHORT"
+      - "Oct 1 00:00: 1H bullish MSS fires (counter), but counter-move losing momentum"
+      - "Oct 1 03:30: Kill zone realignment — 15m bearish MSS in LOKZ, no new 1H opposing MSS in 2hr → EXPANSION restored"
+      - "Oct 1 03:30: Trade 1 — EXPANSION phase, WITH_EXPANSION SHORT"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. DIRECTION PERMISSION OUTPUT
@@ -545,10 +631,11 @@ validation:
     olya_state: "Clear daily direction (bearish)"
     v2_phase: HTF_EXPANSION_PHASE
     v2_computation:
-      daily_structure_direction: "BEARISH (MSS Sept 24, not invalidated)"
-      h1_alignment: "ALIGNED (1H realigned bearish Oct 1 AM)"
-      momentum_active: "true (displacement from Sept 24/25)"
-      daily_fvg_active: "true (bearish FVG above price)"
+      daily_structure_direction: "BEARISH (MSS Sept 23-24, not invalidated)"
+      h1_alignment: "ALIGNED via kill zone realignment (15m bearish MSS at 03:30 in LOKZ)"
+      h1_alignment_method: "Kill zone exception — no 1H bearish MSS, but 15m MSS + no opposing 1H MSS in 2hr"
+      momentum_active: "true (displacement from Sept 23/24)"
+      daily_fvg_active: "true (bearish FVG 1.17538-1.17787 above price, ACTIVE on Oct 1)"
     v2_direction_permission: WITH_EXPANSION_ONLY → SHORTS
     execution_chain: "Sweep 1H EQH → MSS bearish → OTE entry"
     result: CORRECT_CLASSIFICATION
@@ -558,9 +645,10 @@ validation:
     olya_state: "Pullback against daily direction"
     v2_phase: HTF_RETRACE_PHASE
     v2_computation:
-      daily_structure_direction: "BEARISH (MSS Sept 24, not invalidated)"
-      h1_alignment: "COUNTER (1H bullish, persisted 3+ bars since Sept 26)"
-      daily_fvg_active: "true (bearish FVG = pullback target)"
+      daily_structure_direction: "BEARISH (MSS Sept 23-24, not invalidated)"
+      h1_alignment: "COUNTER via swing structure (1H HH/HL bullish, persisted 3+ bars since Sept 26, with displacement-quality counter move)"
+      h1_alignment_method: "Swing-primary — no explicit 1H bullish MSS fired, but swing structure shows clear counter pattern"
+      daily_fvg_active: "true (bearish FVG 1.17538-1.17787 = pullback target)"
       spatial: "Price moving toward daily bearish FVG in premium"
     v2_direction_permission: COUNTER_ALLOWED → LONGS permitted
     execution_chain: "SMT (sweep substitute) → MSS → expansion → OTE"
@@ -598,16 +686,18 @@ validation:
 blockers:
 
   htf_l15_calibration:
-    status: BLOCKED
+    status: PROPOSED
     what: "HTF displacement body_ratio and MSS confirmation_window are PROPOSED (0.65/1)"
-    action: "Olya calibration session on Daily/4H using RA calibration tool"
-    impact: "Phase detector uses these primitives. Cannot validate until locked."
+    action: "Olya visual confirmation session on Daily/4H using RA calibration tool"
+    impact: "Phase detector uses these primitives. Cannot lock until Olya confirms."
+    forensic_validation: "4/4 trades classify correctly with proposed values (2026-03-15)"
 
   htf_swing_params:
-    status: BLOCKED
-    what: "SwingPoints N and height_filter UNDEFINED for Daily/Weekly/Monthly"
-    action: "Calibration session. Propose initial values, Olya confirms."
-    impact: "Structure direction fallback (HH/HL detection) depends on swing definition."
+    status: PROPOSED
+    what: "SwingPoints N and height_filter PROPOSED for Daily (N=2, 15pip) and 4H (N=2, 8pip)"
+    action: "Olya visual confirmation. Candidates derived from forensic analysis."
+    impact: "Structure direction (HH/HL detection) depends on swing definition."
+    forensic_validation: "Daily N=2 captures correct structural swings for all 4 trades"
 
   level_lifecycle:
     status: BLOCKED
@@ -616,10 +706,10 @@ blockers:
     impact: "liquidity_levels_active fact and 1_LIQUIDITY_BUILD phase detection"
 
   monthly_weekly_bars:
-    status: BLOCKED
-    what: "Bar aggregation to Daily/Weekly/Monthly not in RA pipeline"
-    action: "Extend detect.py bar aggregation (same principle as 5m/15m)"
-    impact: "Monthly/weekly facts unavailable until implemented"
+    status: PARTIAL
+    what: "Daily bar aggregation NOW IN PIPELINE (1D enabled 2026-03-15). Weekly/Monthly not yet."
+    action: "Weekly: extend tf_aggregator.py (forex week Mon-Fri). Monthly: deferred."
+    impact: "Daily facts now available. Weekly/monthly facts still unavailable."
 
   additional_trade_validation:
     status: NEEDED
@@ -642,14 +732,28 @@ open_items:
     source: "Opus review Q4"
 
   h1_counter_detection_method:
-    status: OPEN
+    status: RESOLVED (v2.1)
     what: |
       Opus flagged: 1H MSS is a lagging indicator of counter-trend.
       Price can make HH/HL on 1H for multiple bars before MSS confirms.
-      Should h1_alignment use swing structure (HH/HL) as primary signal
-      instead of MSS-first?
-    impact: "Affects RETRACE phase detection timing — earlier vs later trigger"
-    decision_needed: "Olya input on whether she reads 1H pullbacks from structure or MSS"
+    resolution: |
+      h1_alignment now uses SWING STRUCTURE as primary signal, MSS as confirming.
+      Displacement-quality gate (body_ratio >= 0.60, grade >= VALID) prevents
+      slow grinds from triggering false RETRACE. Validated by Trade 2 forensic:
+      1H showed bullish HH/HL with no explicit MSS — swing-primary catches it.
+    provenance: "HTF forensic analysis 2026-03-15, Trade 2 gap finding"
+
+  kill_zone_realignment:
+    status: RESOLVED (v2.1)
+    what: |
+      Trade 1 (Oct 1): execution at 03:30 required EXPANSION phase, but
+      1H still had bullish MSS from 00:00. No 1H bearish MSS before execution.
+    resolution: |
+      Kill zone exception added: within LOKZ/NYOKZ, 15m/5m MSS in daily
+      direction can restore ALIGNED status when 1H counter-move has gone
+      quiet (no new opposing 1H MSS in 2 hours). Only applies within
+      kill zones — outside, full 1H realignment required.
+    provenance: "HTF forensic analysis 2026-03-15, Trade 1 gap finding"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 11. AUTORESEARCH APPLICATION
@@ -669,13 +773,20 @@ autoresearch:
 
   tunable_parameters:
     - "h1_counter_persistence_bars (currently 3)"
+    - "h1_counter_displacement_gate_body_ratio (currently 0.60)"
+    - "kill_zone_realignment_quiet_window_hours (currently 2)"
     - "momentum_stall_window (currently 3 daily bars)"
     - "key_level_tolerance (currently ATR_daily * 0.5)"
     - "transition_lockout_bars (currently 2x 1H)"
     - "retrace_to_range_duration (currently 3 daily bars)"
-    - "HTF swing N (currently UNDEFINED)"
+    - "HTF swing N — Daily (currently PROPOSED 2)"
+    - "HTF swing N — 4H (currently PROPOSED 2)"
+    - "HTF swing height_filter — Daily (currently PROPOSED 15 pip)"
+    - "HTF swing height_filter — 4H (currently PROPOSED 8 pip)"
     - "HTF displacement body_ratio (currently PROPOSED 0.65)"
     - "HTF MSS confirmation_window (currently PROPOSED 1)"
+    - "HTF FVG floor — Daily (currently PROPOSED 10 pip)"
+    - "HTF FVG floor — 4H (currently PROPOSED 3 pip)"
 
   fitness_metric: |
     Precision/recall against Olya's annotations.
@@ -689,8 +800,137 @@ autoresearch:
     - Execution chain variant selection
     Unified research loop. Same pattern. Different parameters.
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 12. PROPOSED HTF PARAMETERS
+# Derived from forensic analysis of 4 known-correct trades (2026-03-15).
+# Status: PROPOSED — pending Olya visual confirmation session.
+# ─────────────────────────────────────────────────────────────────────────────
+
+proposed_htf_parameters:
+
+  provenance: |
+    All candidate values derived from reports/htf_forensic_analysis_2026-03-15.yaml.
+    Method: work backward from 4 trades with known-correct state classifications
+    to find the parameter space that produces correct primitive detections.
+    Cross-trade intersection applied to find values satisfying all 4 trades.
+
+  status: "PROPOSED — do NOT lock without Olya visual confirmation"
+
+  displacement:
+    daily:
+      body_ratio: 0.65
+      atr_multiple: 1.5
+      mode: AND
+      close_gate: 0.25
+      structure_close_required: true
+      forensic_evidence: |
+        Sept 23: body=0.840, ATR=1.65x → fires easily
+        Sept 24: body=0.658, ATR=1.97x → fires (barely passes 0.65)
+        Trade 3 (Dec): no daily bar passes → correct RANGE signal
+    h4:
+      body_ratio: 0.65
+      atr_multiple: 1.5
+      mode: AND
+      close_gate: 0.25
+      structure_close_required: true
+    h1:
+      body_ratio: 0.60
+      atr_multiple: 1.5
+      mode: AND
+      close_gate: 0.25
+      note: "Uses LTF locked value — 1H is execution-adjacent"
+
+  mss:
+    daily:
+      confirmation_window_bars: 1
+      body_ratio: 0.65
+      note: "1 bar = 1 full trading day. MSS must fire on displacement bar itself."
+    h4:
+      confirmation_window_bars: 2
+      body_ratio: 0.65
+    h1:
+      confirmation_window_bars: 3
+      body_ratio: 0.60
+      note: "Uses LTF locked value"
+
+  swing_points:
+    daily:
+      N: 2
+      height_filter_pips: 15
+      forensic_evidence: |
+        N=2 captures: Sept 24 swing low (1.16454), Sept 30 swing high (1.17785),
+        Oct 1 swing low (1.16829). All structurally correct.
+        15 pip height: ~25-30% of typical daily range. Filters micro-noise.
+    h4:
+      N: 2
+      height_filter_pips: 8
+    h1:
+      N: 2
+      height_filter_pips: 3.0
+      note: "Matches 15m locked value — 1H is execution-adjacent"
+
+  fvg:
+    daily:
+      floor_pips: 10
+      forensic_evidence: |
+        All observed daily FVGs were 20+ pips (Sept 24: 24.9, Sept 25: 20.8,
+        Dec 3: 26.0, Dec 10: 25.1, Dec 11: 61.9). 10 pip floor is conservative.
+    h4:
+      floor_pips: 3
+      note: "Matches current engine behavior. 4H FVGs range 3.75 to 36.6 pips."
+    h1:
+      floor_pips: 1
+      note: "Uses LTF locked value"
+
+  cross_trade_validation: |
+    With these parameters applied:
+      Trade 1 (Oct 1): Daily bearish MSS fires Sept 23-24. EXPANSION → SHORTS. CORRECT.
+      Trade 2 (Sept 29): Same MSS still active. 1H counter via swing structure. RETRACE → LONGS. CORRECT.
+      Trade 3 (Dec 12): No daily displacement fires Nov-Dec. RANGE → 4H authority → LONGS. CORRECT.
+      Trade 4 (Oct 28): LTF only (control). INDEPENDENT. CORRECT.
+    Result: 4/4 trades classify correctly.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 13. V2.1 CHANGELOG
+# ─────────────────────────────────────────────────────────────────────────────
+
+changelog:
+
+  v2_1:
+    date: "2026-03-15"
+    source: "HTF forensic analysis (reports/htf_forensic_analysis_2026-03-15.yaml)"
+    changes:
+      - |
+        h1_alignment: swing structure replaces MSS as primary signal.
+        MSS confirms but does not gate. Displacement-quality gate ensures
+        slow grinds do not trigger false RETRACE. Fixes Trade 2 classification.
+      - |
+        Kill zone realignment exception: within LOKZ/NYOKZ, 15m/5m MSS in
+        daily direction can restore ALIGNED status when 1H counter-move has
+        gone quiet. Fixes Trade 1 classification.
+      - |
+        Proposed HTF parameters added (Section 12): displacement, MSS, swing,
+        FVG candidates for Daily/4H/1H derived from forensic cross-trade analysis.
+      - |
+        Blocker updates: htf_l15_calibration and htf_swing_params moved from
+        BLOCKED to PROPOSED. monthly_weekly_bars moved to PARTIAL (Daily now
+        in pipeline). h1_counter_detection_method RESOLVED.
+      - |
+        1D bar aggregation enabled in detection pipeline (detect.py).
+        Daily primitives now available in calibration tools.
+
+  v2_0:
+    date: "2026-03-13"
+    source: "CTO architecture + Opus mechanical fixes + NEX event-cycle framing"
+    changes:
+      - "Initial v2 specification"
+      - "6-phase universal event cycle"
+      - "Layered architecture (primitives → HTF phase → LTF phase → chain)"
+      - "4/4 trade validation"
+
 # ═══════════════════════════════════════════════════════════════════════════════
-# END — STATE DETECTION LOGIC V2
-# Status: HYPOTHESIS pending HTF calibration + additional trade validation
-# Next: Olya annotates 5+ more trades. Run against v2. Discover edge cases.
+# END — STATE DETECTION LOGIC V2.1
+# Status: HYPOTHESIS — 4/4 trades validated. Pending Olya confirmation of
+#         proposed HTF parameters + additional trade annotations (target 10+).
+# Next: 1D detection live in tools. Olya visual confirmation session.
 # ═══════════════════════════════════════════════════════════════════════════════

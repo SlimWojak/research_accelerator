@@ -609,7 +609,7 @@ function matchesTiming(detA, detB, timingWindow, stepTF) {
     const barB = detB.properties?.bar_index;
     if (barA == null || barB == null) {
       // Fall back to time-based approximation using step's TF
-      const tfSecondsMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400 };
+      const tfSecondsMap = { '5m': 300, '15m': 900, '1H': 3600, '4H': 14400, '1D': 86400 };
       const tfSeconds = tfSecondsMap[stepTF || sApp.tf] || 300;
       return (timeB - timeA) <= maxBars * tfSeconds;
     }

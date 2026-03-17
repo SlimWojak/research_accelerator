@@ -659,7 +659,7 @@ async function loadSessionBoundaries() {
 
 /* ── Page-Level TF Selector ─────────────────────────────────────────────────── */
 
-const COMPARE_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H'];
+const COMPARE_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
 function isHTF(tf) { return ['1H', '4H', '1D'].includes(tf); }
 
@@ -919,13 +919,13 @@ async function loadAllWeeksHTF_compare() {
     const results = await Promise.all(fetches);
 
     const merged = {};
-    for (const tf of ['1H', '4H']) { merged[tf] = []; }
+    for (const tf of ['1H', '4H', '1D']) { merged[tf] = []; }
     const mergedDets = {};
     const mergedSessions = [];
 
     for (const [candles, dets, sessions] of results) {
       if (candles) {
-        for (const tf of ['1H', '4H']) {
+        for (const tf of ['1H', '4H', '1D']) {
           if (candles[tf]) merged[tf].push(...candles[tf]);
         }
       }
