@@ -304,6 +304,44 @@ The `--full` flag on `detect.py` preserves all detection properties (broken_swin
 
 ---
 
+## Phase 5.5: State Detection + AutoResearch
+
+### State Detection Logic (v2.1)
+
+Event-cycle-based phase classifier for HTF direction permission. Three phases: EXPANSION (with-expansion only), RETRACE (counter allowed), RANGE (both, authority delegated to 4H/1H).
+
+- **Spec**: `research/STATE_DETECTION_LOGIC_v2.yaml` — 937-line canonical specification
+- **Validation**: 4/4 trades correctly classified (reports/v2_trade_validation_2026-03-15.yaml)
+
+### AutoResearch Harness
+
+Adapts Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) pattern: ground truth + system under test + score + iterate.
+
+```bash
+# Evaluate all trades against v2.1 classifier
+python3 tools/autoresearch/evaluate.py
+
+# Override classifier thresholds
+python3 tools/autoresearch/evaluate.py --param-overrides h1_counter_persistence_bars=4
+
+# Preview sweep search space
+python3 tools/autoresearch/sweep.py --dry-run
+```
+
+**Ground truth**: `research/ground_truth/annotated_trades.yaml` — 4 Olya-annotated trades.
+**Reports**: `reports/autoresearch/eval_*.yaml` — per-trade PASS/FAIL + diagnostics.
+**Classifier thresholds**: 6 tunable parameters (persistence bars, stall windows, lockout periods). NOT L1.5 visual params.
+
+### Architecture
+
+- `tools/autoresearch/evaluate.py` — loads detection data, implements v2.1 phase classifier, scores against ground truth
+- `tools/autoresearch/sweep.py` — grid search over 5,120 parameter combinations
+- `research/ground_truth/annotated_trades.yaml` — growing dataset of annotated trades
+- `docs/ARCHITECTURE.md` — full system architecture reference
+- `docs/TOOL_GUIDE.md` — operations quick reference
+
+---
+
 ## Calibration Visual Bible (`site/`)
 
 Interactive threshold calibration tool for visual review of L1.5 parameter tuning on EURUSD data.
@@ -342,6 +380,26 @@ Six chart pages: FVG, Swing Points, Displacement, Order Blocks, NY Windows, Asia
 ├── eval.py                        # CLI entry point for evaluation engine (Phase 2+4)
 ├── search.py                      # CLI entry point for parameter search (Phase 4)
 ├── pyproject.toml                 # Package metadata (Python ≥3.12, pydantic, pandas, duckdb)
+│
+├── tools/autoresearch/            # AutoResearch harness (Karpathy pattern)
+│   ├── evaluate.py                # v2.1 phase classifier + scoring against ground truth
+│   └── sweep.py                   # Grid search over classifier thresholds
+│
+├── research/                      # State detection specs + ground truth
+│   ├── STATE_DETECTION_LOGIC_v2.yaml  # Canonical v2.1 spec
+│   ├── HTF_FORENSIC_ANALYSIS_BRIEF.md # Forensic analysis methodology
+│   ├── ground_truth/              # Olya's annotated trades
+│   │   └── annotated_trades.yaml  # 4 trades (growing dataset)
+│   └── *.md                       # Phase 1 research archive
+│
+├── reports/                       # Analysis outputs
+│   ├── autoresearch/              # AutoResearch evaluation runs
+│   ├── v2_trade_validation_*.yaml # Trade validation reports
+│   └── htf_forensic_analysis_*.yaml # HTF parameter candidates
+│
+├── docs/                          # System documentation
+│   ├── ARCHITECTURE.md            # Full system architecture (M2M reference)
+│   └── TOOL_GUIDE.md              # Operations quick reference
 │
 ├── site/                          # Static calibration charts + comparison + validation + strategy
 │   ├── index.html                 # Landing page → 6 chart pages

@@ -1,5 +1,5 @@
 # PROJECT_STATE.md — a8ra Research Accelerator
-## Checkpoint: 2026-03-14
+## Checkpoint: 2026-03-17
 
 > **Purpose**: Immediate orientation for Claude CTO and Olya's advisor. Read this FIRST.
 
@@ -27,9 +27,11 @@
 | **Phase 3.5: Validation Mode** | ✅ COMPLETE | `validate.html` — week-by-week detection browser, 25 weeks EURUSD (Sep 2025–Feb 2026), disk-persisted ground truth |
 | **Phase 4: Variant Comparison, Ground Truth Scoring & Parameter Search** | ✅ COMPLETE | LuxAlgo MSS/OB variants, P/R/F1 scoring pipeline, `search.py` parameter optimizer, 65 validation assertions |
 | **Phase 5: Strategy Designer** | ✅ COMPLETE | `strategy.html` — chain composer, evaluator engine, chart overlays, template persistence, enriched detection output |
+| **Phase 5.5: HTF + State Detection** | ✅ COMPLETE | 1D detection enabled, v2.1 state detection spec, 4-trade validation, compare.html HTF parity |
+| **Phase 5.6: AutoResearch Harness** | ✅ COMPLETE | `tools/autoresearch/` — evaluate.py (v2.1 classifier + scoring), sweep.py (grid search), ground truth dataset (4 trades, 4/4 PASS) |
 | **Phase 6: Production Monitoring** | ⬜ NOT STARTED | Live data, regime drift alerts |
 
-**Total: 970+ tests across 3 milestones (variant-architecture, ground-truth-scoring, parameter-search). Strategy Designer (Phase 5) is frontend-only — tested via agent-browser integration tests.**
+**Total: 985+ tests across 4 milestones. AutoResearch harness verified: 4/4 trades PASS at default v2.1 thresholds.**
 
 ---
 
@@ -37,12 +39,14 @@
 
 | Layer | Description |
 |---|---|
-| **Data Layer** | Phoenix River (IBKR parquet via DuckDB), TF aggregation (1m→5m/15m/1H/4H/1D), session tagging (Asia/LOKZ/NYOKZ/KZ/NY windows/forex day) |
+| **Data Layer** | Phoenix River (IBKR parquet via DuckDB), TF aggregation (1m→5m/15m/1H/4H/1D), session tagging (Asia/LOKZ/NYOKZ/KZ/NY windows/forex day). 25 weeks EURUSD, 105,917 detections. |
 | **Detection Engine** | 12 detectors implementing `PrimitiveDetector` ABC, `CascadeEngine` with 14-node dependency graph (topological sort) |
 | **Evaluation Runner** | Statistical comparison, parameter sweep (1D/2D grid), walk-forward validation, cascade funnel — all emit JSON schemas 4A–4E |
 | **Comparison Interface** | Static HTML/JS + Plotly 2.35.2 + Lightweight Charts v4.1.3, served on port 8100 |
 | **Validation Mode** | CLI batch generator (`detect.py`) + minimal write server (`serve.py` on port 8200) |
 | **Strategy Designer** | `strategy.html` — chain composer consuming enriched detection output (`detect.py --full`), client-side evaluator, template persistence via `serve.py` |
+| **State Detection** | v2.1 spec (`research/STATE_DETECTION_LOGIC_v2.yaml`), 3-phase HTF classifier, 4-trade validation |
+| **AutoResearch** | `tools/autoresearch/evaluate.py` + `sweep.py` — Karpathy autoresearch pattern adapted for classifier threshold tuning |
 
 **Key interfaces:**
 - `PrimitiveDetector.detect(bars, params, upstream, context) → DetectionResult`
@@ -213,6 +217,15 @@ Commit: `4822d6e` — "Filter detections to locked thresholds in detect.py"
 
 ## 9. Calibration Status (as of 2026-03-13)
 
+### State Detection Logic: v2.1
+
+- **Spec**: `research/STATE_DETECTION_LOGIC_v2.yaml` — 3-phase event-cycle model (EXPANSION/RETRACE/RANGE)
+- **Validation**: 4/4 trades classified correctly (reports/v2_trade_validation_2026-03-15.yaml)
+- **HTF parameters**: PROPOSED (displacement body_ratio=0.65, swing N=2, height_filter per-TF)
+- **AutoResearch**: evaluate.py 4/4 PASS at default thresholds. Sweep deferred until 10+ trades.
+- **Ground truth**: 4 annotated trades in `research/ground_truth/annotated_trades.yaml`
+- **1D detection**: Enabled in pipeline. Daily primitives visible in all tools.
+
 ### Primitive Lock Status: 13/13 LOCKED
 
 | Status | Count | Primitives |
@@ -242,14 +255,20 @@ Walk-forward stability: **PASS** — 25 weeks EURUSD (Sep 2025 – Feb 2026), al
 
 - **Walk-forward stability** — COMPLETE (PASS verdict, commit b641375)
 - **Strategy Designer** — COMPLETE (Phase 5, commits 8376ac3–9393ab4)
-- **Variant benchmarking** — compare a8ra vs LuxAlgo detectors across more symbols/periods
-- **Future**: Production monitoring (Phase 6), regime tagging, forensic case runner, cross-TF chain evaluation
+- **1D Detection + HTF** — COMPLETE (detect.py, 7 JS files, compare.html fixes)
+- **State Detection v2.1** — COMPLETE (spec, 4-trade validation, forensic analysis)
+- **AutoResearch Harness** — COMPLETE (evaluate.py, sweep.py, ground truth dataset)
+- **Documentation Refresh** — COMPLETE (ARCHITECTURE.md, TOOL_GUIDE.md, research/README.md)
+- **Next**: Grow ground truth to 10+ trades → run sweep → Olya HTF calibration session → Production monitoring (Phase 6)
 
 ---
 
 ## 11. Recent Git History
 
 ```
+(pending) AutoResearch harness + docs refresh + ground truth dataset
+765f19b Fix compare.html HTF: week picker preserves all-weeks data + primitive markers on 1D
+9f8fa1a V2.1 refinements + 1D detection enabled + 4-trade validation
 9393ab4 Template save/load persistence — serve.py + strategy-templates.js
 c9ddbf7 Chart overlays + drill-down panel — visual feedback layer
 c66e6c4 Chain evaluator engine — core Strategy Designer logic
@@ -258,9 +277,8 @@ c66e6c4 Chain evaluator engine — core Strategy Designer logic
 cc7f34a Rename SYNTHETIC_OLYA_METHOD_v0.6 → vLOCK, update all docs
 b641375 Walk-forward stability run — 25-week EURUSD evaluation
 8da6f3e OTE LOCKED — body-based OTE + wick-based P/D, 13/13 primitives complete
-97c4b5f HTF calibration tool — complete integration + week view
 ```
 
 ---
 
-*Last updated: 2026-03-14*
+*Last updated: 2026-03-17*

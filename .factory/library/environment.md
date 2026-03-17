@@ -29,10 +29,17 @@ All pre-installed:
 - Baseline fixtures: `tests/fixtures/baseline_output/` (32 JSON files)
 - Reference pipeline: `pipeline/preprocess_data_v2.py` (2,816 lines, read-only)
 - Canonical spec: `SYNTHETIC_OLYA_METHOD_vLOCK.yaml` (read-only)
+- Detection data: `site/data/detections/` (25 weeks, all TFs including 1D, 105,917 detections)
+- Candle data: `site/data/candles/` (25 weeks, TFs 1m–1D)
+- Ground truth: `research/ground_truth/annotated_trades.yaml` (4 annotated trades)
+- State detection spec: `research/STATE_DETECTION_LOGIC_v2.yaml` (v2.1, 937 lines)
+- AutoResearch: `tools/autoresearch/evaluate.py` + `sweep.py`
+- Architecture docs: `docs/ARCHITECTURE.md`, `docs/TOOL_GUIDE.md`
 
 ## Known Quirks
 
 - **pyproject.toml build-backend**: Must use `setuptools.build_meta` (not `setuptools.backends._legacy:_Backend`). The latter is an internal setuptools path that breaks `pip install -e`.
+- **Daily detection ATR limitation**: 1D displacement/MSS rarely fire because weekly 5-day windows provide insufficient bars for ATR(14). 4H serves as proxy. Fix: cross-week bar loading.
 
 ## Environment Variables
 

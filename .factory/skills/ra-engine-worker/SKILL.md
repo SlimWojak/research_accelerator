@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-Use for detection engine features: project scaffolding, config system, data layer, individual detector modules, cascade engine, integration tests, AND Phase 4 variant detectors (LuxAlgo MSS, LuxAlgo OB, variant cascade integration).
+Use for detection engine features: project scaffolding, config system, data layer, individual detector modules, cascade engine, integration tests, Phase 4 variant detectors (LuxAlgo MSS, LuxAlgo OB), AND AutoResearch harness work (evaluate.py, sweep.py, ground truth). Supported TFs: 1m, 5m, 15m, 1H, 4H, 1D.
 
 ## Work Procedure
 
@@ -28,6 +28,12 @@ Read the relevant specification documents in this order:
 3. `build_plan/05_ADVISORY_SYNTHESIS.yaml` — resolved review feedback, temporal gating table, edge cases
 4. `pipeline/preprocess_data_v2.py` — reference implementation (this is the ground truth code)
 5. `SYNTHETIC_OLYA_METHOD_vLOCK.yaml` — L1 pseudocode (canonical spec, consult for algorithm details)
+6. `research/STATE_DETECTION_LOGIC_v2.yaml` — v2.1 state detection model (for HTF phase context)
+7. `docs/ARCHITECTURE.md` — system architecture reference (for orientation)
+
+For AutoResearch harness work:
+- `tools/autoresearch/evaluate.py` — v2.1 phase classifier implementation
+- `research/ground_truth/annotated_trades.yaml` — Olya's annotated trades
 
 For a8ra_v1 detector modules: find the relevant function in `preprocess_data_v2.py` and read it completely. The RA module must reproduce its behavior exactly at locked params.
 

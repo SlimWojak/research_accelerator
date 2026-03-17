@@ -1,0 +1,190 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUND TRUTH — Olya's Annotated Trades
+# Format: one entry per trade. See schema below.
+# To add a trade: copy the template, fill in fields, run evaluate.py.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# SCHEMA:
+#   id:             unique identifier (trade_NNN)
+#   date:           YYYY-MM-DD (trade date)
+#   pair:           instrument (EURUSD)
+#   execution_time: HH:MM NY approximate entry time
+#   kill_zone:      LOKZ | NYOKZ | N/A
+#   direction:      LONG | SHORT
+#
+#   expected_state:
+#     htf_phase:            EXPANSION | RETRACE | RANGE | INDEPENDENT
+#     direction_permission: WITH_EXPANSION | COUNTER_ALLOWED | BOTH | INDEPENDENT
+#     daily_direction:      BULLISH | BEARISH | NEUTRAL
+#     authority_tf:         Daily | 4H | 1H | N/A
+#
+#   execution_chain:
+#     steps:
+#       - primitive: sweep | mss | displacement | fvg | ob | ote
+#         tf: 15m | 5m | 1m
+#         time: HH:MM (approximate)
+#     notes: any special conditions
+#
+#   htf_context:
+#     description: plain text summary of HTF narrative (Olya's words)
+#
+#   strategy_type: state_gated | asia_range_scalp | other
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+trades:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 1: Oct 1 2025 — EXPANSION bearish, short
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_001
+    date: "2025-10-01"
+    pair: EURUSD
+    execution_time: "03:30"
+    kill_zone: LOKZ
+    direction: SHORT
+
+    expected_state:
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: mss
+          tf: 15m
+          time: "03:30"
+        - primitive: displacement
+          tf: 5m
+          time: "03:15"
+        - primitive: fvg
+          tf: 5m
+          time: "03:20"
+        - primitive: mss
+          tf: 5m
+          time: "03:40"
+      notes: >
+        Kill zone realignment: 1H had bullish MSS at 00:00.
+        15m bearish MSS at 03:30 in LOKZ restores EXPANSION phase.
+        No new 1H opposing MSS in last 2 hours.
+
+    htf_context:
+      description: >
+        4H bearish MSS Sept 24. Daily bearish displacement Sept 23-24.
+        1H turned counter (bullish HH/HL Sept 26-29) creating RETRACE.
+        Counter-move exhausted by Oct 1. 15m bearish MSS in LOKZ
+        triggers kill zone realignment back to EXPANSION.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 2: Sept 29 2025 — RETRACE, counter-long
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_002
+    date: "2025-09-29"
+    pair: EURUSD
+    execution_time: "07:45"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RETRACE
+      direction_permission: COUNTER_ALLOWED
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: mss
+          tf: 15m
+          time: "07:45"
+      notes: >
+        SMT (DXY divergence) used as sweep substitute.
+        Not in locked L1 — tolerated as known miss.
+        15m bullish MSS in NYOKZ is the execution signal.
+
+    htf_context:
+      description: >
+        Daily bearish expansion from Sept 23-24 (4H bearish MSS Sept 24).
+        1H swing structure turned bullish (HH/HL) from Sept 26.
+        No explicit 1H bullish MSS — swing-primary method catches RETRACE.
+        Displacement-quality counter move exists (Sept 25 18:00, body 0.95).
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 3: Dec 12 2025 — RANGE, 4H bullish authority, long
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_003
+    date: "2025-12-12"
+    pair: EURUSD
+    execution_time: "08:00"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RANGE
+      direction_permission: BOTH
+      daily_direction: NEUTRAL
+      authority_tf: 4H
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "07:30"
+        - primitive: mss
+          tf: 15m
+          time: "08:00"
+        - primitive: ote
+          tf: 15m
+          time: "08:15"
+      notes: >
+        Sweep of sell-side liquidity, MSS bullish, OTE entry.
+        4H bullish MSS Dec 10 16:00 gives direction authority.
+
+    htf_context:
+      description: >
+        No daily displacement fires Nov-Dec. Daily is NEUTRAL = RANGE.
+        4H bullish MSS Dec 10 16:00 with strong displacement (ATR 4.1x).
+        Multiple 4H + 1H bullish FVGs Dec 10-11 form confluence zone.
+        4H takes authority as most recent HTF MSS.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 4: Oct 28 2025 — INDEPENDENT, Asia Range Scalp, short
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_004
+    date: "2025-10-28"
+    pair: EURUSD
+    execution_time: "00:20"
+    kill_zone: N/A
+    direction: SHORT
+
+    expected_state:
+      htf_phase: INDEPENDENT
+      direction_permission: INDEPENDENT
+      daily_direction: NEUTRAL
+      authority_tf: N/A
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 5m
+          time: "00:20"
+        - primitive: sweep
+          tf: 5m
+          time: "00:35"
+      notes: >
+        Asia Range Scalp. Sweep of Asia high.
+        HTF phase bypassed — strategy has own pre-conditions.
+        Asia range 17.7 pips classified as MID (valid for strategy).
+
+    htf_context:
+      description: >
+        Asia Range Scalp operates independently of HTF state.
+        Uses locked LTF parameters only.
+
+    strategy_type: asia_range_scalp
