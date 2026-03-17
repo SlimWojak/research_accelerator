@@ -25,6 +25,9 @@
 #         time: HH:MM (approximate)
 #     notes: any special conditions
 #
+#   setup_type:    REVERSAL | CONTINUATION
+#   entry_tf:      15m | 5m | 1m
+#
 #   htf_context:
 #     description: plain text summary of HTF narrative (Olya's words)
 #
@@ -69,6 +72,9 @@ trades:
         15m bearish MSS at 03:30 in LOKZ restores EXPANSION phase.
         No new 1H opposing MSS in last 2 hours.
 
+    setup_type: REVERSAL
+    entry_tf: 15m
+
     htf_context:
       description: >
         4H bearish MSS Sept 24. Daily bearish displacement Sept 23-24.
@@ -103,6 +109,9 @@ trades:
         SMT (DXY divergence) used as sweep substitute.
         Not in locked L1 — tolerated as known miss.
         15m bullish MSS in NYOKZ is the execution signal.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
 
     htf_context:
       description: >
@@ -144,6 +153,9 @@ trades:
         Sweep of sell-side liquidity, MSS bullish, OTE entry.
         4H bullish MSS Dec 10 16:00 gives direction authority.
 
+    setup_type: REVERSAL
+    entry_tf: 15m
+
     htf_context:
       description: >
         No daily displacement fires Nov-Dec. Daily is NEUTRAL = RANGE.
@@ -181,6 +193,9 @@ trades:
         Asia Range Scalp. Sweep of Asia high.
         HTF phase bypassed — strategy has own pre-conditions.
         Asia range 17.7 pips classified as MID (valid for strategy).
+
+    setup_type: CONTINUATION
+    entry_tf: 5m
 
     htf_context:
       description: >

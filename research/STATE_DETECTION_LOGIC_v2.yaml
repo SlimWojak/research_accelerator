@@ -1,7 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# STATE DETECTION LOGIC — V2.1
+# STATE DETECTION LOGIC — V2.2
 # Unified model: CTO architecture + Opus mechanical fixes + NEX event-cycle framing
 #                + HTF forensic refinements (swing-primary h1, kill zone realignment)
+#                + Execution setup types (reversal vs continuation)
 # Status: HYPOTHESIS — pending Olya visual confirmation of proposed HTF parameters
 # ═══════════════════════════════════════════════════════════════════════════════
 #
@@ -891,10 +892,84 @@ proposed_htf_parameters:
     Result: 4/4 trades classify correctly.
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 13. V2.1 CHANGELOG
+# 13. EXECUTION SETUP TYPES — REVERSAL vs CONTINUATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+execution_setup_types:
+
+  description: |
+    Within the same HTF phase and direction permission, two distinct local
+    structures can produce a valid execution chain. Both use the same
+    primitives (sweep → MSS → OTE) and fire in the permitted direction.
+    The difference is what happened locally before the entry.
+
+  reversal_setup:
+    name: REVERSAL_SETUP
+    description: |
+      Price moves counter to the permitted direction, sweeps counter-trend
+      liquidity (buy-side in a bearish context, sell-side in bullish),
+      then MSS fires back into the permitted direction. The entry rejects
+      the counter-move.
+    mss_break_type: REVERSAL
+    sweep_target: "Counter-trend liquidity (e.g., buy-side highs in bearish expansion)"
+    character: "Rejection of counter-move. Price tried to go against the trend, got swept, reversed."
+
+  continuation_setup:
+    name: CONTINUATION_SETUP
+    description: |
+      Price pauses or pulls back slightly within the trend, sweeps minor
+      with-trend liquidity (a recent low in bearish context, a recent high
+      in bullish), then MSS confirms continuation in the permitted direction.
+      The entry resumes the existing move.
+    mss_break_type: CONTINUATION
+    sweep_target: "With-trend liquidity (e.g., minor lows in bearish expansion)"
+    character: "Resumption. Price consolidated briefly, swept a minor level, continued."
+
+  key_properties:
+    same_direction: |
+      Both setups fire in the same permitted direction. A REVERSAL_SETUP in
+      bearish EXPANSION is still a SHORT entry — it reverses the local
+      counter-move, not the trend.
+    same_chain: |
+      Sweep → MSS → displacement → FVG → OTE. Identical primitive sequence.
+      The MSS break_type field (already in vLOCK detection output) distinguishes them.
+    no_gating: |
+      The HTF phase does not select the setup type. Both are valid within
+      every phase. This is a classification tag for research, not a filter.
+    phase_frequency:
+      EXPANSION: "Continuation more common, reversal less common but valid"
+      RETRACE: "Both equally possible"
+      RANGE: "Both equally possible (direction from authority TF)"
+      INDEPENDENT: "Determined by strategy rules"
+    data_signal: |
+      The MSS break_type field already carries this distinction in every
+      detection output. No new detection logic needed. The setup_type tag
+      in ground truth annotations enables future research questions like:
+      "Do continuation setups behave differently from reversals in EXPANSION?"
+
+  provenance: |
+    NEX observation: reversal and continuation are both valid within the same
+    permission, distinguished by local structure and MSS break_type.
+    Added v2.2 for ground truth research tagging.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14. V2.2 CHANGELOG
 # ─────────────────────────────────────────────────────────────────────────────
 
 changelog:
+
+  v2_2:
+    date: "2026-03-17"
+    source: "NEX observation + Olya confirmation"
+    changes:
+      - |
+        Section 13 added: Execution setup types (REVERSAL vs CONTINUATION).
+        Same direction permission, same chain primitives, different local
+        structure. Distinguished by MSS break_type (already in vLOCK output).
+        Classification tag for research, not a gating mechanism.
+      - |
+        Ground truth schema: setup_type and entry_tf fields added.
+        4 existing trades backfilled.
 
   v2_1:
     date: "2026-03-15"
