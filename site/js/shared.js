@@ -999,6 +999,10 @@ function populateCompareWeekPicker() {
 
 /**
  * Handle week picker change: switch to week mode or back to fixture mode.
+ *
+ * On HTF (1H/4H/1D): scroll within the already-loaded all-weeks data
+ * rather than replacing it with single-week data.
+ * On LTF (1m/5m/15m): load single-week data as before.
  */
 async function onCompareWeekSelect() {
   const picker = document.getElementById('week-picker-compare');
@@ -1013,6 +1017,18 @@ async function onCompareWeekSelect() {
   // Find manifest entry
   const weekEntry = app.weekManifest.find(w => w.week === weekId);
   if (!weekEntry) return;
+
+  // On HTF: scroll within all-weeks data instead of loading single week
+  if (isHTF(app.tf)) {
+    app.currentCompareWeek = weekEntry;
+    // Ensure all-weeks data is loaded
+    if (!_cHTFAllWeeksLoaded) {
+      await loadAllWeeksHTF_compare();
+    }
+    // Scroll chart to the selected week
+    if (typeof refreshChart === 'function') refreshChart();
+    return;
+  }
 
   setLoading(true);
   hideError();
@@ -1032,6 +1048,9 @@ async function onCompareWeekSelect() {
       detectionData: detectionData,
       sessionData: sessionData,
     };
+
+    // Single-week data replaces merged all-weeks data, so reset the flag
+    _cHTFAllWeeksLoaded = false;
 
     // Derive primitives from detection data for week mode
     deriveWeekModePrimitives(detectionData);
@@ -1070,6 +1089,7 @@ function exitWeekMode() {
   app.weekMode = false;
   app.weekData = null;
   app.currentCompareWeek = null;
+  _cHTFAllWeeksLoaded = false;
 
   // Hide week mode badge
   const badge = document.getElementById('week-mode-badge');

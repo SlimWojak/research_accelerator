@@ -167,12 +167,14 @@ function filterDetectionsByDay(detections, dayKey) {
  * Returns the bar time (already toTS'd) or null.
  */
 function findNearestCandleTime(detTime, candleTimeSet, candleTimes) {
-  // Strip any timezone offset (e.g. -04:00, -05:00, +00:00) to get naive NY time
-  const cleanTime = detTime.replace(/[+-]\d{2}:\d{2}$/, '');
-  const ts = toTS(cleanTime);
+  const ts = toTS(detTime);
   if (ts != null && candleTimeSet.has(ts)) return ts;
-  // Find nearest candle time (within 15 min)
   if (ts == null) return null;
+
+  // TF-aware tolerance: 1D bars have large gaps between detection anchor
+  // times (midnight) and candle open times (17:00 NY forex day boundary)
+  const maxDiff = app.tf === '1D' ? 86400 : isHTF(app.tf) ? 14400 : app.tf === '1m' ? 900 : 3600;
+
   let best = null;
   let bestDiff = Infinity;
   for (const ct of candleTimes) {
@@ -182,7 +184,7 @@ function findNearestCandleTime(detTime, candleTimeSet, candleTimes) {
       best = ct;
     }
   }
-  return (bestDiff <= 900) ? best : null; // 15 min max
+  return (bestDiff <= maxDiff) ? best : null;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
