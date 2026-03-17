@@ -1,0 +1,732 @@
+diagnostic: continuation_ratio_investigation
+generated: '2026-03-13T14:33:14'
+hypothesis: Reclaim failing too often → borderline sweeps classified as continuations
+locked_params:
+  rejection_wick_pct: 0.4
+  max_sweep_size_atr_mult: 1.5
+  return_window:
+    M1: 2
+    M5: 3
+    M15: 4
+  min_breach_pips:
+    5m: 0.5
+    15m: 1.0
+  min_reclaim_pips:
+    5m: 0.5
+    15m: 1.0
+step_1_raw_counts:
+  sep_29_oct_03_2025:
+    5m:
+      sweeps: 14
+      continuations: 18
+    15m:
+      sweeps: 17
+      continuations: 15
+    ratio_5m: 1.286
+    ratio_15m: 0.882
+  jan_07_12_2024:
+    5m:
+      sweeps: 22
+      continuations: 8
+    15m:
+      sweeps: 19
+      continuations: 10
+    ratio_5m: 0.364
+    ratio_15m: 0.526
+step_2_per_event_diagnostics:
+  dataset: EURUSD Sep 29 – Oct 3 2025
+  5m:
+  - level_id: asia_H_2025-09-29
+    level_price: 1.17292
+    level_source: ASIA_H_L
+    direction: BEARISH
+    breach_bar_index: 58
+    breach_time: '2025-09-29T00:50:00'
+    breach_pips: 3.6
+    atr_14_pips: 2.25
+    atr_multiple: 1.599
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 59
+      bar_time: '2025-09-29T00:55:00'
+      reclaim_distance_pips: 2.2
+      wick_ratio: 0.3793
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 5m
+    forex_day: '2025-09-29'
+  - level_id: PRE_NY_BOX_2025-09-29_L
+    level_price: 1.17154
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 137
+    breach_time: '2025-09-29T07:25:00'
+    breach_pips: 5.8
+    atr_14_pips: 3.33
+    atr_multiple: 1.742
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-09-29'
+  - level_id: PRE_NY_BOX_2025-09-29_H
+    level_price: 1.1726
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 144
+    breach_time: '2025-09-29T08:00:00'
+    breach_pips: 8.2
+    atr_14_pips: 4.52
+    atr_multiple: 1.815
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 145
+      bar_time: '2025-09-29T08:05:00'
+      reclaim_distance_pips: 2.8
+      wick_ratio: 0.2545
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 5m
+    forex_day: '2025-09-29'
+  - level_id: PRE_LONDON_BOX_2025-09-30_H
+    level_price: 1.1737
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 367
+    breach_time: '2025-09-30T02:35:00'
+    breach_pips: 4.9
+    atr_14_pips: 2.84
+    atr_multiple: 1.726
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-09-30'
+  - level_id: PDH_2025-09-30
+    level_price: 1.17544
+    level_source: PDH_PDL
+    direction: BEARISH
+    breach_bar_index: 392
+    breach_time: '2025-09-30T04:40:00'
+    breach_pips: 7.1
+    atr_14_pips: 4.07
+    atr_multiple: 1.745
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-09-30'
+  - level_id: lokz_L_2025-09-30
+    level_price: 1.17308
+    level_source: LONDON_H_L
+    direction: BULLISH
+    breach_bar_index: 445
+    breach_time: '2025-09-30T09:05:00'
+    breach_pips: 10.3
+    atr_14_pips: 4.55
+    atr_multiple: 2.263
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-09-30'
+  - level_id: asia_H_2025-10-01
+    level_price: 1.17424
+    level_source: ASIA_H_L
+    direction: BEARISH
+    breach_bar_index: 630
+    breach_time: '2025-10-01T00:30:00'
+    breach_pips: 6.3
+    atr_14_pips: 2.34
+    atr_multiple: 2.695
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: lokz_H_2025-09-30
+    level_price: 1.17615
+    level_source: LONDON_H_L
+    direction: BEARISH
+    breach_bar_index: 636
+    breach_time: '2025-10-01T01:00:00'
+    breach_pips: 5.4
+    atr_14_pips: 3.12
+    atr_multiple: 1.732
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 637
+      bar_time: '2025-10-01T01:05:00'
+      reclaim_distance_pips: 0.8
+      wick_ratio: 0.129
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: PDH_2025-10-01
+    level_price: 1.17615
+    level_source: PDH_PDL
+    direction: BEARISH
+    breach_bar_index: 636
+    breach_time: '2025-10-01T01:00:00'
+    breach_pips: 5.4
+    atr_14_pips: 3.12
+    atr_multiple: 1.732
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 637
+      bar_time: '2025-10-01T01:05:00'
+      reclaim_distance_pips: 0.8
+      wick_ratio: 0.129
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: PRE_LONDON_BOX_2025-10-01_H
+    level_price: 1.17669
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 656
+    breach_time: '2025-10-01T02:40:00'
+    breach_pips: 7.9
+    atr_14_pips: 4.3
+    atr_multiple: 1.837
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: asia_L_2025-10-01
+    level_price: 1.17296
+    level_source: ASIA_H_L
+    direction: BULLISH
+    breach_bar_index: 700
+    breach_time: '2025-10-01T06:20:00'
+    breach_pips: 10.8
+    atr_14_pips: 5.52
+    atr_multiple: 1.958
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: PRE_NY_BOX_2025-10-01_H
+    level_price: 1.1754
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 723
+    breach_time: '2025-10-01T08:15:00'
+    breach_pips: 14.8
+    atr_14_pips: 7.49
+    atr_multiple: 1.977
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 724
+      bar_time: '2025-10-01T08:20:00'
+      reclaim_distance_pips: 4.2
+      wick_ratio: 0.2211
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 5m
+    forex_day: '2025-10-01'
+  - level_id: PRE_NY_BOX_2025-10-02_L
+    level_price: 1.17461
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 1016
+    breach_time: '2025-10-02T08:40:00'
+    breach_pips: 8.1
+    atr_14_pips: 4.16
+    atr_multiple: 1.948
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: lokz_L_2025-10-02
+    level_price: 1.17339
+    level_source: LONDON_H_L
+    direction: BULLISH
+    breach_bar_index: 1028
+    breach_time: '2025-10-02T09:40:00'
+    breach_pips: 10.1
+    atr_14_pips: 4.86
+    atr_multiple: 2.078
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: asia_L_2025-10-02
+    level_price: 1.17237
+    level_source: ASIA_H_L
+    direction: BULLISH
+    breach_bar_index: 1030
+    breach_time: '2025-10-02T09:50:00'
+    breach_pips: 10.5
+    atr_14_pips: 5.36
+    atr_multiple: 1.96
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: PRE_LONDON_BOX_2025-10-02_L
+    level_price: 1.17293
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 1030
+    breach_time: '2025-10-02T09:50:00'
+    breach_pips: 16.1
+    atr_14_pips: 5.36
+    atr_multiple: 3.005
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: asia_L_2025-09-29
+    level_price: 1.17044
+    level_source: ASIA_H_L
+    direction: BULLISH
+    breach_bar_index: 1047
+    breach_time: '2025-10-02T11:15:00'
+    breach_pips: 12.7
+    atr_14_pips: 6.44
+    atr_multiple: 1.971
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: PDL_2025-09-30
+    level_price: 1.17044
+    level_source: PDH_PDL
+    direction: BULLISH
+    breach_bar_index: 1047
+    breach_time: '2025-10-02T11:15:00'
+    breach_pips: 12.7
+    atr_14_pips: 6.44
+    atr_multiple: 1.971
+    return_window_bars_checked: 3
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 5m
+    forex_day: '2025-10-02'
+  - level_id: lokz_H_2025-10-03
+    level_price: 1.17444
+    level_source: LONDON_H_L
+    direction: BEARISH
+    breach_bar_index: 1321
+    breach_time: '2025-10-03T10:05:00'
+    breach_pips: 14.7
+    atr_14_pips: 5.81
+    atr_multiple: 2.531
+    return_window_bars_checked: 3
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 1322
+      bar_time: '2025-10-03T10:10:00'
+      reclaim_distance_pips: 0.2
+      wick_ratio: 0.0
+      failure_reason: INSUFFICIENT_RECLAIM
+    ultimate_failure_mode: INSUFFICIENT_RECLAIM
+    tf: 5m
+    forex_day: '2025-10-03'
+  15m:
+  - level_id: PRE_NY_BOX_2025-09-29_H
+    level_price: 1.1726
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 51
+    breach_time: '2025-09-29T08:45:00'
+    breach_pips: 25.1
+    atr_14_pips: 9.12
+    atr_multiple: 2.751
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-09-29'
+  - level_id: lokz_H_2025-09-29
+    level_price: 1.17329
+    level_source: LONDON_H_L
+    direction: BEARISH
+    breach_bar_index: 51
+    breach_time: '2025-09-29T08:45:00'
+    breach_pips: 18.2
+    atr_14_pips: 9.12
+    atr_multiple: 1.995
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-09-29'
+  - level_id: PRE_LONDON_BOX_2025-09-30_H
+    level_price: 1.1737
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 125
+    breach_time: '2025-09-30T03:15:00'
+    breach_pips: 11.3
+    atr_14_pips: 5.0
+    atr_multiple: 2.258
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-09-30'
+  - level_id: lokz_L_2025-09-30
+    level_price: 1.17308
+    level_source: LONDON_H_L
+    direction: BULLISH
+    breach_bar_index: 149
+    breach_time: '2025-09-30T09:15:00'
+    breach_pips: 14.4
+    atr_14_pips: 7.48
+    atr_multiple: 1.925
+    return_window_bars_checked: 4
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 150
+      bar_time: '2025-09-30T09:30:00'
+      reclaim_distance_pips: 0.5
+      wick_ratio: 0.0
+      failure_reason: INSUFFICIENT_RECLAIM
+    ultimate_failure_mode: INSUFFICIENT_RECLAIM
+    tf: 15m
+    forex_day: '2025-09-30'
+  - level_id: asia_H_2025-10-01
+    level_price: 1.17424
+    level_source: ASIA_H_L
+    direction: BEARISH
+    breach_bar_index: 210
+    breach_time: '2025-10-01T00:30:00'
+    breach_pips: 6.4
+    atr_14_pips: 4.24
+    atr_multiple: 1.509
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-01'
+  - level_id: lokz_L_2025-10-01
+    level_price: 1.17418
+    level_source: LONDON_H_L
+    direction: BULLISH
+    breach_bar_index: 232
+    breach_time: '2025-10-01T06:00:00'
+    breach_pips: 16.3
+    atr_14_pips: 9.08
+    atr_multiple: 1.794
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-01'
+  - level_id: PRE_LONDON_BOX_2025-10-01_L
+    level_price: 1.17379
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 233
+    breach_time: '2025-10-01T06:15:00'
+    breach_pips: 20.9
+    atr_14_pips: 9.38
+    atr_multiple: 2.229
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-01'
+  - level_id: PS_322_low
+    level_price: 1.1745
+    level_source: PROMOTED_SWING
+    direction: BULLISH
+    breach_bar_index: 339
+    breach_time: '2025-10-02T08:45:00'
+    breach_pips: 10.7
+    atr_14_pips: 6.91
+    atr_multiple: 1.549
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: PRE_NY_BOX_2025-10-02_L
+    level_price: 1.17461
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 339
+    breach_time: '2025-10-02T08:45:00'
+    breach_pips: 11.8
+    atr_14_pips: 6.91
+    atr_multiple: 1.708
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: PRE_LONDON_BOX_2025-10-02_L
+    level_price: 1.17293
+    level_source: LTF_BOX
+    direction: BULLISH
+    breach_bar_index: 343
+    breach_time: '2025-10-02T09:45:00'
+    breach_pips: 16.1
+    atr_14_pips: 8.46
+    atr_multiple: 1.903
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: lokz_L_2025-10-02
+    level_price: 1.17339
+    level_source: LONDON_H_L
+    direction: BULLISH
+    breach_bar_index: 343
+    breach_time: '2025-10-02T09:45:00'
+    breach_pips: 20.7
+    atr_14_pips: 8.46
+    atr_multiple: 2.447
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: asia_L_2025-10-02
+    level_price: 1.17237
+    level_source: ASIA_H_L
+    direction: BULLISH
+    breach_bar_index: 344
+    breach_time: '2025-10-02T10:00:00'
+    breach_pips: 18.0
+    atr_14_pips: 9.03
+    atr_multiple: 1.992
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: asia_L_2025-09-29
+    level_price: 1.17044
+    level_source: ASIA_H_L
+    direction: BULLISH
+    breach_bar_index: 350
+    breach_time: '2025-10-02T11:30:00'
+    breach_pips: 16.0
+    atr_14_pips: 9.24
+    atr_multiple: 1.733
+    return_window_bars_checked: 4
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 353
+      bar_time: '2025-10-02T12:15:00'
+      reclaim_distance_pips: 2.9
+      wick_ratio: 0.1534
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: PDL_2025-09-30
+    level_price: 1.17044
+    level_source: PDH_PDL
+    direction: BULLISH
+    breach_bar_index: 350
+    breach_time: '2025-10-02T11:30:00'
+    breach_pips: 16.0
+    atr_14_pips: 9.24
+    atr_multiple: 1.733
+    return_window_bars_checked: 4
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 353
+      bar_time: '2025-10-02T12:15:00'
+      reclaim_distance_pips: 2.9
+      wick_ratio: 0.1534
+      failure_reason: WEAK_WICK
+    ultimate_failure_mode: WEAK_WICK
+    tf: 15m
+    forex_day: '2025-10-02'
+  - level_id: PRE_LONDON_BOX_2025-10-03_H
+    level_price: 1.1728
+    level_source: LTF_BOX
+    direction: BEARISH
+    breach_bar_index: 416
+    breach_time: '2025-10-03T04:00:00'
+    breach_pips: 9.1
+    atr_14_pips: 5.48
+    atr_multiple: 1.662
+    return_window_bars_checked: 4
+    had_close_back: false
+    reclaim_detail: null
+    ultimate_failure_mode: NO_RETURN
+    tf: 15m
+    forex_day: '2025-10-03'
+  - level_id: lokz_H_2025-10-03
+    level_price: 1.17444
+    level_source: LONDON_H_L
+    direction: BEARISH
+    breach_bar_index: 440
+    breach_time: '2025-10-03T10:00:00'
+    breach_pips: 14.7
+    atr_14_pips: 8.08
+    atr_multiple: 1.819
+    return_window_bars_checked: 4
+    had_close_back: true
+    reclaim_detail:
+      bar_index: 440
+      bar_time: '2025-10-03T10:00:00'
+      reclaim_distance_pips: 0.2
+      wick_ratio: 0.0
+      failure_reason: INSUFFICIENT_RECLAIM
+    ultimate_failure_mode: INSUFFICIENT_RECLAIM
+    tf: 15m
+    forex_day: '2025-10-03'
+step_3_summary_table:
+  5m:
+    total_continuations: 19
+    NO_RETURN: 13
+    INSUFFICIENT_RECLAIM: 1
+    WEAK_WICK: 5
+    pct_NO_RETURN: 68.4
+    pct_INSUFFICIENT_RECLAIM: 5.3
+    pct_WEAK_WICK: 26.3
+  15m:
+    total_continuations: 16
+    NO_RETURN: 12
+    INSUFFICIENT_RECLAIM: 2
+    WEAK_WICK: 2
+    pct_NO_RETURN: 75.0
+    pct_INSUFFICIENT_RECLAIM: 12.5
+    pct_WEAK_WICK: 12.5
+step_4_olya_review_weak_wick:
+  count: 7
+  events:
+  - tf: 5m
+    time: '2025-09-29T00:50:00'
+    level: ASIA_H_L 1.17292
+    level_id: asia_H_2025-09-29
+    direction: BEARISH
+    breach_pips: 3.6
+    atr_multiple: 1.599
+    reclaim_bar_time: '2025-09-29T00:55:00'
+    reclaim_distance_pips: 2.2
+    wick_ratio: 0.3793
+    wick_threshold: 0.4
+    wick_shortfall: 0.0207
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 5m
+    time: '2025-09-29T08:00:00'
+    level: LTF_BOX 1.1726
+    level_id: PRE_NY_BOX_2025-09-29_H
+    direction: BEARISH
+    breach_pips: 8.2
+    atr_multiple: 1.815
+    reclaim_bar_time: '2025-09-29T08:05:00'
+    reclaim_distance_pips: 2.8
+    wick_ratio: 0.2545
+    wick_threshold: 0.4
+    wick_shortfall: 0.1455
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 5m
+    time: '2025-10-01T01:00:00'
+    level: LONDON_H_L 1.17615
+    level_id: lokz_H_2025-09-30
+    direction: BEARISH
+    breach_pips: 5.4
+    atr_multiple: 1.732
+    reclaim_bar_time: '2025-10-01T01:05:00'
+    reclaim_distance_pips: 0.8
+    wick_ratio: 0.129
+    wick_threshold: 0.4
+    wick_shortfall: 0.271
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 5m
+    time: '2025-10-01T01:00:00'
+    level: PDH_PDL 1.17615
+    level_id: PDH_2025-10-01
+    direction: BEARISH
+    breach_pips: 5.4
+    atr_multiple: 1.732
+    reclaim_bar_time: '2025-10-01T01:05:00'
+    reclaim_distance_pips: 0.8
+    wick_ratio: 0.129
+    wick_threshold: 0.4
+    wick_shortfall: 0.271
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 5m
+    time: '2025-10-01T08:15:00'
+    level: LTF_BOX 1.1754
+    level_id: PRE_NY_BOX_2025-10-01_H
+    direction: BEARISH
+    breach_pips: 14.8
+    atr_multiple: 1.977
+    reclaim_bar_time: '2025-10-01T08:20:00'
+    reclaim_distance_pips: 4.2
+    wick_ratio: 0.2211
+    wick_threshold: 0.4
+    wick_shortfall: 0.1789
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 15m
+    time: '2025-10-02T11:30:00'
+    level: ASIA_H_L 1.17044
+    level_id: asia_L_2025-09-29
+    direction: BULLISH
+    breach_pips: 16.0
+    atr_multiple: 1.733
+    reclaim_bar_time: '2025-10-02T12:15:00'
+    reclaim_distance_pips: 2.9
+    wick_ratio: 0.1534
+    wick_threshold: 0.4
+    wick_shortfall: 0.2466
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?
+  - tf: 15m
+    time: '2025-10-02T11:30:00'
+    level: PDH_PDL 1.17044
+    level_id: PDL_2025-09-30
+    direction: BULLISH
+    breach_pips: 16.0
+    atr_multiple: 1.733
+    reclaim_bar_time: '2025-10-02T12:15:00'
+    reclaim_distance_pips: 2.9
+    wick_ratio: 0.1534
+    wick_threshold: 0.4
+    wick_shortfall: 0.2466
+    current_classification: CONTINUATION
+    question_for_olya: Is this a sweep or a continuation?

@@ -20,3 +20,6 @@ site/eval/
 
 # Generated validation data (regenerate with: python3 site/detect.py ...)
 site/data/
+
+# Generated detection results (regenerate via pipeline)
+results/
