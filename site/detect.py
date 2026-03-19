@@ -478,10 +478,63 @@ def build_locked_params_snapshot(config) -> dict:
     }
 
 
+# ATR(14) lookback pre-seeding: load extra bars before the target week so
+# daily and 4H indicators warm up properly. Detection output is filtered
+# to target week only. See DAILY_DIRECTION_FIX_BRIEF Track 1.
+HTF_LOOKBACK_CALENDAR_DAYS = 30  # ~20 trading days for daily ATR(14) + swing buffer
+
+
+def _filter_detections_to_week(results: dict, week_start: str, week_end: str) -> dict:
+    """Filter detection results to only include events within the target week.
+
+    Lookback bars produce valid detections for ATR/swing context but those
+    detections must NOT appear in output. Only target week detections emitted.
+    """
+    from datetime import datetime as dt
+
+    ws = dt.strptime(week_start, "%Y-%m-%d")
+    # End of Friday (inclusive): use start of Saturday as exclusive upper bound
+    we = dt.strptime(week_end, "%Y-%m-%d") + timedelta(days=1)
+
+    filtered = {}
+    for prim_name, by_tf in results.items():
+        filtered_tf = {}
+        for tf, det_result in by_tf.items():
+            kept = []
+            for d in det_result.detections:
+                t_str = getattr(d, "time", None) or getattr(d, "timestamp", None)
+                if t_str is None:
+                    kept.append(d)
+                    continue
+                if isinstance(t_str, str):
+                    # Strip timezone for comparison
+                    clean = t_str.replace("+00:00", "").replace("-04:00", "").replace("-05:00", "")
+                    try:
+                        t = dt.fromisoformat(clean)
+                    except ValueError:
+                        kept.append(d)
+                        continue
+                else:
+                    t = t_str.replace(tzinfo=None) if hasattr(t_str, "replace") else t_str
+                if ws <= t < we:
+                    kept.append(d)
+            # Preserve the DetectionResult wrapper
+            import copy
+            new_result = copy.copy(det_result)
+            new_result.detections = kept
+            filtered_tf[tf] = new_result
+        filtered[prim_name] = filtered_tf
+    return filtered
+
+
 def process_week(week_info: dict, config, adapter: RiverAdapter,
                  runner: EvaluationRunner, output_dir: Path,
                  full_mode: bool = False, pair: str = "EURUSD") -> dict:
     """Process a single forex week: load bars, run detection, write outputs.
+
+    For 4H and 1D timeframes, loads additional lookback bars before the
+    target week to warm up ATR(14) and establish swing history. Detection
+    output is filtered to only emit events within the target week.
 
     Returns manifest entry for this week.
     """
@@ -489,22 +542,30 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
     start_date = week_info["start"]
     end_date = week_info["end"]
 
-    # Load 1m bars for this week
+    # Load 1m bars for this week (LTF detection)
     bars_1m = adapter.load_bars(pair, start_date, end_date)
 
     if bars_1m.empty:
         return None
 
-    # Aggregate to 5m, 15m, and HTF (1H, 4H, 1D)
+    # Load extended 1m bars with lookback for HTF (4H, 1D) ATR warmup
+    lookback_start = (date.fromisoformat(start_date) - timedelta(days=HTF_LOOKBACK_CALENDAR_DAYS)).isoformat()
+    bars_1m_extended = adapter.load_bars(pair, lookback_start, end_date)
+    if bars_1m_extended.empty:
+        bars_1m_extended = bars_1m  # Degrade gracefully if lookback unavailable
+
+    # Aggregate LTF from target week only (no lookback needed, ATR warms fast)
     bars_5m = aggregate(bars_1m, "5m")
     bars_15m = aggregate(bars_1m, "15m")
     bars_1h = aggregate(bars_1m, "1H")
-    bars_4h = aggregate(bars_1m, "4H")
-    bars_1d = aggregate(bars_1m, "1D")
+
+    # Aggregate HTF from extended window (lookback + target week)
+    bars_4h_full = aggregate(bars_1m_extended, "4H")
+    bars_1d_full = aggregate(bars_1m_extended, "1D")
 
     bars_by_tf = {
         "1m": bars_1m, "5m": bars_5m, "15m": bars_15m,
-        "1H": bars_1h, "4H": bars_4h, "1D": bars_1d,
+        "1H": bars_1h, "4H": bars_4h_full, "1D": bars_1d_full,
     }
     # NOTE: W1 (weekly) skipped — 5-day data windows are too small for weekly aggregation
 
@@ -513,6 +574,9 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
         bars_by_tf,
         timeframes=["1m", "5m", "15m", "1H", "4H", "1D"],
     )
+
+    # Filter HTF detections to target week only (lookback bars are context, not output)
+    results = _filter_detections_to_week(results, start_date, end_date)
 
     # Filter detections to only those passing locked thresholds
     locked_thresholds = _extract_locked_thresholds(config)
@@ -543,8 +607,16 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
         "detections_by_primitive": detections_by_primitive,
     }
 
-    # Build candle JSON
-    candle_data = build_candle_json(bars_by_tf)
+    # Build candle JSON — use target week bars only (not lookback) for output
+    ws_dt = pd.Timestamp(start_date, tz="UTC")
+    we_dt = pd.Timestamp(end_date, tz="UTC") + pd.Timedelta(days=1)
+    bars_4h_week = bars_4h_full[bars_4h_full["timestamp"] >= ws_dt] if "timestamp" in bars_4h_full.columns else bars_4h_full
+    bars_1d_week = bars_1d_full[bars_1d_full["timestamp"] >= ws_dt] if "timestamp" in bars_1d_full.columns else bars_1d_full
+    candle_bars = {
+        "1m": bars_1m, "5m": bars_5m, "15m": bars_15m,
+        "1H": bars_1h, "4H": bars_4h_week, "1D": bars_1d_week,
+    }
+    candle_data = build_candle_json(candle_bars)
 
     # Build session boundaries
     session_data = build_session_boundaries(bars_1m)
@@ -583,8 +655,8 @@ def process_week(week_info: dict, config, adapter: RiverAdapter,
         "bars_5m": len(bars_5m),
         "bars_15m": len(bars_15m),
         "bars_1H": len(bars_1h),
-        "bars_4H": len(bars_4h),
-        "bars_1D": len(bars_1d),
+        "bars_4H": len(bars_4h_week),
+        "bars_1D": len(bars_1d_week),
     }
 
 

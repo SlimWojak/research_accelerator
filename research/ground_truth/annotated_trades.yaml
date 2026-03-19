@@ -123,7 +123,10 @@ trades:
     strategy_type: state_gated
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Trade 3: Dec 12 2025 — RANGE, 4H bullish authority, long
+  # Trade 3: Dec 12 2025 — EXPANSION bullish, long
+  # CORRECTED 2026-03-19: Olya confirmed daily is BULLISH (not RANGE).
+  # Daily bullish MSS from Dec 4 + 4H bullish MSS Dec 10 with strong
+  # displacement. Original RANGE annotation was incorrect.
   # ─────────────────────────────────────────────────────────────────────────
   - id: trade_003
     date: "2025-12-12"
@@ -133,10 +136,10 @@ trades:
     direction: LONG
 
     expected_state:
-      htf_phase: RANGE
-      direction_permission: BOTH
-      daily_direction: NEUTRAL
-      authority_tf: 4H
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BULLISH
+      authority_tf: Daily
 
     execution_chain:
       steps:
@@ -158,10 +161,11 @@ trades:
 
     htf_context:
       description: >
-        No daily displacement fires Nov-Dec. Daily is NEUTRAL = RANGE.
-        4H bullish MSS Dec 10 16:00 with strong displacement (ATR 4.1x).
-        Multiple 4H + 1H bullish FVGs Dec 10-11 form confluence zone.
-        4H takes authority as most recent HTF MSS.
+        Daily bullish. 4H bullish MSS Dec 10 16:00 with strong
+        displacement (ATR 4.1x). Multiple 4H + 1H bullish FVGs
+        Dec 10-11 form confluence zone. Daily bullish MSS from Dec 4
+        (not captured by detection engine due to ATR warmup limitation,
+        but confirmed by Olya visual assessment 2026-03-19).
 
     strategy_type: state_gated
 
@@ -203,3 +207,464 @@ trades:
         Uses locked LTF parameters only.
 
     strategy_type: asia_range_scalp
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # TRADES 5–14: Olya's 10 new annotations (2026-03-19)
+  # Transcribed from research/ground_truth/OLYA NOTATED TRADES.md
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 5: Dec 12 2025 — EXPANSION bullish, long NYOKZ
+  # NOTE: Same date as trade_003. Olya now classifies daily as BULLISH
+  # (EXPANSION), whereas trade_003 was coded as RANGE/NEUTRAL.
+  # This is a reconciliation signal — Olya's annotation is authoritative.
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_005
+    date: "2025-12-12"
+    pair: EURUSD
+    execution_time: "09:00"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BULLISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "07:30"
+        - primitive: mss
+          tf: 15m
+          time: "08:00"
+        - primitive: ote
+          tf: 15m
+          time: "09:00"
+      notes: >
+        Price reversed into 1hr strong FVG (H 1.7304 L 1.7193) created
+        at previous day 8am NYOKZ. Sweep of pre NYOKZ liquidity
+        (low 1.17224). 15min MSS at 8am with FVG (H 1.17266 L 1.17255).
+        Enter on OTE fib extension at 9am.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bullish. 4hr bullish expansion. 1hr bullish expansion.
+        Price reversed into 1hr strong FVG created at previous day 8am
+        NYOKZ. Sweep of pre NYOKZ liquidity. 15min MSS with FVG at 8am.
+        OTE entry at 9am.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 6: Dec 15 2025 — EXPANSION bullish, long LOKZ
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_006
+    date: "2025-12-15"
+    pair: EURUSD
+    execution_time: "03:45"
+    kill_zone: LOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BULLISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "03:00"
+        - primitive: mss
+          tf: 15m
+          time: "03:30"
+        - primitive: ote
+          tf: 15m
+          time: "03:45"
+      notes: >
+        Sweep of Asia Range lows (1.17285). 3:30am MSS with FVG
+        (H 1.17326 L 1.17311). Enter on OTE fib extension at 3:45am.
+        4hr bullish expansion targeting H 1.17628 still not reached
+        from previous day.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bullish. 4hr bullish expansion targeting H 1.17628
+        still not reached from previous day. Sweep of Asia Range
+        lows at LOKZ. MSS with FVG at 3:30am. OTE entry at 3:45am.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 7: Sep 16 2025 — EXPANSION bullish, 5m continuation NYOKZ
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_007
+    date: "2025-09-16"
+    pair: EURUSD
+    execution_time: "09:45"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BULLISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "09:00"
+        - primitive: mss
+          tf: 15m
+          time: "09:15"
+        - primitive: ote
+          tf: 5m
+          time: "09:45"
+      notes: >
+        5min continuation trade in NYOKZ. Price took pre NYOKZ SSLQ
+        (1.18042) into 15min bullish FVG (H 1.18055 L 1.17975).
+        MSS at 9:15am. Entry on 5min OTE at 9:45am.
+
+    setup_type: CONTINUATION
+    entry_tf: 5m
+
+    htf_context:
+      description: >
+        Daily bullish with direction. 4hr bullish. 1hr in bullish
+        order flow. 5min continuation trade in NYOKZ.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 8: Oct 15 2025 — RETRACE, counter-long NYOKZ
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_008
+    date: "2025-10-15"
+    pair: EURUSD
+    execution_time: "10:00"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RETRACE
+      direction_permission: COUNTER_ALLOWED
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "09:00"
+        - primitive: mss
+          tf: 15m
+          time: "09:30"
+        - primitive: ote
+          tf: 15m
+          time: "10:00"
+      notes: >
+        Daily bearish in bullish pullback state. 4hr/1hr expanded
+        during Asia and LOKZ. Price swept PreLOKZ + LOKZ + PreNYOKZ
+        liquidity into 1hr FVG (H 1.16181 L 1.16141). MSS at 9:30am
+        with 15min FVG (H 1.16259 L 1.16218). OTE entry at 10am.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bearish in bullish pullback state. 4hr/1hr expanded
+        during Asia and LOKZ. Price swept multiple session liquidity
+        levels into 1hr FVG. MSS at 9:30am. OTE entry at 10am.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 9: Nov 14 2025 — INDEPENDENT, Asia Range Scalp, short
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_009
+    date: "2025-11-14"
+    pair: EURUSD
+    execution_time: "01:00"
+    kill_zone: N/A
+    direction: SHORT
+
+    expected_state:
+      htf_phase: INDEPENDENT
+      direction_permission: INDEPENDENT
+      daily_direction: NEUTRAL
+      authority_tf: N/A
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 5m
+          time: "01:00"
+        - primitive: fvg
+          tf: 5m
+          time: "01:15"
+      notes: >
+        Asia Range scalp. Price took out Asia range highs (1.16449)
+        at 1am. Formed 5min FVG back inside the Asia range at 1:15am.
+        Take short to Asia range lows.
+
+    setup_type: CONTINUATION
+    entry_tf: 5m
+
+    htf_context:
+      description: >
+        Asia Range Scalp operates independently of HTF state.
+        Uses locked LTF parameters only.
+
+    strategy_type: asia_range_scalp
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 10: Nov 12 2025 — RETRACE, counter-long NYOKZ
+  # NOTE: Olya wrote 12/11/2026. Year corrected to 2025 (within data range).
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_010
+    date: "2025-11-12"
+    pair: EURUSD
+    execution_time: "09:30"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RETRACE
+      direction_permission: COUNTER_ALLOWED
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "09:00"
+        - primitive: mss
+          tf: 15m
+          time: "09:30"
+      notes: >
+        Daily bearish. 4hr clear bullish order flow. 4hr expansion
+        with FVG (H 1.15906 L 1.15496) and bullish order block at
+        1.15681. Retracement back to order block and 4hr discount
+        area inside 4hr FVG. Price swept pre NYOKZ liquidity
+        (L 1.15653). MSS at 9:30am. Entry on expansion candle
+        after 9:30am close.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bearish. 4hr clear bullish order flow with expansion
+        FVG and order block. Retracement to 4hr discount area.
+        Sweep of pre NYOKZ liquidity into structure. MSS at 9:30am.
+        Entry on expansion candle.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 11: Nov 28 2025 — RANGE, 4H bullish authority, long NYOKZ
+  # CORRECTED 2026-03-19: Olya clarified daily is NEUTRAL (no structure
+  # break). 4H is in bullish expansion → 4H takes authority.
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_011
+    date: "2025-11-28"
+    pair: EURUSD
+    execution_time: "09:15"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RANGE
+      direction_permission: BOTH
+      daily_direction: NEUTRAL
+      authority_tf: 4H
+
+    execution_chain:
+      steps:
+        - primitive: mss
+          tf: 15m
+          time: "08:45"
+        - primitive: ote
+          tf: 15m
+          time: "09:15"
+      notes: >
+        NO SWEEP. Price started moving away with momentum. 15min
+        building bullish order flow. MSS at 8:45am. OTE entry at
+        9:15am NYOKZ. Lots of BSLQ low resistance liquidity above
+        (26/11 Asia highs 1.16135, 27/11 Asia highs 1.16021).
+        Price coming back into Wednesday strong 15min FVG
+        (H 1.15748 L 1.15609) created during NYOKZ. Sweep of
+        London KZ and previous day low.
+
+    setup_type: CONTINUATION
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily neutral — no structure break yet. 4hr in bullish
+        expansion. Price retraces into strong 15min FVG from the
+        4H expansion. No sweep but momentum with 15min bullish
+        order flow building. MSS at 8:45am. 4H takes authority.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 12: Mar 17 2026 — RETRACE, counter-long NYOKZ
+  # NOTE: Olya wrote 17/03/2025. Year corrected to 2026.
+  # WARNING: 2026-W12 is OUTSIDE current data range (ends at 2026-W08).
+  # This trade will fail evaluation due to missing detection data.
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_012
+    date: "2026-03-17"
+    pair: EURUSD
+    execution_time: "08:25"
+    kill_zone: NYOKZ
+    direction: LONG
+
+    expected_state:
+      htf_phase: RETRACE
+      direction_permission: COUNTER_ALLOWED
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: mss
+          tf: 5m
+          time: "08:05"
+        - primitive: ote
+          tf: 5m
+          time: "08:25"
+      notes: >
+        Price tapped into 1hr strong FVG (H 1.15082 L 1.15002)
+        created during LOKZ. At beginning of NYOKZ was waiting for
+        price to take pre NYOKZ liquidity — price instead took
+        liquidity on DXY and created SMT divergence. On 5min after
+        SMT price created MSS with FVG at 8:05am. Entry on 5min
+        OTE at 8:25am. SMT used as sweep substitute (not in locked
+        L1 — tolerated as known miss).
+
+    setup_type: REVERSAL
+    entry_tf: 5m
+
+    htf_context:
+      description: >
+        Daily bearish. 4hr bullish order flow. 1hr bullish order
+        flow. Price tapped into 1hr strong FVG created during LOKZ.
+        SMT divergence with DXY used as sweep substitute. 5min MSS
+        with FVG at 8:05am. OTE entry at 8:25am.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 13: Mar 12 2026 — EXPANSION bearish, short NYOKZ
+  # NOTE: Olya wrote 12/03/2025. Year corrected to 2026.
+  # WARNING: 2026-W11 is OUTSIDE current data range (ends at 2026-W08).
+  # This trade will fail evaluation due to missing detection data.
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_013
+    date: "2026-03-12"
+    pair: EURUSD
+    execution_time: "09:00"
+    kill_zone: NYOKZ
+    direction: SHORT
+
+    expected_state:
+      htf_phase: EXPANSION
+      direction_permission: WITH_EXPANSION
+      daily_direction: BEARISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "07:30"
+        - primitive: mss
+          tf: 15m
+          time: "08:00"
+        - primitive: ote
+          tf: 15m
+          time: "09:00"
+      notes: >
+        Price retraced into 1hr bearish OB and FVG from 18:00
+        (H 1.15657 L 1.15538). At NY midnight open price started
+        bullish corrective pullback. Price took out LOKZ liquidity
+        at 7:30am before NYOKZ. Started bearish momentum and MSS
+        at NY open 8am. Retracement high was OTE entry at 9am.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bearish with direction. 4hr/1hr bearish. Price retraced
+        into 1hr bearish OB and FVG. Bullish corrective pullback from
+        NY midnight. Swept LOKZ liquidity at 7:30am. Bearish MSS at
+        8am. OTE entry at 9am.
+
+    strategy_type: state_gated
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Trade 14: Feb 4 2026 — RETRACE, counter-short NYOKZ
+  # NOTE: Olya wrote 04/02/2025. Year corrected to 2026 (2026-W06 in range).
+  # ─────────────────────────────────────────────────────────────────────────
+  - id: trade_014
+    date: "2026-02-04"
+    pair: EURUSD
+    execution_time: "07:00"
+    kill_zone: NYOKZ
+    direction: SHORT
+
+    expected_state:
+      htf_phase: RETRACE
+      direction_permission: COUNTER_ALLOWED
+      daily_direction: BULLISH
+      authority_tf: Daily
+
+    execution_chain:
+      steps:
+        - primitive: sweep
+          tf: 15m
+          time: "03:00"
+        - primitive: mss
+          tf: 15m
+          time: "04:30"
+        - primitive: ote
+          tf: 15m
+          time: "07:00"
+      notes: >
+        Daily bullish in bearish pullback state. 4hr/1hr bearish.
+        4hr expanded down, created 4hr MSS 5am Mon 02/02 with FVG
+        (H 1.18432 L 1.18299) and OB 1.18507. Monday 14pm price
+        left a weak low and started to pull back up. Wednesday 04/02
+        at 3am price took out Asia highs and pre LOKZ liquidity.
+        Created 15min MSS + FVG at 4:30am. Entry on 15min OTE at
+        7:00am NYOKZ.
+
+    setup_type: REVERSAL
+    entry_tf: 15m
+
+    htf_context:
+      description: >
+        Daily bullish in bearish pullback state. 4hr/1hr bearish.
+        4hr MSS 5am Mon 02/02 with FVG and OB. Price left weak
+        low Monday and pulled back up. Wednesday 3am swept Asia
+        highs and pre LOKZ liquidity. 15min MSS + FVG at 4:30am.
+        OTE entry at 7:00am NYOKZ.
+
+    strategy_type: state_gated

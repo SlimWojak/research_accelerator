@@ -1,0 +1,388 @@
+metadata:
+  stage: 3
+  run_time: '2026-03-19T19:30:31.299238'
+recommendation:
+  verdict: HOLD_DEFAULTS
+  reason: Defaults are already optimal
+default_baseline:
+  pass: 13
+  partial: 1
+  fail: 0
+candidates:
+- rank: 1
+  params:
+    h1_counter_persistence_bars: 3
+    momentum_stall_window_daily_bars: 3
+    key_level_tolerance_atr_factor: 0.5
+    transition_lockout_h1_bars: 2
+    retrace_to_range_daily_bars: 3
+    kill_zone_realignment_lookback_hours: 2
+    swing_lookback_count: 4
+    minimum_swings_required: 2
+    swing_recency_days: 30
+    qualifying_daily_bars: 1
+    mss_window_days: 10
+    body_ratio_threshold: 0.55
+    daily_bar_range_min: 0.004
+    h4_structure_lookback_days: 5
+    h4_minimum_swings: 3
+    h4_counter_persistence_bars: 1
+    h4_counter_displacement_required: false
+  deltas: {}
+  distance: 0.0
+  pass: 13
+  partial: 1
+  fail: 0
+  degraded: []
+  improved: []
+  per_trade:
+  - trade_id: trade_001
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_002
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_003
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_004
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_005
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_006
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_007
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_008
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_009
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_010
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_011
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_neutral
+    retrace_trigger: ''
+  - trade_id: trade_012
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_013
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_014
+    verdict: PARTIAL
+    phase_match: true
+    permission_match: true
+    chain_status: PARTIAL
+    method: h4_counter (h4_counter_mss)
+    retrace_trigger: h4
+- rank: 2
+  params:
+    h1_counter_persistence_bars: 3
+    momentum_stall_window_daily_bars: 3
+    key_level_tolerance_atr_factor: 0.5
+    transition_lockout_h1_bars: 2
+    retrace_to_range_daily_bars: 3
+    kill_zone_realignment_lookback_hours: 2
+    swing_lookback_count: 4
+    minimum_swings_required: 2
+    swing_recency_days: 30
+    qualifying_daily_bars: 1
+    mss_window_days: 10
+    body_ratio_threshold: 0.6
+    daily_bar_range_min: 0.004
+    h4_structure_lookback_days: 5
+    h4_minimum_swings: 3
+    h4_counter_persistence_bars: 1
+    h4_counter_displacement_required: false
+  deltas:
+    body_ratio_threshold: 0.6
+  distance: 0.04999999999999993
+  pass: 13
+  partial: 1
+  fail: 0
+  degraded: []
+  improved: []
+  per_trade:
+  - trade_id: trade_001
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_002
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_003
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_004
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_005
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_006
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_007
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_008
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_009
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_010
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_011
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_neutral
+    retrace_trigger: ''
+  - trade_id: trade_012
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_013
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_014
+    verdict: PARTIAL
+    phase_match: true
+    permission_match: true
+    chain_status: PARTIAL
+    method: h4_counter (h4_counter_mss)
+    retrace_trigger: h4
+- rank: 3
+  params:
+    h1_counter_persistence_bars: 3
+    momentum_stall_window_daily_bars: 3
+    key_level_tolerance_atr_factor: 0.4
+    transition_lockout_h1_bars: 2
+    retrace_to_range_daily_bars: 3
+    kill_zone_realignment_lookback_hours: 2
+    swing_lookback_count: 4
+    minimum_swings_required: 2
+    swing_recency_days: 30
+    qualifying_daily_bars: 1
+    mss_window_days: 10
+    body_ratio_threshold: 0.55
+    daily_bar_range_min: 0.004
+    h4_structure_lookback_days: 5
+    h4_minimum_swings: 3
+    h4_counter_persistence_bars: 1
+    h4_counter_displacement_required: false
+  deltas:
+    key_level_tolerance_atr_factor: 0.4
+  distance: 0.09999999999999998
+  pass: 13
+  partial: 1
+  fail: 0
+  degraded: []
+  improved: []
+  per_trade:
+  - trade_id: trade_001
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_002
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_003
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_004
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_005
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_006
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_007
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bullish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_008
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_009
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: strategy_bypass
+    retrace_trigger: ''
+  - trade_id: trade_010
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (swing_primary)
+    retrace_trigger: h1_only
+  - trade_id: trade_011
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_neutral
+    retrace_trigger: ''
+  - trade_id: trade_012
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: h1_counter (mss_confirming)
+    retrace_trigger: h1_only
+  - trade_id: trade_013
+    verdict: PASS
+    phase_match: true
+    permission_match: true
+    chain_status: FIRED
+    method: daily_bearish_expansion
+    retrace_trigger: ''
+  - trade_id: trade_014
+    verdict: PARTIAL
+    phase_match: true
+    permission_match: true
+    chain_status: PARTIAL
+    method: h4_counter (h4_counter_mss)
+    retrace_trigger: h4

@@ -42,6 +42,19 @@ DEFAULT_PARAMS = {
     "transition_lockout_h1_bars": 2,
     "retrace_to_range_daily_bars": 3,
     "kill_zone_realignment_lookback_hours": 2,
+    # Daily direction detection parameters (Track 2/3 — 2026-03-19)
+    "swing_lookback_count": 4,
+    "minimum_swings_required": 2,
+    "swing_recency_days": 30,
+    "qualifying_daily_bars": 1,
+    "mss_window_days": 10,
+    "body_ratio_threshold": 0.55,
+    "daily_bar_range_min": 0.0040,
+    "h4_structure_lookback_days": 5,
+    "h4_minimum_swings": 3,
+    # v2.2 RETRACE refinement — 4H counter pathway (Brief E — 2026-03-19)
+    "h4_counter_persistence_bars": 1,
+    "h4_counter_displacement_required": False,
 }
 
 # Kill zone windows (NY time, hour only for simplicity)
@@ -151,25 +164,84 @@ def get_detections_before(dets: list, cutoff: datetime, prim_type: str = None) -
     return result
 
 
-def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt: datetime, params: dict) -> dict:
+def _mechanism_1_daily_swing_structure(detections: dict, trade_dt: datetime, params: dict) -> dict:
     """
-    Compute daily structure direction.
+    Mechanism 1 (PRIMARY): Daily swing structure direction.
+    Reads existing daily SwingPoints from detection output.
+    Returns direction from HH/HL (BULLISH) or LL/LH (BEARISH) pattern.
+    Falls through to NEUTRAL when data is sparse or pattern is mixed.
 
-    The v2.1 spec defines EXPANSION as: "Most recent daily MSS exists,
-    not invalidated." When no daily MSS fires, direction = NEUTRAL = RANGE.
+    Note: daily swings are sparse (~0.4/week) due to ATR warmup on daily bars.
+    This mechanism will often return NEUTRAL, pushing to mechanisms 2/3.
+    """
+    result = {"direction": "NEUTRAL", "method": "swing_structure", "mss_time": None, "confidence": "LOW"}
 
-    4H MSS serves as proxy for daily ONLY when daily-scale displacement
-    also exists (confirming the 4H event represents a genuine daily structure
-    shift). Without daily displacement, 4H MSS provides authority delegation
-    in RANGE phase, not daily direction.
+    lookback_count = params.get("swing_lookback_count", 4)
+    min_required = params.get("minimum_swings_required", 2)
+    recency_days = params.get("swing_recency_days", 30)
 
-    Known limitation: daily MSS rarely fires due to ATR(14) needing 14+ bars
-    but weekly windows provide only 5-6. 4H MSS + daily displacement together
-    provide equivalent evidence.
+    daily_swings = detections.get("swing_points", {}).get("1D", [])
+    swings_before = get_detections_before(daily_swings, trade_dt)
+    if not swings_before:
+        return result
+
+    swings_before.sort(key=lambda d: d["time"])
+
+    # Apply recency filter: only consider swings within recency_days
+    cutoff = trade_dt - timedelta(days=recency_days)
+    recent_swings = [s for s in swings_before if parse_time(s["time"]) >= cutoff]
+
+    # Take last N swings
+    recent_swings = recent_swings[-lookback_count:]
+
+    if len(recent_swings) < min_required:
+        return result
+
+    # Separate highs and lows
+    highs = [s for s in recent_swings
+             if s.get("direction", s.get("type", "")) in ("high", "SwingHigh", "swing_point_high")]
+    lows = [s for s in recent_swings
+            if s.get("direction", s.get("type", "")) in ("low", "SwingLow", "swing_point_low")]
+
+    # Need at least 2 of each to compare HH/LH and HL/LL
+    if len(highs) < 2 or len(lows) < 2:
+        return result
+
+    h_prices = [h["price"] for h in highs[-2:]]
+    l_prices = [lo["price"] for lo in lows[-2:]]
+
+    hh = h_prices[1] > h_prices[0]
+    hl = l_prices[1] > l_prices[0]
+    ll = l_prices[1] < l_prices[0]
+    lh = h_prices[1] < h_prices[0]
+
+    if hh and hl:
+        result["direction"] = "BULLISH"
+        result["confidence"] = "MEDIUM"
+        result["method"] = "daily_swing_structure"
+    elif ll and lh:
+        result["direction"] = "BEARISH"
+        result["confidence"] = "MEDIUM"
+        result["method"] = "daily_swing_structure"
+    # Mixed pattern (e.g., HH+LL or LH+HL) → NEUTRAL
+
+    return result
+
+
+def _mechanism_2_mss_displacement(detections: dict, candles: dict,
+                                  trade_dt: datetime, params: dict) -> dict:
+    """
+    Mechanism 2 (SECONDARY): 4H MSS proxy with relaxed daily displacement confirmation.
+    Relaxed from original: wider window, lower thresholds, fewer qualifying bars.
     """
     result = {"direction": "NEUTRAL", "method": "none", "mss_time": None, "confidence": "LOW"}
 
-    # Try daily MSS first
+    qualifying_bars_needed = params.get("qualifying_daily_bars", 1)
+    window_days = params.get("mss_window_days", 10)
+    br_threshold = params.get("body_ratio_threshold", 0.55)
+    range_min = params.get("daily_bar_range_min", 0.0040)
+
+    # Try daily MSS first (rarely fires due to ATR warmup)
     daily_mss = detections.get("mss", {}).get("1D", [])
     daily_before = get_detections_before(daily_mss, trade_dt)
     if daily_before:
@@ -182,7 +254,7 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
         result["confidence"] = "HIGH"
         return result
 
-    # Step 1: Find most recent 4H MSS (proxy for daily structure)
+    # 4H MSS proxy with daily displacement confirmation
     h4_mss = detections.get("mss", {}).get("4H", [])
     h4_before = get_detections_before(h4_mss, trade_dt)
 
@@ -192,7 +264,7 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
         mss_direction = last_mss.get("properties", {}).get("direction", last_mss.get("direction", "")).upper()
         mss_time = parse_time(last_mss["time"])
 
-        # Check for invalidation: opposing MSS fired after this one
+        # Check for invalidation
         invalidated = any(
             parse_time(d["time"]) > mss_time
             and d.get("properties", {}).get("direction", d.get("direction", "")).upper() != mss_direction
@@ -200,10 +272,6 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
         )
 
         if not invalidated:
-            # Step 2: Verify daily-scale displacement confirmation.
-            # 4H MSS proxies for daily only when daily candles also show
-            # clear directional conviction (the 4H event represents a genuine
-            # daily structure shift, not just a local 4H move).
             has_confirming_displacement = False
 
             # Check 1D displacement directly
@@ -214,20 +282,15 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
                     has_confirming_displacement = True
                     break
 
-            # Check daily candles for displacement-quality bars in MSS direction.
-            # This catches the case where the detection engine can't fire daily
-            # displacement (ATR limitation) but the candles show clear direction.
-            # Requires 2+ daily bars with body_ratio >= 0.60 in MSS direction
-            # within 5 days surrounding the MSS event, establishing that this
-            # is a sustained daily move, not a single-day reaction.
+            # Check daily candles within relaxed window
             if not has_confirming_displacement:
                 daily_bars = candles.get("1D", [])
                 mss_window_start = mss_time - timedelta(days=3)
-                mss_window_end = mss_time + timedelta(days=2)
-                qualifying_bars = 0
+                mss_window_end = mss_time + timedelta(days=window_days)
+                qualifying_count = 0
                 for bar in daily_bars:
                     bt = parse_time(bar["time"])
-                    if mss_window_start <= bt <= mss_window_end:
+                    if mss_window_start <= bt <= mss_window_end and bt <= trade_dt:
                         o, c = bar["open"], bar["close"]
                         h, l = bar["high"], bar["low"]
                         body = abs(c - o)
@@ -236,10 +299,9 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
                             body_ratio = body / rng
                             is_dir = (mss_direction == "BEARISH" and c < o) or \
                                      (mss_direction == "BULLISH" and c > o)
-                            if is_dir and body_ratio >= 0.60 and rng >= 0.0040:
-                                qualifying_bars += 1
-                # Need 2+ qualifying daily bars to confirm daily-scale move
-                if qualifying_bars >= 2:
+                            if is_dir and body_ratio >= br_threshold and rng >= range_min:
+                                qualifying_count += 1
+                if qualifying_count >= qualifying_bars_needed:
                     has_confirming_displacement = True
 
             if has_confirming_displacement:
@@ -255,8 +317,113 @@ def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt:
                     result["confidence"] = "LOW"
                 return result
 
-    # No daily structure established
     return result
+
+
+def _mechanism_3_h4_sustained_structure(detections: dict, candles: dict,
+                                        trade_dt: datetime, params: dict) -> dict:
+    """
+    Mechanism 3 (TERTIARY): 4H sustained swing structure direction.
+    Safety net for cases where daily swings are sparse and 4H MSS proxy
+    gives NEUTRAL (or was invalidated). Uses the richer 4H swing data
+    (~7.8/week) to infer daily direction when supported by displacement.
+    """
+    result = {"direction": "NEUTRAL", "method": "none", "mss_time": None, "confidence": "LOW"}
+
+    lookback_days = params.get("h4_structure_lookback_days", 5)
+    min_swings = params.get("h4_minimum_swings", 3)
+
+    cutoff = trade_dt - timedelta(days=lookback_days)
+
+    h4_swings = detections.get("swing_points", {}).get("4H", [])
+    h4_before = get_detections_before(h4_swings, trade_dt)
+    h4_before.sort(key=lambda d: d["time"])
+
+    # Filter to lookback window and deduplicate by time+direction
+    recent = []
+    seen = set()
+    for s in h4_before:
+        st = parse_time(s["time"])
+        if st >= cutoff:
+            key = (s["time"], s.get("direction", s.get("type", "")))
+            if key not in seen:
+                seen.add(key)
+                recent.append(s)
+
+    if len(recent) < min_swings:
+        return result
+
+    highs = [s for s in recent
+             if s.get("direction", s.get("type", "")) in ("high", "SwingHigh", "swing_point_high")]
+    lows = [s for s in recent
+            if s.get("direction", s.get("type", "")) in ("low", "SwingLow", "swing_point_low")]
+
+    if len(highs) < 2 or len(lows) < 2:
+        return result
+
+    h_prices = [h["price"] for h in highs[-2:]]
+    l_prices = [lo["price"] for lo in lows[-2:]]
+
+    hh = h_prices[1] > h_prices[0]
+    hl = l_prices[1] > l_prices[0]
+    ll = l_prices[1] < l_prices[0]
+    lh = h_prices[1] < h_prices[0]
+
+    swing_direction = None
+    if hh and hl:
+        swing_direction = "BULLISH"
+    elif ll and lh:
+        swing_direction = "BEARISH"
+    else:
+        return result
+
+    # Require at least one displacement-quality 4H bar in the swing direction
+    h4_disp = detections.get("displacement", {}).get("4H", [])
+    h4_disp_before = get_detections_before(h4_disp, trade_dt)
+    has_displacement = any(
+        parse_time(d["time"]) >= cutoff
+        and d.get("direction", "").upper() == swing_direction
+        and d.get("properties", {}).get("quality_grade", "") in ("VALID", "STRONG")
+        for d in h4_disp_before
+    )
+
+    if has_displacement:
+        result["direction"] = swing_direction
+        result["method"] = "h4_sustained_structure"
+        result["confidence"] = "LOW"
+
+    return result
+
+
+def compute_daily_structure_direction(detections: dict, candles: dict, trade_dt: datetime, params: dict) -> dict:
+    """
+    Compute daily structure direction using 3-mechanism hierarchy.
+
+    Mechanism 1 (PRIMARY): Daily swing structure (HH/HL or LL/LH pattern).
+      This is what Olya reads first from the daily chart. Falls through to
+      NEUTRAL when daily swings are sparse (common — ~0.4 swings/week).
+
+    Mechanism 2 (SECONDARY): 4H MSS proxy with relaxed daily displacement.
+      Relaxed from original: 1 qualifying bar (was 2), 10-day window (was 5),
+      body_ratio 0.55 (was 0.60). Catches most directional moves.
+
+    Mechanism 3 (TERTIARY): 4H sustained swing structure with displacement.
+      Safety net using richer 4H swing data (~7.8/week). Promotes to daily
+      direction when 4H structure is clearly directional with displacement.
+
+    First non-NEUTRAL result wins. If all three return NEUTRAL, daily is
+    genuinely unclear → RANGE phase.
+    """
+    for mechanism in [
+        lambda: _mechanism_1_daily_swing_structure(detections, trade_dt, params),
+        lambda: _mechanism_2_mss_displacement(detections, candles, trade_dt, params),
+        lambda: _mechanism_3_h4_sustained_structure(detections, candles, trade_dt, params),
+    ]:
+        result = mechanism()
+        if result["direction"] != "NEUTRAL":
+            return result
+
+    return {"direction": "NEUTRAL", "method": "none", "mss_time": None, "confidence": "LOW"}
 
 
 def compute_h1_alignment(detections: dict, trade_dt: datetime,
@@ -524,6 +691,99 @@ def find_authority_tf(detections: dict, trade_dt: datetime) -> dict:
 # V2.1 PHASE CLASSIFIER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def compute_h4_counter(detections: dict, trade_dt: datetime,
+                       daily_direction: str, daily_mss_time: str,
+                       params: dict) -> dict:
+    """
+    v2.2 RETRACE refinement: detect 4H structural counter-move against daily direction.
+
+    Returns h4_counter status. A 4H MSS opposing daily direction that fired
+    AFTER the current daily MSS (and has not been invalidated) indicates a
+    genuine pullback at the 4H level — what Olya calls "bearish pullback state."
+
+    The "post-dates daily MSS" qualifier prevents stale pre-expansion 4H structure
+    from spuriously triggering RETRACE.
+    """
+    result = {"status": "ALIGNED", "method": "default", "details": "", "mss_time": None}
+
+    if daily_direction == "NEUTRAL" or not daily_mss_time:
+        return result
+
+    persistence_bars = params.get("h4_counter_persistence_bars", 1)
+    displacement_required = params.get("h4_counter_displacement_required", False)
+
+    # Parse the daily MSS timestamp as the floor: 4H counter must post-date it
+    daily_mss_dt = parse_time(daily_mss_time) if isinstance(daily_mss_time, str) else daily_mss_time
+
+    h4_mss = detections.get("mss", {}).get("4H", [])
+    h4_before = get_detections_before(h4_mss, trade_dt)
+    if not h4_before:
+        return result
+
+    h4_before.sort(key=lambda d: d["time"])
+
+    # Find the most recent 4H MSS that opposes daily direction AND post-dates daily MSS
+    counter_dir = "BEARISH" if daily_direction == "BULLISH" else "BULLISH"
+
+    # Collect all post-daily-MSS 4H MSS events
+    post_daily = [(m, parse_time(m["time"]),
+                   m.get("properties", {}).get("direction", m.get("direction", "")).upper())
+                  for m in h4_before
+                  if parse_time(m["time"]) > daily_mss_dt]
+
+    # Find most recent counter-direction 4H MSS
+    candidate = None
+    cand_time = None
+    for m, mt, m_dir in reversed(post_daily):
+        if m_dir == counter_dir:
+            candidate = m
+            cand_time = mt
+            break
+
+    if candidate is None:
+        return result
+
+    # Check invalidation: a 4H MSS in daily direction AFTER the counter candidate
+    # does NOT automatically erase the counter structure. 4H counter-moves are
+    # multi-day structural events. Invalidation requires the daily-aligned events
+    # AFTER the first counter-MSS to have equal or greater structural weight
+    # (event count) than ALL counter events since daily MSS was established.
+    first_counter_time = min(mt for _, mt, d in post_daily if d == counter_dir)
+    counter_events = sum(1 for _, mt, d in post_daily if d == counter_dir)
+    invalidation_events = sum(1 for _, mt, d in post_daily if d == daily_direction and mt > first_counter_time)
+
+    if invalidation_events >= counter_events:
+        return result
+
+    # Check persistence (age in 4H bars — approximate: 4H = 4 hours per bar)
+    age_hours = (trade_dt - cand_time).total_seconds() / 3600
+    age_bars_approx = age_hours / 4
+    if age_bars_approx < persistence_bars:
+        return result
+
+    # Optional displacement-quality gate
+    if displacement_required:
+        h4_disp = detections.get("displacement", {}).get("4H", [])
+        h4_disp_before = get_detections_before(h4_disp, trade_dt)
+        has_counter_disp = any(
+            d.get("direction", "").upper() == counter_dir
+            and parse_time(d["time"]) >= cand_time
+            and d.get("properties", {}).get("quality_grade", "") in ("VALID", "STRONG")
+            for d in h4_disp_before
+        )
+        if not has_counter_disp:
+            return result
+
+    result["status"] = "COUNTER"
+    result["method"] = "h4_counter_mss"
+    result["mss_time"] = candidate["time"]
+    result["details"] = (
+        f"4H {counter_dir} MSS at {candidate['time']} post-dates daily {daily_direction} MSS at {daily_mss_time}. "
+        f"Not invalidated. Age {age_bars_approx:.0f} 4H bars."
+    )
+    return result
+
+
 def classify_phase(detections: dict, candles: dict,
                    trade_dt: datetime, params: dict, trade: dict) -> dict:
     """
@@ -547,9 +807,13 @@ def classify_phase(detections: dict, candles: dict,
     # Step 1: Compute HTF facts
     daily_struct = compute_daily_structure_direction(detections, candles, trade_dt, params)
     daily_direction = daily_struct["direction"]
+    daily_mss_time = daily_struct.get("mss_time")
 
     h1_align = compute_h1_alignment(detections, trade_dt, daily_direction, params)
     h1_align = check_kill_zone_realignment(detections, trade_dt, daily_direction, h1_align, params)
+
+    # v2.2: 4H counter-move detection
+    h4_counter = compute_h4_counter(detections, trade_dt, daily_direction, daily_mss_time, params)
 
     momentum = compute_momentum_active(detections, trade_dt, daily_direction, params)
     at_key = compute_at_key_level(detections, candles, trade_dt, params)
@@ -557,6 +821,7 @@ def classify_phase(detections: dict, candles: dict,
     facts = {
         "daily_structure": daily_struct,
         "h1_alignment": h1_align,
+        "h4_counter": h4_counter,
         "momentum_active": momentum,
         "at_key_level": at_key,
     }
@@ -597,14 +862,28 @@ def classify_phase(detections: dict, candles: dict,
             "diagnostics": diagnostics,
         }
 
-    # Check RETRACE: daily direction exists + 1H counter
-    if h1_align["status"] == "COUNTER":
+    # Check RETRACE: daily direction exists + (h1_counter OR h4_counter)
+    h1_is_counter = h1_align["status"] == "COUNTER"
+    h4_is_counter = h4_counter["status"] == "COUNTER"
+
+    if h1_is_counter or h4_is_counter:
+        if h1_is_counter and h4_is_counter:
+            retrace_trigger = "both"
+            method = f"h1_counter ({h1_align['method']}) + h4_counter ({h4_counter['method']})"
+        elif h4_is_counter:
+            retrace_trigger = "h4"
+            method = f"h4_counter ({h4_counter['method']})"
+        else:
+            retrace_trigger = "h1_only"
+            method = f"h1_counter ({h1_align['method']})"
+
         return {
             "htf_phase": "RETRACE",
             "direction_permission": "COUNTER_ALLOWED",
             "daily_direction": daily_direction,
             "authority_tf": "Daily",
-            "method": f"h1_counter ({h1_align['method']})",
+            "method": method,
+            "retrace_trigger": retrace_trigger,
             "facts": facts,
             "diagnostics": diagnostics,
         }
