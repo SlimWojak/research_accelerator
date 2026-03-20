@@ -1,4 +1,15 @@
 # ═══════════════════════════════════════════════════════════════════════════════
+# ██████  DEPRECATED  ██████
+# Superseded by: SYNTHETIC_OLYA_METHOD_vLOCK.yaml
+# Date deprecated: 2026-03-19
+# Reason: Full methodology rewrite during S64 calibration.
+#         v0.4 had algorithmic imprecision (prose over pseudocode),
+#         bugs in FVG boundary calculation, incorrect VI definition,
+#         no L1/L1.5/L2 separation. All issues resolved in vLOCK.
+# Retained for: Audit trail only. Do not reference for current logic.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # SYNTHETIC OLYA METHOD v0.4
 # Machine-Canonical Method Definition
 # ═══════════════════════════════════════════════════════════════════════════════
