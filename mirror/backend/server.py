@@ -72,7 +72,6 @@ DETECTION_DIR = DEXTER_ROOT / "output" / "detections"
 HEARTBEAT_PATH = RIVER_ROOT / ".heartbeat.json"
 MIRROR_STATIC_DIR = Path(__file__).resolve().parent.parent  # /mirror/
 
-DETECTION_REFRESH_INTERVAL = 300  # 5 minutes
 BAR_PAIR = "EURUSD"
 
 # ---------------------------------------------------------------------------
@@ -93,7 +92,7 @@ class ServerState:
         self.market_state: str = "CONNECTING"  # LIVE | MARKET_CLOSED | CONNECTING
         self.last_bar_time: str = ""
         self.observer: Observer | None = None
-        self._detection_task: asyncio.Task | None = None
+        self.detection_observer: Observer | None = None
         self._shutdown_event = asyncio.Event()
 
     @property
@@ -310,35 +309,80 @@ def _start_file_watcher(loop: asyncio.AbstractEventLoop) -> Observer:
 
 
 # ---------------------------------------------------------------------------
-# Detection refresh background task
+# Detection file watcher (watchdog)
 # ---------------------------------------------------------------------------
 
-async def _detection_refresh_loop() -> None:
-    """Periodically re-read detection JSON for today's forex day."""
-    while not state._shutdown_event.is_set():
+class DetectionFileHandler(FileSystemEventHandler):
+    """Watches detection JSON files for updates from the runner."""
+
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        super().__init__()
+        self._loop = loop
+        self._last_mtime: dict[str, float] = {}
+
+    def on_modified(self, event: FileModifiedEvent) -> None:  # type: ignore[override]
+        if event.is_directory:
+            return
+        path = Path(event.src_path)
+        if path.suffix != ".json":
+            return
+        # Debounce: skip if mtime unchanged
         try:
-            await asyncio.sleep(DETECTION_REFRESH_INTERVAL)
-            today = _today_forex_day()
-            detections = _load_detections(today)
-            if detections and detections != state.cached_detections:
-                state.cached_detections = detections
-                log.info("Detections refreshed for %s", today)
-                det_payload = detections.get("detections_by_primitive", detections)
-                await broadcast({"type": "detections", "data": det_payload})
-                # Extract and broadcast WorldState if present
-                ws = detections.get("world_state")
-                if ws and ws != state.cached_world_state:
-                    state.cached_world_state = ws
-                    await broadcast({"type": "world_state", "data": ws})
-                # Extract and broadcast signals if present
-                sigs = detections.get("diagnostic_signals", [])
-                if sigs:
-                    await broadcast({"type": "signals", "data": sigs})
-        except asyncio.CancelledError:
-            break
+            mtime = path.stat().st_mtime
+        except FileNotFoundError:
+            return
+        last = self._last_mtime.get(path.name, 0)
+        if mtime <= last:
+            return
+        self._last_mtime[path.name] = mtime
+
+        asyncio.run_coroutine_threadsafe(
+            self._handle_detection_update(path), self._loop
+        )
+
+    async def _handle_detection_update(self, path: Path) -> None:
+        """Reload detection JSON and broadcast if changed."""
+        date_str = path.stem
+        log.info("Detection file updated: %s", date_str)
+        try:
+            detections = _load_detections(date_str)
         except Exception as exc:
-            log.error("Detection refresh error: %s", exc)
-            await asyncio.sleep(30)
+            log.error("Failed to reload detections for %s: %s", date_str, exc)
+            return
+
+        if not detections:
+            return
+
+        # Only broadcast if content actually changed
+        if detections == state.cached_detections:
+            return
+
+        state.cached_detections = detections
+
+        # Broadcast detections
+        det_payload = detections.get("detections_by_primitive", detections)
+        await broadcast({"type": "detections", "data": det_payload})
+
+        # Broadcast world_state (retain previous if absent)
+        ws = detections.get("world_state")
+        if ws:
+            state.cached_world_state = ws
+            await broadcast({"type": "world_state", "data": ws})
+
+        log.info("Detection broadcast complete for %s", date_str)
+
+
+def _start_detection_watcher(loop: asyncio.AbstractEventLoop) -> Observer:
+    """Start watchdog observer on the detection output directory."""
+    observer = Observer()
+    handler = DetectionFileHandler(loop)
+    watch_path = str(DETECTION_DIR)
+    log.info("Starting detection file watcher on %s", watch_path)
+    DETECTION_DIR.mkdir(parents=True, exist_ok=True)
+    observer.schedule(handler, watch_path, recursive=False)
+    observer.daemon = True
+    observer.start()
+    return observer
 
 
 # ---------------------------------------------------------------------------
@@ -388,8 +432,11 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         log.warning("Could not start staging file watcher: %s", exc)
 
-    # Start detection refresh loop
-    state._detection_task = asyncio.create_task(_detection_refresh_loop())
+    # Start detection file watcher
+    try:
+        state.detection_observer = _start_detection_watcher(loop)
+    except Exception as exc:
+        log.warning("Could not start detection file watcher: %s", exc)
 
     yield  # ---- app is running ----
 
@@ -397,12 +444,9 @@ async def lifespan(app: FastAPI):
     log.info("MIRROR backend shutting down…")
     state._shutdown_event.set()
 
-    if state._detection_task:
-        state._detection_task.cancel()
-        try:
-            await state._detection_task
-        except asyncio.CancelledError:
-            pass
+    if state.detection_observer:
+        state.detection_observer.stop()
+        state.detection_observer.join(timeout=5)
 
     if state.observer:
         state.observer.stop()
@@ -524,15 +568,6 @@ async def websocket_endpoint(ws: WebSocket):
                 "type": "world_state",
                 "data": state.cached_world_state,
             }))
-
-        # Send diagnostic signals if available
-        if isinstance(state.cached_detections, dict):
-            sigs = state.cached_detections.get("diagnostic_signals", [])
-            if sigs:
-                await ws.send_text(json.dumps({
-                    "type": "signals",
-                    "data": sigs,
-                }))
 
         # Keep connection alive — listen for client pings / messages
         while True:
