@@ -515,7 +515,7 @@ class TestDetectDateRanges:
 
         # Import the detect.py module
         spec = importlib.util.spec_from_file_location(
-            "detect", "/Users/echopeso/research_accelerator/site/detect.py"
+            "detect", str(Path(__file__).resolve().parent.parent / "site" / "detect.py")
         )
         detect_mod = importlib.util.module_from_spec(spec)
 
@@ -533,7 +533,7 @@ class TestDetectDateRanges:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "detect_singleday",
-            "/Users/echopeso/research_accelerator/site/detect.py"
+            str(Path(__file__).resolve().parent.parent / "site" / "detect.py")
         )
         detect_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(detect_mod)
@@ -547,7 +547,7 @@ class TestDetectDateRanges:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "detect_format",
-            "/Users/echopeso/research_accelerator/site/detect.py"
+            str(Path(__file__).resolve().parent.parent / "site" / "detect.py")
         )
         detect_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(detect_mod)
@@ -576,7 +576,7 @@ class TestEvalCLILabelsFlag:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "eval_cli",
-            "/Users/echopeso/research_accelerator/eval.py"
+            str(Path(__file__).resolve().parent.parent / "eval.py")
         )
         eval_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(eval_mod)
