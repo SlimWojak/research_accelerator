@@ -289,10 +289,12 @@ class StagingFileHandler(FileSystemEventHandler):
             state.market_state = "LIVE"
             await broadcast(state.status_payload)
 
-        # Reload full 5m bars for the day and push
-        bars_5m = _load_bars_as_dicts(date_str, "5m")
-        state.cached_bars_5m = bars_5m
-        await broadcast({"type": "bars", "tf": "5m", "data": bars_5m})
+        # Reload and push all standard timeframes
+        for tf in ["1m", "5m", "15m", "1H", "4H"]:
+            bars = _load_bars_as_dicts(date_str, tf)
+            if tf == "5m":
+                state.cached_bars_5m = bars
+            await broadcast({"type": "bars", "tf": tf, "data": bars})
         await broadcast(state.status_payload)
 
 
