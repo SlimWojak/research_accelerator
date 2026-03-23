@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a8ra MIRROR — Live Trading Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #131722;
+    --surface2: #1e222d;
+    --border: #2a2e39;
+    --text: #d1d4dc;
+    --muted: #787b86;
+    --faint: #4a4e59;
+    --teal: #26a69a;
+    --red: #ef5350;
+    --blue: #2962ff;
+    --yellow: #f7c548;
+    --purple: #9c27b0;
+    --font: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header (48px) ───────────────────────────────────────────────────── */
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    height: 48px;
+    min-height: 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  /* ── LIVE Badge ──────────────────────────────────────────────────────── */
+
+  #live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  #live-badge.live {
+    color: var(--teal);
+    background: rgba(38, 166, 154, 0.15);
+  }
+
+  #live-badge.closed {
+    color: var(--yellow);
+    background: rgba(247, 197, 72, 0.15);
+  }
+
+  #live-badge.connecting {
+    color: var(--muted);
+    background: rgba(120, 123, 134, 0.15);
+  }
+
+  #live-badge.disconnected {
+    color: var(--red);
+    background: rgba(239, 83, 80, 0.15);
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  #live-badge.live .live-dot {
+    background: var(--teal);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  #live-badge.closed .live-dot {
+    background: var(--yellow);
+  }
+
+  #live-badge.connecting .live-dot {
+    background: var(--muted);
+    animation: pulse-dot 1s ease-in-out infinite;
+  }
+
+  #live-badge.disconnected .live-dot {
+    background: var(--red);
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+    50% { opacity: 0.5; box-shadow: 0 0 0 4px transparent; }
+  }
+
+  /* ── Date Picker ─────────────────────────────────────────────────────── */
+
+  .date-picker-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #date-picker {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+  }
+  #date-picker:focus { border-color: var(--blue); }
+
+  .now-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--teal);
+    background: rgba(38, 166, 154, 0.12);
+    border: 1px solid rgba(38, 166, 154, 0.3);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .now-btn:hover { background: rgba(38, 166, 154, 0.22); border-color: var(--teal); }
+
+  .header-spacer { flex: 1; }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-nav a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .header-nav a:hover { color: var(--text); }
+
+  /* ── WorldState Banner (32px) ────────────────────────────────────────── */
+
+  #worldstate-banner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    height: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.4s ease;
+    overflow: hidden;
+  }
+
+  #worldstate-banner.phase-expansion {
+    background: rgba(38, 166, 154, 0.22);
+    border-bottom-color: rgba(38, 166, 154, 0.35);
+  }
+
+  #worldstate-banner.phase-retrace {
+    background: rgba(247, 197, 72, 0.22);
+    border-bottom-color: rgba(247, 197, 72, 0.35);
+  }
+
+  #worldstate-banner.phase-range {
+    background: rgba(120, 123, 134, 0.18);
+    border-bottom-color: rgba(120, 123, 134, 0.3);
+  }
+
+  #worldstate-banner.phase-unclear {
+    background: rgba(42, 46, 57, 0.6);
+    border-bottom-color: var(--border);
+  }
+
+  .ws-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+  }
+
+  .ws-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .ws-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .ws-separator {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+  }
+
+  .ws-fields {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ws-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .ws-sep {
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 12px;
+  }
+
+  .ws-waiting {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* ── Controls Bar ────────────────────────────────────────────────────── */
+
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .controls-bar .separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ── TF Buttons ──────────────────────────────────────────────────────── */
+
+  .tf-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tf-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tf-btn:hover { color: var(--text); border-color: var(--faint); }
+  .tf-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* ── Primitive Toggles ───────────────────────────────────────────────── */
+
+  .prim-toggles {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .prim-toggle {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .prim-toggle:hover { color: var(--text); border-color: var(--faint); }
+  .prim-toggle.active { color: #fff; border-color: var(--teal); background: rgba(38, 166, 154, 0.18); }
+
+  .prim-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ── Session Legend ──────────────────────────────────────────────────── */
+
+  .session-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .session-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .session-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ── Main Content (Chart + Sidebar) ──────────────────────────────────── */
+
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Chart Container ─────────────────────────────────────────────────── */
+
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  #chart-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Detection Feed Sidebar ──────────────────────────────────────────── */
+
+  #detection-feed {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .feed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .feed-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  #feed-filter {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 6px;
+    outline: none;
+    cursor: pointer;
+  }
+  #feed-filter:focus { border-color: var(--blue); }
+  #feed-filter option { background: var(--bg); color: var(--text); }
+
+  #feed-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+  }
+
+  /* Scrollbar styling for feed */
+  #feed-list::-webkit-scrollbar { width: 5px; }
+  #feed-list::-webkit-scrollbar-track { background: transparent; }
+  #feed-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  #feed-list::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+
+  .feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid rgba(42, 46, 57, 0.5);
+  }
+  .feed-item:hover { background: var(--surface2); }
+  .feed-item.active { background: rgba(41, 98, 255, 0.1); border-left: 2px solid var(--blue); }
+
+  .feed-marker {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  .feed-marker.bullish { color: var(--teal); }
+  .feed-marker.bearish { color: var(--red); }
+  .feed-marker.neutral { color: var(--muted); }
+
+  .feed-item-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .feed-item-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+
+  .feed-item-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .feed-item-tf {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--faint);
+    background: var(--bg);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+
+  .feed-item-direction {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .feed-item-direction.bullish { color: var(--teal); }
+  .feed-item-direction.bearish { color: var(--red); }
+
+  .feed-item-type {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .feed-item-prop {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .feed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--faint);
+    font-size: 12px;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .feed-empty-icon { font-size: 24px; opacity: 0.5; }
+
+  /* ── Loading Overlay ─────────────────────────────────────────────────── */
+
+  #loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    font-size: 13px;
+    color: var(--muted);
+    gap: 12px;
+  }
+  #loading-overlay.hidden { display: none; }
+
+  .loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── Metadata Bar (28px) ─────────────────────────────────────────────── */
+
+  .metadata-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 4px 20px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-height: 28px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .meta-value {
+    font-family: var(--mono);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meta-spacer { flex: 1; }
+
+  .ws-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .ws-dot.connected { background: var(--teal); }
+  .ws-dot.disconnected { background: var(--red); }
+
+  /* ── Empty State ─────────────────────────────────────────────────────── */
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .empty-state-icon { font-size: 32px; opacity: 0.5; }
+
+  /* ── Responsive: Collapse sidebar on narrow screens ──────────────────── */
+
+  @media (max-width: 900px) {
+    #detection-feed {
+      position: fixed;
+      top: 0;
+      right: -280px;
+      width: 280px;
+      height: 100vh;
+      z-index: 150;
+      transition: right 0.25s ease;
+      box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+    }
+    #detection-feed.visible { right: 0; }
+
+    .main-area { flex-direction: column; }
+
+    .feed-toggle-btn {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 901px) {
+    .feed-toggle-btn { display: none; }
+  }
+
+  .feed-toggle-btn {
+    position: fixed;
+    bottom: 36px;
+    right: 12px;
+    z-index: 140;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    align-items: center;
+    justify-content: center;
+    display: none;
+  }
+  .feed-toggle-btn:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ────────────────────────────────────────────────────────── -->
+  <div class="header">
+    <span class="header-title">a8ra MIRROR</span>
+    <span id="live-badge" class="connecting">
+      <span class="live-dot"></span>
+      <span class="live-text">CONNECTING</span>
+    </span>
+    <div class="date-picker-group">
+      <input type="date" id="date-picker">
+      <button class="now-btn" id="now-btn">NOW</button>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-nav">
+      <a href="../site/index.html">← Index</a>
+      <a href="../site/validate.html">Validate</a>
+    </div>
+  </div>
+
+  <!-- ── WorldState Banner ─────────────────────────────────────────────── -->
+  <div id="worldstate-banner" class="phase-unclear">
+    <span class="ws-waiting">Waiting for data...</span>
+    <div class="ws-fields" style="display:none;">
+      <span class="ws-field"><span class="ws-label">PHASE</span> <span id="ws-phase" class="ws-value">—</span></span>
+      <span class="ws-sep">|</span>
+      <span class="ws-field"><span class="ws-label">PERM</span> <span id="ws-permission" class="ws-value">—</span></span>
+      <span class="ws-sep">|</span>
+      <span class="ws-field"><span class="ws-label">AUTH</span> <span id="ws-authority" class="ws-value">—</span></span>
+      <span class="ws-sep">|</span>
+      <span class="ws-field"><span class="ws-label">DIR</span> <span id="ws-direction" class="ws-value">—</span></span>
+      <span class="ws-sep">|</span>
+      <span class="ws-field"><span class="ws-label">MECH</span> <span id="ws-mechanism" class="ws-value">—</span></span>
+    </div>
+  </div>
+
+  <!-- ── Controls Bar ──────────────────────────────────────────────────── -->
+  <div class="controls-bar">
+    <div class="tf-group" id="tf-group">
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn" data-tf="5m">5m</button>
+      <button class="tf-btn active" data-tf="15m">15m</button>
+      <button class="tf-btn" data-tf="1H">1H</button>
+      <button class="tf-btn" data-tf="4H">4H</button>
+      <button class="tf-btn" data-tf="1D">1D</button>
+    </div>
+    <div class="separator"></div>
+    <div class="prim-toggles" id="prim-toggles">
+      <!-- Populated by JS -->
+    </div>
+    <div class="separator"></div>
+    <div class="session-legend" id="session-legend">
+      <div class="session-legend-item">
+        <span class="session-swatch" style="background: rgba(41, 98, 255, 0.18);"></span>
+        <span>Asia</span>
+      </div>
+      <div class="session-legend-item">
+        <span class="session-swatch" style="background: rgba(247, 197, 72, 0.18);"></span>
+        <span>LOKZ</span>
+      </div>
+      <div class="session-legend-item">
+        <span class="session-swatch" style="background: rgba(156, 39, 176, 0.18);"></span>
+        <span>NYOKZ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Area (Chart + Detection Feed) ────────────────────────────── -->
+  <div class="main-area">
+    <div class="chart-wrapper">
+      <div id="chart-container">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-state-icon">📡</div>
+          <div>Connecting to live feed…</div>
+        </div>
+      </div>
+      <div id="loading-overlay" class="hidden">
+        <div class="loading-spinner"></div>
+        <span>Loading chart data…</span>
+      </div>
+    </div>
+
+    <div id="detection-feed">
+      <div class="feed-header">
+        <span class="feed-title">Detection Feed</span>
+        <select id="feed-filter">
+          <option value="all">All</option>
+          <option value="bullish">Bullish</option>
+          <option value="bearish">Bearish</option>
+        </select>
+      </div>
+      <div id="feed-list">
+        <div class="feed-empty">
+          <div class="feed-empty-icon">◇</div>
+          <div>No detections yet</div>
+          <div style="font-size: 10px; color: var(--faint);">Detections appear here in real time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Metadata Bar ──────────────────────────────────────────────────── -->
+  <div class="metadata-bar" id="metadata-bar">
+    <div class="meta-item">
+      <span>Date:</span>
+      <span class="meta-value" id="meta-date">—</span>
+    </div>
+    <div class="meta-item">
+      <span>Detections:</span>
+      <span class="meta-value" id="meta-detections">0</span>
+    </div>
+    <div class="meta-spacer"></div>
+    <div class="meta-item">
+      <span>Connection:</span>
+      <span class="meta-value" id="meta-connection">Initializing</span>
+      <span class="ws-dot disconnected" id="ws-dot"></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Sidebar toggle for narrow screens ───────────────────────────────── -->
+<button class="feed-toggle-btn" id="feed-toggle-btn" title="Toggle detection feed">◇</button>
+
+<!-- ── Application Scripts ─────────────────────────────────────────────── -->
+<script src="js/mirror-app.js"></script>
+<script src="js/mirror-chart.js"></script>
+<script src="js/mirror-feed.js"></script>
+</body>
+</html>
