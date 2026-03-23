@@ -60,6 +60,13 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+# --- Check port availability ---
+if lsof -i :8300 -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "[MIRROR] ERROR: Port 8300 already in use. Kill the existing process first:"
+    lsof -i :8300 -sTCP:LISTEN
+    exit 1
+fi
+
 # --- Start server ---
 echo "[MIRROR] Starting server..."
 cd "$BACKEND_DIR"
@@ -88,26 +95,45 @@ echo "[MIRROR]  Stop:    ./start-mirror.sh stop  (or Ctrl+C)"
 echo "[MIRROR] ================================================"
 
 # --- Health monitor loop ---
+SERVER_FAILS=0
+RUNNER_FAILS=0
+MAX_CONSECUTIVE_FAILS=3
+
 while true; do
     # Check server
     if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-        echo "[MIRROR] WARNING: Server died, restarting in 5s..."
+        SERVER_FAILS=$((SERVER_FAILS + 1))
+        if [[ $SERVER_FAILS -ge $MAX_CONSECUTIVE_FAILS ]]; then
+            echo "[MIRROR] ERROR: Server failed $SERVER_FAILS times consecutively. Giving up."
+            echo "[MIRROR] Check if port 8300 is in use: lsof -i :8300"
+            break
+        fi
+        echo "[MIRROR] WARNING: Server died (attempt $SERVER_FAILS/$MAX_CONSECUTIVE_FAILS), restarting in 5s..."
         sleep 5
         cd "$BACKEND_DIR"
         "$SERVER_PYTHON" server.py &
         SERVER_PID=$!
         echo "[MIRROR] Server restarted (PID $SERVER_PID)"
+    else
+        SERVER_FAILS=0
     fi
 
     # Check runner
     if ! kill -0 "$RUNNER_PID" 2>/dev/null; then
-        echo "[MIRROR] WARNING: Runner died, restarting in 5s..."
+        RUNNER_FAILS=$((RUNNER_FAILS + 1))
+        if [[ $RUNNER_FAILS -ge $MAX_CONSECUTIVE_FAILS ]]; then
+            echo "[MIRROR] ERROR: Runner failed $RUNNER_FAILS times consecutively. Giving up."
+            break
+        fi
+        echo "[MIRROR] WARNING: Runner died (attempt $RUNNER_FAILS/$MAX_CONSECUTIVE_FAILS), restarting in 5s..."
         sleep 5
         DEXTER_ROOT="$HOME/dexter" \
         PYTHONPATH="$RUNNER_PYTHONPATH" \
         "$RUNNER_PYTHON" "$BACKEND_DIR/detection_runner.py" &
         RUNNER_PID=$!
         echo "[MIRROR] Runner restarted (PID $RUNNER_PID)"
+    else
+        RUNNER_FAILS=0
     fi
 
     sleep 10
