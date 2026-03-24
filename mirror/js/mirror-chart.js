@@ -491,7 +491,21 @@ function buildMirrorMarkers() {
   for (const [primName, byTf] of Object.entries(mApp.detectionData.detections_by_primitive)) {
     const style = M_MARKER_STYLES[primName];
 
-    const tfDets = byTf[mApp.tf] || byTf['global'] || [];
+    // For HTF views, include detections from all lower TFs (mapped to nearest HTF bar).
+    // For LTF views, only show the exact TF.
+    var tfDets = [];
+    var currentTf = mApp.tf;
+    var htfView = typeof isHTF === 'function' && isHTF(currentTf);
+    if (htfView) {
+      // Collect detections from all TFs
+      for (var tfKey in byTf) {
+        if (Array.isArray(byTf[tfKey])) {
+          tfDets = tfDets.concat(byTf[tfKey]);
+        }
+      }
+    } else {
+      tfDets = byTf[currentTf] || byTf['global'] || [];
+    }
 
     for (const det of tfDets) {
       const barTime = findMirrorNearestCandleTime(det.time);
@@ -881,18 +895,18 @@ function _highlightChainComponents(components) {
 /* Session time ranges (NY timezone offsets in UTC hours) */
 const _M_SESSION_DEFS = {
   asia:  { label: 'Asia 19:00–00:00',  startH: 19, startM: 0,  endH: 0,  endM: 0,
-           color: 'rgba(41, 98, 255, 0.08)',   border: 'rgba(41, 98, 255, 0.25)' },
-  lokz:  { label: 'LOKZ 02:00–05:00',  startH: 2,  startM: 0,  endH: 5,  endM: 0,
-           color: 'rgba(247, 197, 72, 0.08)',   border: 'rgba(247, 197, 72, 0.25)' },
-  nyokz: { label: 'NYOKZ 07:00–10:00', startH: 7,  startM: 0,  endH: 10, endM: 0,
            color: 'rgba(156, 39, 176, 0.08)',   border: 'rgba(156, 39, 176, 0.25)' },
+  lokz:  { label: 'LOKZ 02:00–05:00',  startH: 2,  startM: 0,  endH: 5,  endM: 0,
+           color: 'rgba(41, 98, 255, 0.08)',   border: 'rgba(41, 98, 255, 0.25)' },
+  nyokz: { label: 'NYOKZ 07:00–10:00', startH: 7,  startM: 0,  endH: 10, endM: 0,
+           color: 'rgba(247, 197, 72, 0.08)',   border: 'rgba(247, 197, 72, 0.25)' },
 };
 
 /* Active session border colors (brighter when current time is inside) */
 const _M_SESSION_ACTIVE_BORDER = {
-  asia:  'rgba(41, 98, 255, 0.55)',
-  lokz:  'rgba(247, 197, 72, 0.55)',
-  nyokz: 'rgba(156, 39, 176, 0.55)',
+  asia:  'rgba(156, 39, 176, 0.55)',
+  lokz:  'rgba(41, 98, 255, 0.55)',
+  nyokz: 'rgba(247, 197, 72, 0.55)',
 };
 
 function getMirrorSessionBands(forexDay) {
