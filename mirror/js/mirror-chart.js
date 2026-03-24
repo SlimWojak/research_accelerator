@@ -152,17 +152,17 @@ function createMirrorChart() {
       secondsVisible: false,
       minBarSpacing: 3,
       tickMarkFormatter: (time) => {
-        // Map sequential time back to real time, then display in NY time
+        // Data is in NY time space — UTC formatting gives NY times
         var real = _mSeqToReal ? _mSeqToReal[time] : time;
         var d = new Date(real * 1000);
-        // Convert UTC → NY using toLocaleString with America/New_York
-        var nyStr = d.toLocaleString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' });
-        // Show date prefix if multi-day
+        var hh = String(d.getUTCHours()).padStart(2, '0');
+        var mm = String(d.getUTCMinutes()).padStart(2, '0');
         if (_mMultiDay) {
-          var nyDate = d.toLocaleString('en-US', { timeZone: 'America/New_York', month: '2-digit', day: '2-digit' });
-          return nyDate + ' ' + nyStr;
+          var dd = String(d.getUTCDate()).padStart(2, '0');
+          var mon = String(d.getUTCMonth() + 1).padStart(2, '0');
+          return mon + '/' + dd + ' ' + hh + ':' + mm;
         }
-        return nyStr;
+        return hh + ':' + mm;
       },
     },
     handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
@@ -285,9 +285,16 @@ function refreshMirrorChart() {
     return;
   }
 
-  // Convert to LC format, sort by real time
+  // Compute NY offset from first bar (DST-aware, sets global _nyOffset)
+  var firstBarTS = null;
+  for (var ri = 0; ri < raw.length; ri++) {
+    firstBarTS = toTS(raw[ri].time);
+    if (firstBarTS != null) { computeNYOffset(firstBarTS); break; }
+  }
+
+  // Convert to LC format, shift UTC → NY time space, sort
   const rawBars = raw.map(c => ({
-    realTime: toTS(c.time),
+    realTime: toNYTS(c.time),
     open: c.open,
     high: c.high,
     low: c.low,
@@ -423,7 +430,7 @@ function appendLiveBar(barData) {
   if (typeof mApp === 'undefined') return;
   if (!mApp.candleSeries) return;
 
-  const realTS = toTS(barData.time);
+  const realTS = toNYTS(barData.time);
   if (realTS == null) return;
 
   // Compute sequential timestamp for this bar
@@ -930,8 +937,8 @@ function getMirrorSessionBands(forexDay) {
           border = border.replace(/([\d.]+)\)$/, (_, a) => (parseFloat(a) * 0.5).toFixed(2) + ')');
         }
 
-        const startTS = toTS(b.start_time);
-        const endTS = toTS(b.end_time);
+        const startTS = toNYTS(b.start_time);
+        const endTS = toNYTS(b.end_time);
 
         // Active zone highlighting: brighter border if current time is inside
         if (startTS && endTS && now >= startTS && now <= endTS) {

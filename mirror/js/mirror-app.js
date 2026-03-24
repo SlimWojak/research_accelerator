@@ -80,8 +80,8 @@ const M_TF_OPTIONS = ['1m', '5m', '15m', '1H', '4H', '1D'];
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 /**
- * Convert ISO string to unix timestamp.
- * Strips timezone offset, treats as UTC for LightweightCharts display.
+ * Convert ISO string to unix timestamp (UTC).
+ * Strips timezone offset, treats as UTC.
  */
 function toTS(s) {
   if (!s) return null;
@@ -93,6 +93,45 @@ function toTS(s) {
   // Remove trailing Z
   const noZ = clean.endsWith('Z') ? clean.slice(0, -1) : clean;
   return Math.floor(new Date(noZ + 'Z').getTime() / 1000);
+}
+
+/**
+ * NY timezone offset (seconds). Added to UTC timestamps to shift into NY time space.
+ * Computed once per chart refresh from the first bar's UTC timestamp.
+ * EDT = -14400, EST = -18000. DST-aware via Intl.DateTimeFormat.
+ */
+var _nyOffset = 0;
+
+/**
+ * Compute the NY offset from a UTC unix timestamp and store in _nyOffset.
+ * Uses Intl.DateTimeFormat.formatToParts for reliable cross-browser DST handling.
+ */
+function computeNYOffset(utcTS) {
+  var d = new Date(utcTS * 1000);
+  var fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+  var parts = {};
+  fmt.formatToParts(d).forEach(function(p) { parts[p.type] = p.value; });
+  var hour = parts.hour === '24' ? '00' : parts.hour;
+  var nyISO = parts.year + '-' + parts.month + '-' + parts.day +
+              'T' + hour + ':' + parts.minute + ':' + parts.second + 'Z';
+  var nyAsUTC = Math.floor(new Date(nyISO).getTime() / 1000);
+  _nyOffset = nyAsUTC - utcTS;
+  return _nyOffset;
+}
+
+/**
+ * Convert ISO string to NY-shifted unix timestamp.
+ * Use for UTC sources (bars, session bands from backend).
+ * Do NOT use for timestamps already in NY time (detection bar_time).
+ */
+function toNYTS(s) {
+  var ts = toTS(s);
+  return ts != null ? ts + _nyOffset : null;
 }
 
 /**
