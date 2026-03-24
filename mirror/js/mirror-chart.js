@@ -152,18 +152,17 @@ function createMirrorChart() {
       secondsVisible: false,
       minBarSpacing: 3,
       tickMarkFormatter: (time) => {
-        // Map sequential time back to real time for display
+        // Map sequential time back to real time, then display in NY time
         var real = _mSeqToReal ? _mSeqToReal[time] : time;
-        const d = new Date(real * 1000);
-        const hh = String(d.getUTCHours()).padStart(2, '0');
-        const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        var d = new Date(real * 1000);
+        // Convert UTC → NY using toLocaleString with America/New_York
+        var nyStr = d.toLocaleString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' });
         // Show date prefix if multi-day
         if (_mMultiDay) {
-          const dd = String(d.getUTCDate()).padStart(2, '0');
-          const mon = String(d.getUTCMonth() + 1).padStart(2, '0');
-          return `${mon}/${dd} ${hh}:${mm}`;
+          var nyDate = d.toLocaleString('en-US', { timeZone: 'America/New_York', month: '2-digit', day: '2-digit' });
+          return nyDate + ' ' + nyStr;
         }
-        return `${hh}:${mm}`;
+        return nyStr;
       },
     },
     handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },

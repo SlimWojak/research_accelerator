@@ -50,7 +50,7 @@ function hhMM(isoTime) {
   try {
     const d = new Date(isoTime);
     if (isNaN(d.getTime())) return '--:--';
-    return d.toTimeString().slice(0, 5);
+    return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' });
   } catch (_) {
     return '--:--';
   }

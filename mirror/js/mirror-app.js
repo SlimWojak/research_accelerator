@@ -787,7 +787,7 @@ function renderStateTimeline() {
   for (const snap of snapshots) {
     const phase = (snap.htf_phase || 'unclear').toLowerCase();
     const time = snap.computed_at || snap.time || '';
-    const timeStr = time ? new Date(time).toTimeString().slice(0, 5) : '';
+    const timeStr = time ? new Date(time).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' }) : '';
     const title = `${phase.toUpperCase()} at ${timeStr}\nDir: ${snap.direction_permission || '—'}\nAuth: ${snap.authority_tf || '—'}`;
     html += `<span class="st-dot ${phase}" title="${title}"></span>`;
   }
