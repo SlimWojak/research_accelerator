@@ -150,6 +150,33 @@ def _load_bars_as_dicts(forex_day: str, tf: str = "5m") -> list[dict]:
         return []
 
 
+def _load_bars_range(start_day: str, end_day: str, tf: str = "5m") -> list[dict]:
+    """Load bars across a date range, aggregate to TF, deduplicate and sort."""
+    try:
+        dt_start = date.fromisoformat(start_day)
+        dt_end = date.fromisoformat(end_day)
+        raw_1m = adapter.load_date_range(dt_start, dt_end)
+        if not raw_1m:
+            return []
+        agg = aggregate(raw_1m, tf)
+        seen = set()
+        result = []
+        for bar in agg:
+            if bar.bar_time not in seen:
+                seen.add(bar.bar_time)
+                result.append({
+                    "time": bar.bar_time,
+                    "open": bar.open,
+                    "high": bar.high,
+                    "low": bar.low,
+                    "close": bar.close,
+                })
+        return result
+    except Exception as exc:
+        log.error("Failed to load bars range %s→%s tf=%s: %s", start_day, end_day, tf, exc)
+        return []
+
+
 def _load_detections(forex_day: str) -> dict:
     """Load detection JSON for a forex day from dexter output."""
     path = DETECTION_DIR / f"{forex_day}.json"
@@ -290,8 +317,13 @@ class StagingFileHandler(FileSystemEventHandler):
             await broadcast(state.status_payload)
 
         # Reload and push all standard timeframes
+        # LTF: single day. HTF: 10-day window for seamless scrolling.
+        htf_start = (date.fromisoformat(date_str) - timedelta(days=9)).isoformat()
         for tf in ["1m", "5m", "15m", "1H", "4H"]:
-            bars = _load_bars_as_dicts(date_str, tf)
+            if tf in ("1H", "4H"):
+                bars = _load_bars_range(htf_start, date_str, tf)
+            else:
+                bars = _load_bars_as_dicts(date_str, tf)
             if tf == "5m":
                 state.cached_bars_5m = bars
             await broadcast({"type": "bars", "tf": tf, "data": bars})
@@ -500,6 +532,22 @@ async def get_bars(forex_day: str, tf: str = Query("5m", description="Timeframe:
         )
     bars = _load_bars_as_dicts(forex_day, tf)
     return {"forex_day": forex_day, "tf": tf, "count": len(bars), "data": bars}
+
+
+@app.get("/api/bars-range")
+async def get_bars_range(
+    start: str = Query(..., description="Start date YYYY-MM-DD"),
+    end: str = Query(..., description="End date YYYY-MM-DD"),
+    tf: str = Query("5m", description="Timeframe: 1m, 5m, 15m, 1H, 4H, 1D"),
+):
+    """Serve candle data across a date range for seamless multi-day scrolling."""
+    try:
+        date.fromisoformat(start)
+        date.fromisoformat(end)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid date format. Use YYYY-MM-DD."})
+    bars = _load_bars_range(start, end, tf)
+    return {"start": start, "end": end, "tf": tf, "count": len(bars), "data": bars}
 
 
 @app.get("/api/detections/{forex_day}")

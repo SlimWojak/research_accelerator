@@ -387,14 +387,28 @@ function renderTFButtons() {
 
       // Fetch bars for the new TF if not cached
       if (!mApp.candleData[tf] || mApp.candleData[tf].length === 0) {
-        // Determine the date to load — use current date or detect from existing bar data
+        // Determine the date to load
         let dateToLoad = mApp.currentDate;
         if (!dateToLoad && mApp.candleData['5m'] && mApp.candleData['5m'].length > 0) {
           const firstBar = mApp.candleData['5m'][0];
           dateToLoad = (firstBar.time || '').substring(0, 10);
         }
         if (!dateToLoad) dateToLoad = new Date().toISOString().substring(0, 10);
-        fetch(`/api/bars/${dateToLoad}?tf=${tf}`)
+
+        // HTF (1H, 4H, 1D): load 10-day range for seamless scrolling
+        // LTF (1m, 5m, 15m): load single day (WS push handles updates)
+        var fetchUrl;
+        if (isHTF(tf)) {
+          var endDate = dateToLoad;
+          var startD = new Date(dateToLoad + 'T12:00:00Z');
+          startD.setUTCDate(startD.getUTCDate() - 9);
+          var startDate = startD.toISOString().split('T')[0];
+          fetchUrl = '/api/bars-range?start=' + startDate + '&end=' + endDate + '&tf=' + tf;
+        } else {
+          fetchUrl = '/api/bars/' + dateToLoad + '?tf=' + tf;
+        }
+
+        fetch(fetchUrl)
           .then(r => r.ok ? r.json() : null)
           .then(data => {
             if (data && data.data) {

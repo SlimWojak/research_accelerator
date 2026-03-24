@@ -167,6 +167,7 @@ function createMirrorChart() {
     borderDownColor: '#ef5350',
     wickUpColor: '#26a69a',
     wickDownColor: '#ef5350',
+    priceFormat: { type: 'price', precision: 5, minMove: 0.00001 },
   });
 
   // Session bands primitive
@@ -269,22 +270,44 @@ function refreshMirrorChart() {
   _mAllMarkers = buildMirrorMarkers();
   rebuildMirrorMarkers();
 
-  // Session bands
-  const forexDay = mApp.day || null;
-  const bands = getMirrorSessionBands(forexDay);
+  // Derive forex day from bar data if not explicitly set
+  let forexDay = mApp.day || null;
+  if (!forexDay && chartData.length > 0) {
+    // Use the last bar's time to determine the forex day
+    const lastBarTime = chartData[chartData.length - 1].time;
+    const d = new Date(lastBarTime * 1000);
+    const isoStr = d.toISOString();
+    forexDay = typeof getForexDay === 'function' ? getForexDay(isoStr) : isoStr.split('T')[0];
+  }
+
+  // Session bands — for HTF, compute bands for all visible days
+  const htf = typeof isHTF === 'function' && isHTF(mApp.tf);
+  let allBands = [];
+  if (htf && chartData.length > 1) {
+    // Collect unique forex days from bar data
+    const seenDays = new Set();
+    for (const bar of chartData) {
+      const bd = new Date(bar.time * 1000).toISOString();
+      const fd = typeof getForexDay === 'function' ? getForexDay(bd) : bd.split('T')[0];
+      seenDays.add(fd);
+    }
+    for (const fd of seenDays) {
+      allBands.push(...getMirrorSessionBands(fd));
+    }
+  } else {
+    allBands = getMirrorSessionBands(forexDay);
+  }
   if (_mSessionPrimitive) {
-    _mSessionPrimitive.setBands(bands);
+    _mSessionPrimitive.setBands(allBands);
   }
 
   // Scroll behavior depends on mode
-  if (mApp.mode === 'live') {
-    // Live mode: scroll to real time
+  if (mApp.mode === 'live' && !htf) {
     mApp.chart.timeScale().scrollToRealTime();
-  } else if (mApp.day) {
-    // Historical mode with a day selected: zoom to that day
+  } else if (mApp.day && !htf) {
     mApp.chart.timeScale().setVisibleRange(_mDayRange(mApp.day));
   } else {
-    // Historical mode: fit all content
+    // HTF and historical: fit all content so bars fill the view
     mApp.chart.timeScale().fitContent();
   }
 
