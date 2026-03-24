@@ -124,6 +124,20 @@ def _staging_path_for(forex_day: str) -> Path:
     return STAGING_DIR / f"{forex_day}.jsonl"
 
 
+def _apply_continuity(bars: list[dict]) -> list[dict]:
+    """Apply close→open continuity correction to a sorted bar list.
+
+    Matches IBKR's own historical bar reconstruction: open(N+1) = close(N).
+    Corrects delivery artifacts from live keepUpToDate stream and
+    aggregation boundary mismatches on HTF bars.
+    """
+    for i in range(1, len(bars)):
+        prev_close = bars[i - 1]["close"]
+        if abs(bars[i]["open"] - prev_close) > 0.000005:
+            bars[i]["open"] = prev_close
+    return bars
+
+
 def _load_bars_as_dicts(forex_day: str, tf: str = "5m") -> list[dict]:
     """Load bars for a forex day via the adapter, aggregate to TF, and return dicts."""
     try:
@@ -135,7 +149,7 @@ def _load_bars_as_dicts(forex_day: str, tf: str = "5m") -> list[dict]:
             agg = aggregate(raw_1m, "1m")
         else:
             agg = aggregate(raw_1m, tf)
-        return [
+        bars = [
             {
                 "time": bar.bar_time,
                 "open": bar.open,
@@ -145,6 +159,7 @@ def _load_bars_as_dicts(forex_day: str, tf: str = "5m") -> list[dict]:
             }
             for bar in agg
         ]
+        return _apply_continuity(bars)
     except Exception as exc:
         log.error("Failed to load bars for %s tf=%s: %s", forex_day, tf, exc)
         return []
@@ -171,7 +186,7 @@ def _load_bars_range(start_day: str, end_day: str, tf: str = "5m") -> list[dict]
                     "low": bar.low,
                     "close": bar.close,
                 })
-        return result
+        return _apply_continuity(result)
     except Exception as exc:
         log.error("Failed to load bars range %s→%s tf=%s: %s", start_day, end_day, tf, exc)
         return []
