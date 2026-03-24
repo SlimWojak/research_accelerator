@@ -272,6 +272,7 @@ function handleWSMessage(msg) {
       var stData = msg.data || msg;
       var st = (stData.state || '').toUpperCase();
       if (st === 'LIVE') updateLiveBadge('live');
+      else if (st === 'STALE') updateLiveBadge('stale');
       else if (st === 'MARKET_CLOSED') updateLiveBadge('closed');
       else updateLiveBadge('connecting');
       if (stData.last_bar) mApp.lastBarTime = stData.last_bar;
@@ -625,7 +626,7 @@ function updateLiveBadge(newState) {
   if (!badge) return;
 
   // Remove all state classes (CSS uses these unprefixed names)
-  badge.classList.remove('live', 'closed', 'connecting', 'disconnected');
+  badge.classList.remove('live', 'closed', 'connecting', 'disconnected', 'stale');
 
   // Rebuild inner HTML to preserve the dot + text structure
   switch (newState) {
@@ -640,6 +641,10 @@ function updateLiveBadge(newState) {
     case 'connecting':
       badge.className = 'connecting';
       badge.innerHTML = '<span class="live-dot"></span><span class="live-text">CONNECTING</span>';
+      break;
+    case 'stale':
+      badge.className = 'stale';
+      badge.innerHTML = '<span class="live-dot"></span><span class="live-text">STALE</span>';
       break;
     case 'disconnected':
     default:

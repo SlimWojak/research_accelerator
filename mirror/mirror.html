@@ -100,6 +100,11 @@
     background: rgba(239, 83, 80, 0.15);
   }
 
+  #live-badge.stale {
+    color: #ff9800;
+    background: rgba(255, 152, 0, 0.15);
+  }
+
   .live-dot {
     width: 7px;
     height: 7px;
@@ -124,6 +129,11 @@
 
   #live-badge.disconnected .live-dot {
     background: var(--red);
+  }
+
+  #live-badge.stale .live-dot {
+    background: #ff9800;
+    animation: pulse-dot 0.8s ease-in-out infinite;
   }
 
   @keyframes pulse-dot {
