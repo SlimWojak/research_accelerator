@@ -16,6 +16,7 @@ import logging
 import os
 import signal
 import sys
+import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -89,8 +90,10 @@ class ServerState:
         self.cached_bars_5m: list[dict] = []
         self.cached_detections: dict[str, Any] = {}
         self.cached_world_state: dict[str, Any] = {}
-        self.market_state: str = "CONNECTING"  # LIVE | MARKET_CLOSED | CONNECTING
+        self.market_state: str = "CONNECTING"  # LIVE | MARKET_CLOSED | STALE | CONNECTING
         self.last_bar_time: str = ""
+        self.last_bar_received_at: float = 0.0
+        self.last_detection_updated_at: float = 0.0
         self.observer: Observer | None = None
         self.detection_observer: Observer | None = None
         self._shutdown_event = asyncio.Event()
@@ -370,13 +373,40 @@ def _build_week_manifest() -> list[dict]:
     return result
 
 
+STALE_BAR_THRESHOLD = 120         # 2 min — river writes every 60s
+STALE_DETECTION_THRESHOLD = 600   # 10 min — runner cycles every 5m
+STALENESS_CHECK_INTERVAL = 30     # how often the checker runs
+
+
 def _determine_market_state() -> str:
-    """Decide if the market is currently live based on staging file existence."""
+    """Decide market state: LIVE, STALE, or MARKET_CLOSED."""
     today = _today_forex_day()
     staging = _staging_path_for(today)
-    if staging.exists() and staging.stat().st_size > 0:
-        return "LIVE"
-    return "MARKET_CLOSED"
+
+    # No staging file → market is closed
+    if not staging.exists() or staging.stat().st_size == 0:
+        return "MARKET_CLOSED"
+
+    # Schedule-based close check (prevents false STALE from lingering Friday file)
+    now_ny = datetime.now(NY_TZ)
+    wd = now_ny.weekday()  # Mon=0 .. Sun=6
+    h = now_ny.hour
+    if (wd == 4 and h >= 17) or wd == 5 or (wd == 6 and h < 17):
+        return "MARKET_CLOSED"
+
+    now = time.time()
+
+    # Bar freshness
+    if state.last_bar_received_at > 0:
+        if (now - state.last_bar_received_at) > STALE_BAR_THRESHOLD:
+            return "STALE"
+
+    # Detection freshness
+    if state.last_detection_updated_at > 0:
+        if (now - state.last_detection_updated_at) > STALE_DETECTION_THRESHOLD:
+            return "STALE"
+
+    return "LIVE"
 
 
 def _last_available_date() -> str | None:
@@ -461,15 +491,11 @@ class StagingFileHandler(FileSystemEventHandler):
 
         last = new_lines[-1]
         state.last_bar_time = last.get("timestamp", "")
+        state.last_bar_received_at = time.time()
         log.info(
             "New bars: %d lines from %s (last: %s)",
             len(new_lines), date_str, state.last_bar_time,
         )
-
-        # Transition to LIVE if we were MARKET_CLOSED
-        if state.market_state != "LIVE":
-            state.market_state = "LIVE"
-            await broadcast(state.status_payload)
 
         # Reload and push all standard timeframes
         # LTF: single day. HTF: 10-day window for seamless scrolling.
@@ -536,6 +562,7 @@ class DetectionFileHandler(FileSystemEventHandler):
         """Reload detection JSON and broadcast if changed."""
         date_str = path.stem
         log.info("Detection file updated: %s", date_str)
+        state.last_detection_updated_at = time.time()
         try:
             detections = _load_detections(date_str)
         except Exception as exc:
@@ -581,6 +608,17 @@ def _start_detection_watcher(loop: asyncio.AbstractEventLoop) -> Observer:
 # Lifespan
 # ---------------------------------------------------------------------------
 
+async def _staleness_checker():
+    """Periodic task: evaluate data freshness, broadcast state changes."""
+    while True:
+        await asyncio.sleep(STALENESS_CHECK_INTERVAL)
+        new_state = _determine_market_state()
+        if new_state != state.market_state:
+            log.info("Market state: %s -> %s", state.market_state, new_state)
+            state.market_state = new_state
+            await broadcast(state.status_payload)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
@@ -591,6 +629,15 @@ async def lifespan(app: FastAPI):
     # Determine initial market state
     state.market_state = _determine_market_state()
     today = _today_forex_day()
+
+    # Seed freshness timestamps from file mtimes (prevents false STALE on restart)
+    staging = _staging_path_for(today)
+    if staging.exists():
+        state.last_bar_received_at = staging.stat().st_mtime
+    det_path = DETECTION_DIR / f"{today}.json"
+    if det_path.exists():
+        state.last_detection_updated_at = det_path.stat().st_mtime
+
     log.info("Forex day: %s — Market state: %s", today, state.market_state)
 
     # Seed initial staging file sizes so watcher only sees new data
@@ -636,10 +683,20 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         log.warning("Could not start detection file watcher: %s", exc)
 
+    # Start periodic staleness checker
+    staleness_task = asyncio.create_task(_staleness_checker())
+    log.info("Staleness checker started (interval=%ds, bar_threshold=%ds, det_threshold=%ds)",
+             STALENESS_CHECK_INTERVAL, STALE_BAR_THRESHOLD, STALE_DETECTION_THRESHOLD)
+
     yield  # ---- app is running ----
 
     # Shutdown
     log.info("MIRROR backend shutting down…")
+    staleness_task.cancel()
+    try:
+        await staleness_task
+    except asyncio.CancelledError:
+        pass
     state._shutdown_event.set()
 
     if state.detection_observer:
