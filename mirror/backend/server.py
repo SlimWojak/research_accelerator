@@ -230,6 +230,146 @@ def _available_detection_dates() -> list[str]:
     return dates
 
 
+def _compute_session_bands(forex_day: str) -> list[dict]:
+    """Compute session bands for a forex day using canonical NY hours.
+
+    Canonical sessions (NY time, from session_tagger.py):
+      Asia:   19:00 - 00:00
+      LOKZ:   02:00 - 05:00
+      NYOKZ:  07:00 - 10:00
+    Only these three are displayed (pre_london, pre_ny, other are hidden).
+    """
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+    dt = date.fromisoformat(forex_day)
+
+    sessions = [
+        {
+            "key": "asia",
+            "label": "Asia 19:00\u201300:00",
+            "start_h": 19, "start_m": 0,
+            "end_h": 0, "end_m": 0,
+            "color": "rgba(41, 98, 255, 0.08)",
+            "border": "rgba(41, 98, 255, 0.25)",
+        },
+        {
+            "key": "lokz",
+            "label": "LOKZ 02:00\u201305:00",
+            "start_h": 2, "start_m": 0,
+            "end_h": 5, "end_m": 0,
+            "color": "rgba(247, 197, 72, 0.08)",
+            "border": "rgba(247, 197, 72, 0.25)",
+        },
+        {
+            "key": "nyokz",
+            "label": "NYOKZ 07:00\u201310:00",
+            "start_h": 7, "start_m": 0,
+            "end_h": 10, "end_m": 0,
+            "color": "rgba(156, 39, 176, 0.08)",
+            "border": "rgba(156, 39, 176, 0.25)",
+        },
+    ]
+
+    bands = []
+    for s in sessions:
+        if s["start_h"] >= 17:
+            # Session starts on previous calendar day (Asia 19:00)
+            prev_day = dt - timedelta(days=1)
+            start_ny = datetime(prev_day.year, prev_day.month, prev_day.day,
+                                s["start_h"], s["start_m"], tzinfo=ny)
+        else:
+            start_ny = datetime(dt.year, dt.month, dt.day,
+                                s["start_h"], s["start_m"], tzinfo=ny)
+
+        if s["end_h"] == 0 and s["end_m"] == 0:
+            # Midnight = start of forex day
+            end_ny = datetime(dt.year, dt.month, dt.day, 0, 0, tzinfo=ny)
+        else:
+            end_ny = datetime(dt.year, dt.month, dt.day,
+                              s["end_h"], s["end_m"], tzinfo=ny)
+
+        start_utc = start_ny.astimezone(timezone.utc)
+        end_utc = end_ny.astimezone(timezone.utc)
+
+        bands.append({
+            "session": s["key"],
+            "label": s["label"],
+            "forex_day": forex_day,
+            "start_time": start_utc.strftime("%Y-%m-%dT%H:%M:%S"),
+            "end_time": end_utc.strftime("%Y-%m-%dT%H:%M:%S"),
+            "color": s["color"],
+            "border": s["border"],
+        })
+
+    return bands
+
+
+def _compute_sessions_range(start_day: str, end_day: str) -> list[dict]:
+    """Compute session bands across a date range."""
+    dt_start = date.fromisoformat(start_day)
+    dt_end = date.fromisoformat(end_day)
+    bands = []
+    d = dt_start
+    while d <= dt_end:
+        bands.extend(_compute_session_bands(d.isoformat()))
+        d += timedelta(days=1)
+    return bands
+
+
+def _available_river_range() -> dict:
+    """Scan River parquet dirs for earliest/latest available dates."""
+    pair_dir = RIVER_ROOT / BAR_PAIR
+    if not pair_dir.exists():
+        return {"pair": BAR_PAIR, "earliest": None, "latest": None}
+    dates = []
+    for year_dir in sorted(pair_dir.iterdir()):
+        if not year_dir.is_dir() or not year_dir.name.isdigit():
+            continue
+        for month_dir in sorted(year_dir.iterdir()):
+            if not month_dir.is_dir():
+                continue
+            for day_file in sorted(month_dir.iterdir()):
+                if day_file.suffix == ".parquet":
+                    try:
+                        d = date(int(year_dir.name), int(month_dir.name), int(day_file.stem))
+                        dates.append(d.isoformat())
+                    except ValueError:
+                        continue
+    if not dates:
+        return {"pair": BAR_PAIR, "earliest": None, "latest": None}
+    return {"pair": BAR_PAIR, "earliest": dates[0], "latest": dates[-1]}
+
+
+def _build_week_manifest() -> list[dict]:
+    """Group available detection dates into forex weeks (Mon-Fri)."""
+    det_dates = _available_detection_dates()
+    if not det_dates:
+        return []
+    weeks: dict[str, list[str]] = {}
+    for ds in det_dates:
+        d = date.fromisoformat(ds)
+        # ISO week: Monday is day 1
+        week_start = d - timedelta(days=d.weekday())
+        week_key = week_start.isoformat()
+        if week_key not in weeks:
+            weeks[week_key] = []
+        weeks[week_key].append(ds)
+    result = []
+    for week_start_str in sorted(weeks.keys()):
+        days = sorted(weeks[week_start_str])
+        week_end = date.fromisoformat(week_start_str) + timedelta(days=4)
+        result.append({
+            "week": week_start_str,
+            "start": days[0],
+            "end": days[-1],
+            "week_end": week_end.isoformat(),
+            "forex_days": days,
+            "detection_count": len(days),
+        })
+    return result
+
+
 def _determine_market_state() -> str:
     """Decide if the market is currently live based on staging file existence."""
     today = _today_forex_day()
@@ -591,6 +731,60 @@ async def get_dates():
     return {"dates": dates, "count": len(dates)}
 
 
+@app.get("/api/sessions/{forex_day}")
+async def get_sessions(forex_day: str):
+    """Compute session bands for a forex day (DST-correct via zoneinfo)."""
+    try:
+        date.fromisoformat(forex_day)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": f"Invalid date: {forex_day}"})
+    bands = _compute_session_bands(forex_day)
+    return {"forex_day": forex_day, "sessions": bands}
+
+
+@app.get("/api/sessions-range")
+async def get_sessions_range(
+    start: str = Query(..., description="Start date YYYY-MM-DD"),
+    end: str = Query(..., description="End date YYYY-MM-DD"),
+):
+    """Compute session bands across a date range (for HTF multi-day views)."""
+    try:
+        date.fromisoformat(start)
+        date.fromisoformat(end)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid date format."})
+    bands = _compute_sessions_range(start, end)
+    return {"start": start, "end": end, "sessions": bands}
+
+
+@app.get("/api/available-range")
+async def get_available_range():
+    """Return earliest/latest dates in River parquet data."""
+    return _available_river_range()
+
+
+@app.get("/api/weeks")
+async def get_weeks():
+    """Return week manifest — detection dates grouped into forex weeks."""
+    weeks = _build_week_manifest()
+    return {"weeks": weeks, "count": len(weeks)}
+
+
+@app.get("/api/world-state/{forex_day}")
+async def get_world_state(forex_day: str):
+    """Return WorldState and snapshots for a forex day."""
+    try:
+        date.fromisoformat(forex_day)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": f"Invalid date: {forex_day}"})
+    det = _load_detections(forex_day)
+    if not det:
+        return JSONResponse(status_code=404, content={"error": f"No detections for {forex_day}"})
+    ws = det.get("world_state", {})
+    snapshots = det.get("world_state_snapshots", [])
+    return {"forex_day": forex_day, "world_state": ws, "snapshots": snapshots}
+
+
 @app.get("/api/heartbeat")
 async def get_heartbeat():
     """Read phoenix-river heartbeat and return streamer status."""
@@ -642,6 +836,27 @@ async def websocket_endpoint(ws: WebSocket):
                 "type": "world_state",
                 "data": state.cached_world_state,
             }))
+
+        # Push session bands for the current forex day
+        try:
+            today = _today_forex_day()
+            session_bands = _compute_session_bands(today)
+            if session_bands:
+                await ws.send_text(json.dumps({
+                    "type": "sessions",
+                    "data": session_bands,
+                }))
+        except Exception:
+            log.warning("Failed to push session bands on WS connect")
+
+        # Push world_state snapshots if available
+        if state.cached_detections and isinstance(state.cached_detections, dict):
+            snapshots = state.cached_detections.get("world_state_snapshots", [])
+            if snapshots:
+                await ws.send_text(json.dumps({
+                    "type": "world_state_snapshots",
+                    "data": snapshots,
+                }))
 
         # Keep connection alive — listen for client pings / messages
         while True:

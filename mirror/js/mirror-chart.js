@@ -140,7 +140,7 @@ function createMirrorChart() {
     crosshair: {
       mode: LightweightCharts.CrosshairMode.Normal,
       vertLine: { color: '#4a4e5a', width: 1, style: 2 },
-      horzLine: { color: '#4a4e5a', width: 1, style: 2 },
+      horzLine: { color: '#4a4e5a', width: 1, style: 2, labelVisible: true },
     },
     rightPriceScale: {
       borderColor: '#2a2e39',
@@ -204,6 +204,11 @@ function createMirrorChart() {
         }
       }
     }
+  });
+
+  // Crosshair tooltip for primitive markers (hover — not click)
+  chart.subscribeCrosshairMove((param) => {
+    _handleCrosshairTooltip(param, container);
   });
 
   // Resize observer for responsive chart
@@ -403,6 +408,9 @@ function refreshMirrorChart() {
     }
   });
 
+  // Active level lines
+  if (typeof updateActiveLevels === 'function') updateActiveLevels();
+
   // Hide loading overlay
   const loading = document.getElementById('loading-overlay');
   if (loading) loading.classList.add('hidden');
@@ -504,6 +512,7 @@ function buildMirrorMarkers() {
         text: '',
         _primitive: primName,
         _detId: det.id,
+        _det: det,
       });
     }
   }
@@ -695,6 +704,167 @@ function _removeSignalTooltip() {
   if (existing) existing.remove();
 }
 
+/* ── Crosshair primitive tooltip (hover) ─────────────────────────────────── */
+
+let _mPrimTooltip = null;
+
+function _handleCrosshairTooltip(param, container) {
+  // Update OHLC legend
+  _updateOHLCLegend(param);
+
+  if (!param.time || !param.point) {
+    _removePrimTooltip();
+    return;
+  }
+
+  const markersAtTime = _mAllMarkers.filter(
+    m => m.time === param.time && m._primitive !== 'diagnostic_signal' && m._det
+  );
+
+  if (markersAtTime.length === 0) {
+    _removePrimTooltip();
+    return;
+  }
+
+  _removePrimTooltip();
+
+  const tooltip = document.createElement('div');
+  tooltip.id = 'mirror-prim-tooltip';
+  tooltip.style.cssText =
+    'position:absolute;z-index:190;background:#1e222d;border-radius:4px;padding:8px 10px;' +
+    'font-family:"IBM Plex Mono",monospace;font-size:11px;color:#d1d4dc;max-width:280px;' +
+    'pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+
+  let html = '';
+  const shown = Math.min(markersAtTime.length, 4);
+  for (let i = 0; i < shown; i++) {
+    const m = markersAtTime[i];
+    const det = m._det;
+    const pColor = M_MARKER_STYLES[m._primitive]?.color || '#787b86';
+    const pLabel = (typeof mPrimLabel === 'function') ? mPrimLabel(m._primitive) : m._primitive;
+    const dir = det.direction || (det.properties && det.properties.direction) || '';
+
+    if (i > 0) html += '<div style="border-top:1px solid #2a2e39;margin:4px 0;"></div>';
+    html += `<div style="font-weight:600;color:${pColor};margin-bottom:2px;">${pLabel}</div>`;
+    if (dir) html += `<div><span style="color:#787b86;">dir</span> ${dir}</div>`;
+    if (det.time) html += `<div><span style="color:#787b86;">time</span> ${det.time}</div>`;
+
+    html += _formatPrimitiveProps(m._primitive, det);
+  }
+
+  if (markersAtTime.length > shown) {
+    html += `<div style="color:#787b86;margin-top:4px;font-size:10px;">+${markersAtTime.length - shown} more</div>`;
+  }
+
+  tooltip.innerHTML = html;
+  tooltip.style.borderLeft = `3px solid ${M_MARKER_STYLES[markersAtTime[0]._primitive]?.color || '#787b86'}`;
+
+  const x = Math.min(param.point.x + 16, container.clientWidth - 290);
+  const y = Math.max(param.point.y - 40, 4);
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+
+  container.style.position = 'relative';
+  container.appendChild(tooltip);
+  _mPrimTooltip = tooltip;
+}
+
+function _formatPrimitiveProps(primName, det) {
+  const props = det.properties || det;
+  let html = '';
+
+  switch (primName) {
+    case 'mss': {
+      const bt = props.break_type || '';
+      const dg = (props.displacement && props.displacement.quality_grade) || props.quality_grade || '';
+      if (bt) html += `<div><span style="color:#787b86;">break</span> ${bt}</div>`;
+      if (dg) html += `<div><span style="color:#787b86;">grade</span> ${dg}</div>`;
+      break;
+    }
+    case 'liquidity_sweep': {
+      const lv = props.level_price ?? props.level ?? props.price ?? '';
+      const bp = props.breach_pips ?? '';
+      const qs = props.qualified_sweep;
+      if (lv !== '') html += `<div><span style="color:#787b86;">level</span> ${Number(lv).toFixed(5)}</div>`;
+      if (bp !== '') html += `<div><span style="color:#787b86;">breach</span> ${bp} pips</div>`;
+      if (qs != null) html += `<div><span style="color:#787b86;">qualified</span> ${qs}</div>`;
+      break;
+    }
+    case 'fvg': {
+      const top = props.top ?? props.zone_top ?? '';
+      const bot = props.bottom ?? props.zone_bottom ?? '';
+      if (top !== '' && bot !== '') html += `<div><span style="color:#787b86;">range</span> ${Number(bot).toFixed(5)} – ${Number(top).toFixed(5)}</div>`;
+      break;
+    }
+    case 'displacement': {
+      const qg = props.quality_grade || '';
+      const am = props.atr_multiple ?? '';
+      if (qg) html += `<div><span style="color:#787b86;">grade</span> ${qg}</div>`;
+      if (am !== '') html += `<div><span style="color:#787b86;">ATR×</span> ${Number(am).toFixed(2)}</div>`;
+      break;
+    }
+    case 'order_block': {
+      const zt = props.zone_top ?? (props.zone_body && props.zone_body[0]) ?? '';
+      const zb = props.zone_bottom ?? (props.zone_body && props.zone_body[1]) ?? '';
+      if (zt !== '' && zb !== '') html += `<div><span style="color:#787b86;">zone</span> ${Number(zb).toFixed(5)} – ${Number(zt).toFixed(5)}</div>`;
+      break;
+    }
+    case 'ote': {
+      const fl = props.fib_levels || {};
+      const lo = fl.lower ?? fl['0.618'] ?? '';
+      const hi = fl.upper ?? fl['0.79'] ?? '';
+      if (lo !== '' && hi !== '') html += `<div><span style="color:#787b86;">OTE</span> ${Number(lo).toFixed(5)} – ${Number(hi).toFixed(5)}</div>`;
+      break;
+    }
+    case 'swing_point': {
+      const sp = props.swing_type || props.type || '';
+      const pr = props.price ?? props.level ?? '';
+      if (sp) html += `<div><span style="color:#787b86;">type</span> ${sp}</div>`;
+      if (pr !== '') html += `<div><span style="color:#787b86;">price</span> ${Number(pr).toFixed(5)}</div>`;
+      break;
+    }
+    default:
+      break;
+  }
+  return html;
+}
+
+function _removePrimTooltip() {
+  if (_mPrimTooltip) {
+    _mPrimTooltip.remove();
+    _mPrimTooltip = null;
+  }
+}
+
+/* ── OHLC Legend (crosshair-driven) ──────────────────────────────────────── */
+
+function _updateOHLCLegend(param) {
+  const el = document.getElementById('ohlc-legend');
+  if (!el) return;
+
+  if (!param.time || !param.seriesData) {
+    el.textContent = '';
+    return;
+  }
+
+  let bar = null;
+  if (typeof mApp !== 'undefined' && mApp.candleSeries) {
+    bar = param.seriesData.get(mApp.candleSeries);
+  }
+  if (!bar) {
+    el.textContent = '';
+    return;
+  }
+
+  const fmt = (v) => v != null ? Number(v).toFixed(5) : '—';
+  const oColor = bar.close >= bar.open ? '#26a69a' : '#ef5350';
+  el.innerHTML =
+    `<span style="color:#787b86;">O</span> <span style="color:${oColor}">${fmt(bar.open)}</span> ` +
+    `<span style="color:#787b86;">H</span> <span style="color:${oColor}">${fmt(bar.high)}</span> ` +
+    `<span style="color:#787b86;">L</span> <span style="color:${oColor}">${fmt(bar.low)}</span> ` +
+    `<span style="color:#787b86;">C</span> <span style="color:${oColor}">${fmt(bar.close)}</span>`;
+}
+
 /* ── Highlight chain components ─────────────────────────────────────────── */
 
 function _highlightChainComponents(components) {
@@ -821,7 +991,7 @@ function findMirrorNearestCandleTime(detTime) {
   // Find nearest real candle time (within tolerance based on TF)
   const tf = (typeof mApp !== 'undefined') ? mApp.tf : '15m';
   const htf = typeof isHTF === 'function' && isHTF(tf);
-  const maxDiff = tf === '1m' ? 900 : htf ? 14400 : 3600;
+  const maxDiff = tf === '1D' ? 86400 : tf === '1m' ? 900 : htf ? 14400 : 3600;
 
   // Exact match
   if (_mCandleTimeSet.has(ts)) {
@@ -842,6 +1012,60 @@ function findMirrorNearestCandleTime(detTime) {
     return _mRealToSeq[best] != null ? _mRealToSeq[best] : best;
   }
   return null;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Active Level Lines on Chart (LWC createPriceLine)
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+let _mActiveLines = [];
+
+const _LEVEL_COLORS = {
+  swing_high:   '#00e5ff',
+  swing_low:    '#00e5ff',
+  pdh:          '#ff9800',
+  pdl:          '#ff9800',
+  asia_high:    '#e91e63',
+  asia_low:     '#e91e63',
+  session_high: '#795548',
+  session_low:  '#795548',
+  eqh:          '#8bc34a',
+  eql:          '#8bc34a',
+};
+
+function updateActiveLevels() {
+  if (typeof mApp === 'undefined' || !mApp.candleSeries) return;
+
+  // Remove existing lines
+  for (const line of _mActiveLines) {
+    try { mApp.candleSeries.removePriceLine(line); } catch (_) {}
+  }
+  _mActiveLines = [];
+
+  if (!mApp.detectionData) return;
+  const levels = mApp.detectionData.active_levels || mApp.detectionData.reference_levels || [];
+  if (!Array.isArray(levels) || levels.length === 0) return;
+
+  for (const lvl of levels) {
+    const price = lvl.price ?? lvl.level ?? lvl.value;
+    if (price == null) continue;
+
+    const label = lvl.label || lvl.type || '';
+    const levelType = (lvl.type || '').toLowerCase();
+    const color = _LEVEL_COLORS[levelType] || '#607d8b';
+
+    try {
+      const line = mApp.candleSeries.createPriceLine({
+        price: Number(price),
+        color: color,
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: label,
+      });
+      _mActiveLines.push(line);
+    } catch (_) {}
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

@@ -19,7 +19,13 @@ const mApp = {
   candleData: {},          // keyed by TF: { "1m": [...], "5m": [...], ... }
   detectionData: null,     // { detections_by_primitive: {...} }
   worldState: null,        // { htf_phase, direction_permission, ... }
+  worldStateSnapshots: [], // intraday state change timeline
+  sessionData: [],         // session bands from backend [{session, forex_day, start_time, end_time, color, border}]
   signals: [],             // DIAGNOSTIC_SIGNAL array
+
+  // Navigation
+  forexDays: [],           // derived forex day strings for loaded bar data
+  day: null,               // current forex day focus (null = auto)
 
   // UI state
   tf: '5m',
@@ -228,7 +234,6 @@ function handleWSMessage(msg) {
 
     case 'detections': {
       const rawDet = msg.data || msg;
-      // Normalize: ensure detections_by_primitive wrapper exists
       if (rawDet.detections_by_primitive) {
         mApp.detectionData = rawDet;
       } else {
@@ -236,12 +241,25 @@ function handleWSMessage(msg) {
       }
       if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
       if (typeof updateFeedFromDetections === 'function') updateFeedFromDetections(mApp.detectionData);
+      updateFiveFactorRow();
+      updateSetupSummary();
+      renderDayTabs();
       break;
     }
 
     case 'world_state':
       mApp.worldState = msg.data || msg;
       updateWorldStateBanner();
+      break;
+
+    case 'sessions':
+      mApp.sessionData = msg.data || [];
+      if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
+      break;
+
+    case 'world_state_snapshots':
+      mApp.worldStateSnapshots = msg.data || [];
+      if (typeof renderStateTimeline === 'function') renderStateTimeline();
       break;
 
     case 'signals':
@@ -275,9 +293,10 @@ async function loadHistoricalDate(dateStr) {
   if (loading) loading.classList.remove('hidden');
 
   try {
-    const [barsResp, detsResp] = await Promise.all([
+    const [barsResp, detsResp, sessResp] = await Promise.all([
       fetch(`/api/bars/${dateStr}?tf=${mApp.tf}`),
       fetch(`/api/detections/${dateStr}`),
+      fetch(`/api/sessions/${dateStr}`),
     ]);
 
     if (barsResp.ok) {
@@ -300,6 +319,11 @@ async function loadHistoricalDate(dateStr) {
     } else {
       console.warn('[MIRROR] Failed to load detections:', detsResp.status);
       mApp.detectionData = null;
+    }
+
+    if (sessResp.ok) {
+      const sessData = await sessResp.json();
+      mApp.sessionData = sessData.sessions || [];
     }
   } catch (e) {
     console.error('[MIRROR] Failed to load historical data:', e);
@@ -348,13 +372,52 @@ function switchToHistorical(dateStr) {
 
 function setupDatePicker() {
   const picker = document.getElementById('date-picker');
+  const pickerEnd = document.getElementById('date-picker-end');
+  const rangeBtn = document.getElementById('range-btn');
   if (!picker) return;
+
+  // Set bounds from available range
+  fetch('/api/available-range')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && data.earliest) {
+        picker.min = data.earliest;
+        if (pickerEnd) pickerEnd.min = data.earliest;
+      }
+      if (data && data.latest) {
+        picker.max = data.latest;
+        if (pickerEnd) pickerEnd.max = data.latest;
+      }
+    })
+    .catch(() => {});
 
   picker.addEventListener('change', function () {
     const val = picker.value;
     if (!val) return;
-    switchToHistorical(val);
+    if (pickerEnd && pickerEnd.style.display !== 'none' && pickerEnd.value) {
+      loadWeekRange(val, pickerEnd.value);
+    } else {
+      switchToHistorical(val);
+    }
   });
+
+  if (pickerEnd) {
+    pickerEnd.addEventListener('change', function () {
+      const start = picker.value;
+      const end = pickerEnd.value;
+      if (start && end) {
+        loadWeekRange(start, end);
+      }
+    });
+  }
+
+  if (rangeBtn && pickerEnd) {
+    rangeBtn.addEventListener('click', function () {
+      const visible = pickerEnd.style.display !== 'none';
+      pickerEnd.style.display = visible ? 'none' : '';
+      rangeBtn.style.background = visible ? '' : 'rgba(41, 98, 255, 0.25)';
+    });
+  }
 }
 
 function setupNowButton() {
@@ -383,6 +446,7 @@ function renderTFButtons() {
     btn.addEventListener('click', function () {
       if (tf === mApp.tf) return;
       mApp.tf = tf;
+      _savePreferences();
       renderTFButtons();
 
       // Fetch bars for the new TF if not cached
@@ -401,7 +465,8 @@ function renderTFButtons() {
         if (isHTF(tf)) {
           var endDate = dateToLoad;
           var startD = new Date(dateToLoad + 'T12:00:00Z');
-          startD.setUTCDate(startD.getUTCDate() - 9);
+          var lookback = tf === '1D' ? 59 : tf === '4H' ? 29 : 9;
+          startD.setUTCDate(startD.getUTCDate() - lookback);
           var startDate = startD.toISOString().split('T')[0];
           fetchUrl = '/api/bars-range?start=' + startDate + '&end=' + endDate + '&tf=' + tf;
         } else {
@@ -451,6 +516,7 @@ function renderPrimitiveToggles() {
     btn.innerHTML = `<span class="prim-swatch" style="background:${isOn ? p.color : 'var(--faint)'}"></span>${p.label}`;
     btn.addEventListener('click', function () {
       mApp.primitiveToggles[p.key] = !mApp.primitiveToggles[p.key];
+      _savePreferences();
       renderPrimitiveToggles();
       if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
     });
@@ -585,15 +651,334 @@ function updateLiveBadge(newState) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+ * Persistent Preferences (localStorage)
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+const _PREFS_KEY = 'mirror_prefs';
+
+function _loadPreferences() {
+  try {
+    const raw = localStorage.getItem(_PREFS_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (prefs.tf && M_TF_OPTIONS.includes(prefs.tf)) mApp.tf = prefs.tf;
+    if (prefs.primitiveToggles && typeof prefs.primitiveToggles === 'object') {
+      mApp.primitiveToggles = prefs.primitiveToggles;
+    }
+  } catch (_) { /* ignore corrupt prefs */ }
+}
+
+function _savePreferences() {
+  try {
+    localStorage.setItem(_PREFS_KEY, JSON.stringify({
+      tf: mApp.tf,
+      primitiveToggles: mApp.primitiveToggles,
+    }));
+  } catch (_) { /* storage full or blocked */ }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Keyboard Shortcuts (TradingView-style)
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function setupKeyboardShortcuts() {
+  const tfMap = { '1': '1m', '2': '5m', '3': '15m', '4': '1H', '5': '4H', '6': '1D' };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+    if (tfMap[e.key]) {
+      const newTf = tfMap[e.key];
+      if (newTf !== mApp.tf) {
+        mApp.tf = newTf;
+        _savePreferences();
+        renderTFButtons();
+        const btn = document.querySelector(`.tf-btn[data-tf="${newTf}"]`);
+        if (btn) btn.click();
+      }
+      e.preventDefault();
+      return;
+    }
+
+    if (e.key === 'ArrowLeft' && mApp.chart) {
+      mApp.chart.timeScale().scrollToPosition(-3, false);
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight' && mApp.chart) {
+      mApp.chart.timeScale().scrollToPosition(3, false);
+      e.preventDefault();
+    } else if ((e.key === '+' || e.key === '=') && mApp.chart) {
+      mApp.chart.timeScale().applyOptions({ barSpacing: (mApp.chart.timeScale().options().barSpacing || 6) + 2 });
+      e.preventDefault();
+    } else if (e.key === '-' && mApp.chart) {
+      const curr = mApp.chart.timeScale().options().barSpacing || 6;
+      mApp.chart.timeScale().applyOptions({ barSpacing: Math.max(1, curr - 2) });
+      e.preventDefault();
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Day Tabs — Forex Day Navigation
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+let _mScrollSyncActive = false;
+
+function deriveForexDays() {
+  const raw = mApp.candleData[mApp.tf];
+  if (!raw || !raw.length) { mApp.forexDays = []; return; }
+
+  const seen = new Set();
+  for (const bar of raw) {
+    const fd = getForexDay(bar.time);
+    if (fd) seen.add(fd);
+  }
+  mApp.forexDays = Array.from(seen).sort();
+}
+
+function renderDayTabs() {
+  const container = document.getElementById('day-tabs');
+  if (!container) return;
+
+  deriveForexDays();
+
+  if (mApp.forexDays.length <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = '';
+  container.innerHTML = '';
+
+  for (const fd of mApp.forexDays) {
+    const btn = document.createElement('button');
+    btn.className = 'day-tab' + (mApp.day === fd ? ' active' : '');
+    btn.textContent = dayLabel(fd);
+    btn.dataset.day = fd;
+    btn.addEventListener('click', function () {
+      mApp.day = fd;
+      renderDayTabs();
+      _mScrollSyncActive = true;
+      if (mApp.chart) {
+        mApp.chart.timeScale().setVisibleRange(_mDayRange(fd));
+      }
+      setTimeout(function () { _mScrollSyncActive = false; }, 300);
+    });
+    container.appendChild(btn);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * State Timeline — WorldState Snapshot Display
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function renderStateTimeline() {
+  const container = document.getElementById('state-timeline');
+  if (!container) return;
+
+  const snapshots = mApp.worldStateSnapshots;
+  if (!snapshots || snapshots.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = '';
+  let html = '<span class="st-label">State</span>';
+
+  for (const snap of snapshots) {
+    const phase = (snap.htf_phase || 'unclear').toLowerCase();
+    const time = snap.computed_at || snap.time || '';
+    const timeStr = time ? new Date(time).toTimeString().slice(0, 5) : '';
+    const title = `${phase.toUpperCase()} at ${timeStr}\nDir: ${snap.direction_permission || '—'}\nAuth: ${snap.authority_tf || '—'}`;
+    html += `<span class="st-dot ${phase}" title="${title}"></span>`;
+  }
+
+  container.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Five-Factor Dashboard Row
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function updateFiveFactorRow() {
+  const container = document.getElementById('five-factor-row');
+  if (!container) return;
+
+  const dets = mApp.detectionData;
+  if (!dets || !dets.diagnostic_signals || dets.diagnostic_signals.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const latest = dets.diagnostic_signals[dets.diagnostic_signals.length - 1];
+  const factors = latest.factors || latest.five_factors || {};
+  const dir = latest.direction || '';
+  const dirColor = dir === 'bullish' ? 'var(--teal)' : dir === 'bearish' ? 'var(--red)' : 'var(--muted)';
+
+  const ck = (key) => {
+    const v = factors[key] ?? factors['f' + key.slice(-1)];
+    if (v === true || v === 1) return '<span class="ff-item ff-pass">✓</span>';
+    if (v === false || v === 0) return '<span class="ff-item ff-fail">✗</span>';
+    return '<span class="ff-item ff-na">—</span>';
+  };
+
+  const f = (label, key) => `<span style="color:var(--muted);font-size:10px;">${label}</span> ${ck(key)}`;
+
+  container.style.display = '';
+  container.innerHTML =
+    `<span class="ff-label">Checklist</span>` +
+    `<span style="color:${dirColor};font-weight:600;font-size:11px;">${(dir || '—').toUpperCase()}</span>` +
+    `<span style="color:var(--faint);">|</span>` +
+    f('F1 Bias', 'f1') + ' ' + f('F2 Liq', 'f2') + ' ' + f('F3 Struct', 'f3') + ' ' +
+    f('F4 PDA', 'f4') + ' ' + f('F5 Target', 'f5');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Week Picker + Extended HTF Loading
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+async function setupWeekPicker() {
+  const picker = document.getElementById('week-picker');
+  if (!picker) return;
+
+  try {
+    const resp = await fetch('/api/weeks');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const weeks = data.weeks || [];
+
+    picker.innerHTML = '<option value="">— Week —</option>';
+    for (const w of weeks.reverse()) {
+      const label = w.start + ' → ' + w.end + ' (' + w.detection_count + 'd)';
+      const opt = document.createElement('option');
+      opt.value = w.start + '|' + w.end;
+      opt.textContent = label;
+      picker.appendChild(opt);
+    }
+
+    picker.addEventListener('change', function () {
+      const val = picker.value;
+      if (!val) return;
+      const [start, end] = val.split('|');
+      loadWeekRange(start, end);
+    });
+  } catch (e) {
+    console.warn('[MIRROR] Failed to load week manifest:', e);
+  }
+}
+
+async function loadWeekRange(startDate, endDate) {
+  mApp.mode = 'historical';
+  mApp.currentDate = startDate;
+  disconnectWS();
+  updateLiveBadge('disconnected');
+
+  const loading = document.getElementById('loading-overlay');
+  if (loading) loading.classList.remove('hidden');
+
+  try {
+    const tf = mApp.tf;
+    const [barsResp, sessResp] = await Promise.all([
+      fetch(`/api/bars-range?start=${startDate}&end=${endDate}&tf=${tf}`),
+      fetch(`/api/sessions-range?start=${startDate}&end=${endDate}`),
+    ]);
+
+    if (barsResp.ok) {
+      const barsData = await barsResp.json();
+      mApp.candleData[tf] = barsData.data || [];
+    }
+
+    if (sessResp.ok) {
+      const sessData = await sessResp.json();
+      mApp.sessionData = sessData.sessions || [];
+    }
+
+    // Load detections for each day in the range
+    const dStart = new Date(startDate + 'T12:00:00Z');
+    const dEnd = new Date(endDate + 'T12:00:00Z');
+    const merged = { detections_by_primitive: {}, diagnostic_signals: [] };
+    const d = new Date(dStart);
+    while (d <= dEnd) {
+      const ds = d.toISOString().split('T')[0];
+      try {
+        const dr = await fetch(`/api/detections/${ds}`);
+        if (dr.ok) {
+          const dd = await dr.json();
+          const byPrim = dd.detections_by_primitive || {};
+          for (const [prim, byTf] of Object.entries(byPrim)) {
+            if (!merged.detections_by_primitive[prim]) merged.detections_by_primitive[prim] = {};
+            for (const [tf2, dets] of Object.entries(byTf)) {
+              if (!merged.detections_by_primitive[prim][tf2]) merged.detections_by_primitive[prim][tf2] = [];
+              merged.detections_by_primitive[prim][tf2].push(...dets);
+            }
+          }
+          if (dd.diagnostic_signals) merged.diagnostic_signals.push(...dd.diagnostic_signals);
+        }
+      } catch (_) { /* skip failed day */ }
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    mApp.detectionData = merged;
+  } catch (e) {
+    console.error('[MIRROR] Failed to load week range:', e);
+  }
+
+  if (loading) loading.classList.add('hidden');
+  if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
+  if (typeof updateFeedFromDetections === 'function') updateFeedFromDetections(mApp.detectionData);
+  updateFiveFactorRow();
+  updateSetupSummary();
+  renderDayTabs();
+  updateMetadata();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Setup Summary Panel
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+function updateSetupSummary() {
+  const container = document.getElementById('setup-summary');
+  if (!container) return;
+
+  const dets = mApp.detectionData;
+  if (!dets || !dets.diagnostic_signals || dets.diagnostic_signals.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const sigs = dets.diagnostic_signals;
+  let bullish = 0, bearish = 0;
+  for (const s of sigs) {
+    if (s.direction === 'bullish') bullish++;
+    else if (s.direction === 'bearish') bearish++;
+  }
+
+  container.style.display = '';
+  let html = '<div class="setup-summary-title">Setups Today</div>';
+  if (bullish > 0) {
+    html += `<div class="setup-row"><span class="setup-count" style="color:var(--teal);">${bullish}</span><span class="setup-label">Bullish setup${bullish > 1 ? 's' : ''}</span></div>`;
+  }
+  if (bearish > 0) {
+    html += `<div class="setup-row"><span class="setup-count" style="color:var(--red);">${bearish}</span><span class="setup-label">Bearish setup${bearish > 1 ? 's' : ''}</span></div>`;
+  }
+  if (bullish === 0 && bearish === 0) {
+    html += `<div class="setup-row"><span class="setup-count" style="color:var(--faint);">${sigs.length}</span><span class="setup-label">Signal${sigs.length > 1 ? 's' : ''} (no direction)</span></div>`;
+  }
+  container.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
  * Boot Sequence
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 (async function boot() {
+  _loadPreferences();
   initPrimitiveToggles();
   renderTFButtons();
   renderPrimitiveToggles();
   renderSessionLegend();
   setupDatePicker();
   setupNowButton();
+  setupKeyboardShortcuts();
+  if (typeof initFeed === 'function') initFeed();
+  setupWeekPicker();
   connectWS();
 })();
