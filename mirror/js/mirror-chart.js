@@ -29,6 +29,9 @@ let _mAllMarkers = [];
 let _mCandleTimeSet = null;
 let _mCandleTimesArr = null;
 let _mResizeObserver = null;
+let _mSeqToReal = {};    // sequential timestamp → real timestamp mapping
+let _mRealToSeq = {};    // real timestamp → sequential timestamp mapping
+let _mMultiDay = false;  // true when displaying multi-day data
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Session Bands Primitive (ISeriesPrimitive 3-class pattern)
@@ -147,10 +150,19 @@ function createMirrorChart() {
       borderColor: '#2a2e39',
       timeVisible: true,
       secondsVisible: false,
+      minBarSpacing: 3,
       tickMarkFormatter: (time) => {
-        const d = new Date(time * 1000);
+        // Map sequential time back to real time for display
+        var real = _mSeqToReal ? _mSeqToReal[time] : time;
+        const d = new Date(real * 1000);
         const hh = String(d.getUTCHours()).padStart(2, '0');
         const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        // Show date prefix if multi-day
+        if (_mMultiDay) {
+          const dd = String(d.getUTCDate()).padStart(2, '0');
+          const mon = String(d.getUTCMonth() + 1).padStart(2, '0');
+          return `${mon}/${dd} ${hh}:${mm}`;
+        }
         return `${hh}:${mm}`;
       },
     },
@@ -216,6 +228,24 @@ function createMirrorChart() {
  * Day Range Helper
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
+/** Map a real timestamp to the nearest sequential timestamp. */
+function _findNearestSeqTime(realTS) {
+  if (!realTS || !_mCandleTimesArr || _mCandleTimesArr.length === 0) return null;
+  // Exact match
+  if (_mRealToSeq[realTS] != null) return _mRealToSeq[realTS];
+  // Nearest
+  var best = null;
+  var bestDiff = Infinity;
+  for (var i = 0; i < _mCandleTimesArr.length; i++) {
+    var diff = Math.abs(_mCandleTimesArr[i] - realTS);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = _mCandleTimesArr[i];
+    }
+  }
+  return best != null ? (_mRealToSeq[best] != null ? _mRealToSeq[best] : null) : null;
+}
+
 function _mDayRange(dayStr) {
   const d = new Date(dayStr + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() - 1);
@@ -251,20 +281,57 @@ function refreshMirrorChart() {
     return;
   }
 
-  // Convert to LC format, sort by time
-  const chartData = raw.map(c => ({
-    time: toTS(c.time),
+  // Convert to LC format, sort by real time
+  const rawBars = raw.map(c => ({
+    realTime: toTS(c.time),
     open: c.open,
     high: c.high,
     low: c.low,
     close: c.close,
-  })).filter(b => b.time != null)
-    .sort((a, b) => a.time - b.time);
+  })).filter(b => b.realTime != null)
+    .sort((a, b) => a.realTime - b.realTime);
+
+  // Build sequential time mapping (eliminates gaps — candles render adjacently like TradingView)
+  // Determine appropriate spacing per TF
+  var seqSpacing = 60; // 1m default
+  var tfLower = mApp.tf.toLowerCase();
+  if (tfLower === '5m') seqSpacing = 300;
+  else if (tfLower === '15m') seqSpacing = 900;
+  else if (tfLower === '1h') seqSpacing = 3600;
+  else if (tfLower === '4h') seqSpacing = 14400;
+  else if (tfLower === '1d') seqSpacing = 86400;
+
+  _mSeqToReal = {};
+  _mRealToSeq = {};
+  // Use the first bar's real time as the base, then increment sequentially
+  var seqBase = rawBars.length > 0 ? rawBars[0].realTime : 0;
+  const chartData = rawBars.map((b, i) => {
+    var seqTime = seqBase + (i * seqSpacing);
+    _mSeqToReal[seqTime] = b.realTime;
+    _mRealToSeq[b.realTime] = seqTime;
+    return {
+      time: seqTime,
+      open: b.open,
+      high: b.high,
+      low: b.low,
+      close: b.close,
+    };
+  });
+
+  // Detect multi-day data for tick label formatting
+  if (rawBars.length > 1) {
+    var firstDay = new Date(rawBars[0].realTime * 1000).getUTCDate();
+    var lastDay = new Date(rawBars[rawBars.length - 1].realTime * 1000).getUTCDate();
+    _mMultiDay = (firstDay !== lastDay);
+  } else {
+    _mMultiDay = false;
+  }
 
   mApp.candleSeries.setData(chartData);
 
-  _mCandleTimeSet = new Set(chartData.map(c => c.time));
-  _mCandleTimesArr = chartData.map(c => c.time);
+  // Track candle times using REAL timestamps (for marker matching)
+  _mCandleTimeSet = new Set(rawBars.map(c => c.realTime));
+  _mCandleTimesArr = rawBars.map(c => c.realTime);
 
   // Build markers from detection data
   _mAllMarkers = buildMirrorMarkers();
@@ -272,10 +339,10 @@ function refreshMirrorChart() {
 
   // Derive forex day from bar data if not explicitly set
   let forexDay = mApp.day || null;
-  if (!forexDay && chartData.length > 0) {
-    // Use the last bar's time to determine the forex day
-    const lastBarTime = chartData[chartData.length - 1].time;
-    const d = new Date(lastBarTime * 1000);
+  if (!forexDay && rawBars.length > 0) {
+    // Use the last bar's real time to determine the forex day
+    const lastRealTime = rawBars[rawBars.length - 1].realTime;
+    const d = new Date(lastRealTime * 1000);
     const isoStr = d.toISOString();
     forexDay = typeof getForexDay === 'function' ? getForexDay(isoStr) : isoStr.split('T')[0];
   }
@@ -283,11 +350,11 @@ function refreshMirrorChart() {
   // Session bands — for HTF, compute bands for all visible days
   const htf = typeof isHTF === 'function' && isHTF(mApp.tf);
   let allBands = [];
-  if (htf && chartData.length > 1) {
-    // Collect unique forex days from bar data
+  if (htf && rawBars.length > 1) {
+    // Collect unique forex days from real bar times
     const seenDays = new Set();
-    for (const bar of chartData) {
-      const bd = new Date(bar.time * 1000).toISOString();
+    for (const bar of rawBars) {
+      const bd = new Date(bar.realTime * 1000).toISOString();
       const fd = typeof getForexDay === 'function' ? getForexDay(bd) : bd.split('T')[0];
       seenDays.add(fd);
     }
@@ -296,6 +363,19 @@ function refreshMirrorChart() {
     }
   } else {
     allBands = getMirrorSessionBands(forexDay);
+  }
+  // Convert session band real timestamps to sequential for rendering
+  if (_mRealToSeq && Object.keys(_mRealToSeq).length > 0) {
+    allBands = allBands.map(function(b) {
+      return {
+        startTS: _findNearestSeqTime(b.startTS),
+        endTS: _findNearestSeqTime(b.endTS),
+        color: b.color,
+        border: b.border,
+        session: b.session,
+        label: b.label,
+      };
+    }).filter(function(b) { return b.startTS != null && b.endTS != null; });
   }
   if (_mSessionPrimitive) {
     _mSessionPrimitive.setBands(allBands);
@@ -336,11 +416,34 @@ function appendLiveBar(barData) {
   if (typeof mApp === 'undefined') return;
   if (!mApp.candleSeries) return;
 
-  const ts = toTS(barData.time);
-  if (ts == null) return;
+  const realTS = toTS(barData.time);
+  if (realTS == null) return;
+
+  // Compute sequential timestamp for this bar
+  var seqTS;
+  if (_mRealToSeq[realTS] != null) {
+    // Already mapped (update existing bar)
+    seqTS = _mRealToSeq[realTS];
+  } else {
+    // New bar — assign next sequential slot
+    var lastSeq = 0;
+    var keys = Object.keys(_mSeqToReal);
+    if (keys.length > 0) {
+      lastSeq = Math.max.apply(null, keys.map(Number));
+    }
+    var tfLower = (mApp.tf || '1m').toLowerCase();
+    var spacing = 60;
+    if (tfLower === '5m') spacing = 300;
+    else if (tfLower === '15m') spacing = 900;
+    else if (tfLower === '1h') spacing = 3600;
+    else if (tfLower === '4h') spacing = 14400;
+    seqTS = lastSeq + spacing;
+    _mSeqToReal[seqTS] = realTS;
+    _mRealToSeq[realTS] = seqTS;
+  }
 
   const bar = {
-    time: ts,
+    time: seqTS,
     open: barData.open,
     high: barData.high,
     low: barData.low,
@@ -348,22 +451,20 @@ function appendLiveBar(barData) {
   };
 
   try {
-    // Efficient single-bar update (no full re-render)
     mApp.candleSeries.update(bar);
   } catch (e) {
     console.warn('appendLiveBar update error:', e);
     return;
   }
 
-  // Update candle time tracking
-  if (_mCandleTimeSet && !_mCandleTimeSet.has(ts)) {
-    _mCandleTimeSet.add(ts);
+  // Update real candle time tracking
+  if (_mCandleTimeSet && !_mCandleTimeSet.has(realTS)) {
+    _mCandleTimeSet.add(realTS);
     if (_mCandleTimesArr) {
-      _mCandleTimesArr.push(ts);
+      _mCandleTimesArr.push(realTS);
     }
   }
 
-  // In live mode: auto-scroll to show the new bar
   if (mApp.mode === 'live' && mApp.chart) {
     mApp.chart.timeScale().scrollToRealTime();
   }
@@ -717,14 +818,17 @@ function findMirrorNearestCandleTime(detTime) {
   const ts = toTS(detTime);
   if (ts == null) return null;
 
-  // Exact match
-  if (_mCandleTimeSet.has(ts)) return ts;
-
-  // Find nearest candle time (within tolerance based on TF)
+  // Find nearest real candle time (within tolerance based on TF)
   const tf = (typeof mApp !== 'undefined') ? mApp.tf : '15m';
   const htf = typeof isHTF === 'function' && isHTF(tf);
   const maxDiff = tf === '1m' ? 900 : htf ? 14400 : 3600;
 
+  // Exact match
+  if (_mCandleTimeSet.has(ts)) {
+    return _mRealToSeq[ts] != null ? _mRealToSeq[ts] : ts;
+  }
+
+  // Nearest match
   let best = null;
   let bestDiff = Infinity;
   for (const ct of _mCandleTimesArr) {
@@ -734,7 +838,10 @@ function findMirrorNearestCandleTime(detTime) {
       best = ct;
     }
   }
-  return (bestDiff <= maxDiff) ? best : null;
+  if (bestDiff <= maxDiff && best != null) {
+    return _mRealToSeq[best] != null ? _mRealToSeq[best] : best;
+  }
+  return null;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
