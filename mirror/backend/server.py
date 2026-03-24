@@ -328,6 +328,9 @@ class DetectionFileHandler(FileSystemEventHandler):
         path = Path(event.src_path)
         if path.suffix != ".json":
             return
+        # Only process per-day files (YYYY-MM-DD.json), skip summaries
+        if len(path.stem) != 10 or path.stem[4] != "-":
+            return
         # Debounce: skip if mtime unchanged
         try:
             mtime = path.stat().st_mtime
@@ -414,6 +417,12 @@ async def lifespan(app: FastAPI):
     if load_date:
         state.cached_bars_5m = _load_bars_as_dicts(load_date, "5m")
         state.cached_detections = _load_detections(load_date)
+        # If today has no detections yet, fall back to last available
+        if not state.cached_detections and load_date == today:
+            fallback = _last_available_date()
+            if fallback and fallback != today:
+                log.info("No detections for %s, falling back to %s", today, fallback)
+                state.cached_detections = _load_detections(fallback)
         # Extract WorldState from detection JSON
         if isinstance(state.cached_detections, dict):
             ws = state.cached_detections.get("world_state")

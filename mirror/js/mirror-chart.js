@@ -7,7 +7,7 @@
 /* ── Per-Primitive Marker Styles (unified across tools) ─────────────────── */
 
 const M_MARKER_STYLES = {
-  swing_points:        { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#00e5ff' },
+  swing_point:         { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#00e5ff' },
   liquidity_sweep:     { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ff9800' },
   mss:                 { shape_high: 'arrowDown', shape_low: 'arrowUp',  color: '#ffeb3b' },
   displacement:        { shape_high: 'square',    shape_low: 'square',   color: '#e040fb' },
@@ -366,8 +366,10 @@ function buildMirrorMarkers() {
       const barTime = findMirrorNearestCandleTime(det.time);
       if (barTime == null) continue;
 
-      const isBullish = det.direction === 'bullish' || det.direction === 'high';
-      const isBearish = det.direction === 'bearish' || det.direction === 'low';
+      // Direction can be top-level or nested in properties (swing_point uses properties.swing_type)
+      const dir = det.direction || (det.properties && (det.properties.direction || det.properties.swing_type)) || '';
+      const isBullish = dir === 'bullish' || dir === 'high';
+      const isBearish = dir === 'bearish' || dir === 'low';
 
       markers.push({
         time: barTime,

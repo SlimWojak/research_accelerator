@@ -38,7 +38,7 @@ const M_PRIMITIVES = [
   { key: 'mss',               label: 'MSS',           color: '#f7c548' },
   { key: 'order_block',       label: 'Order Block',   color: '#9c27b0' },
   { key: 'liquidity_sweep',   label: 'Liq Sweep',     color: '#ef5350' },
-  { key: 'swing_points',      label: 'Swing Points',  color: '#00bcd4' },
+  { key: 'swing_point',       label: 'Swing Points',  color: '#00bcd4' },
   { key: 'ote',               label: 'OTE',           color: '#ff9800' },
   { key: 'asia_range',        label: 'Asia Range',    color: '#e91e63' },
   { key: 'htf_liquidity',     label: 'HTF Liq',       color: '#8bc34a' },
