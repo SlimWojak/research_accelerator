@@ -674,8 +674,8 @@ function renderDayTabs() {
     btn.textContent = dayLabel(fd);
     btn.dataset.day = fd;
     btn.addEventListener('click', function () {
-      mApp.day = fd;
-      renderDayTabs();
+      // Delegate to setView — fast path: day-only change
+      setView({ day: fd });
       _mScrollSyncActive = true;
       if (mApp.chart) {
         mApp.chart.timeScale().setVisibleRange(_mDayRange(fd));
