@@ -922,7 +922,19 @@ function _handleCrosshairTooltip(param, container) {
     if (i > 0) html += '<div style="border-top:1px solid #2a2e39;margin:4px 0;"></div>';
     html += `<div style="font-weight:600;color:${pColor};margin-bottom:2px;">${pLabel}</div>`;
     if (dir) html += `<div><span style="color:#787b86;">dir</span> ${dir}</div>`;
-    if (det.time) html += `<div><span style="color:#787b86;">time</span> ${det.time}</div>`;
+    if (det.time) {
+      // Format detection time as NY time (matching x-axis display)
+      // Use the marker's sequential position → real NY time for consistency
+      var realNY = _seqToRealTime(m.time);
+      var td = new Date(realNY * 1000);
+      var tYear = td.getUTCFullYear();
+      var tMon = String(td.getUTCMonth() + 1).padStart(2, '0');
+      var tDay = String(td.getUTCDate()).padStart(2, '0');
+      var tHH = String(td.getUTCHours()).padStart(2, '0');
+      var tMM = String(td.getUTCMinutes()).padStart(2, '0');
+      var nyTimeStr = tYear + '-' + tMon + '-' + tDay + ' ' + tHH + ':' + tMM + ' NY';
+      html += `<div><span style="color:#787b86;">time</span> ${nyTimeStr}</div>`;
+    }
 
     html += _formatPrimitiveProps(m._primitive, det);
   }
