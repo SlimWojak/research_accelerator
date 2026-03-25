@@ -226,8 +226,12 @@ function createMirrorChart() {
       for (const dk of mApp.forexDays) {
         const r = _mDayRange(dk);
         if (center >= r.from && center <= r.to && dk !== mApp.day) {
-          mApp.day = dk;
-          if (typeof renderDayTabs === 'function') renderDayTabs();
+          if (typeof setView === 'function') {
+            setView({ day: dk });
+          } else {
+            mApp.day = dk;
+            if (typeof renderDayTabs === 'function') renderDayTabs();
+          }
           break;
         }
       }
