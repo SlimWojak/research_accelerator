@@ -206,7 +206,13 @@ function connectWS() {
     updateLiveBadge('live');
 
     // Send TF subscription preference
-    mApp.ws.send(JSON.stringify({ type: 'subscribe', tf: mApp.tf }));
+    var currentTf = (typeof viewState !== 'undefined' && viewState.tf) ? viewState.tf : mApp.tf;
+    mApp.ws.send(JSON.stringify({ type: 'subscribe', tf: currentTf }));
+
+    // On first connect (no bars loaded yet), trigger initial data load via setView
+    if (!mApp.candleData[currentTf] || mApp.candleData[currentTf].length === 0) {
+      setView({ mode: 'live', tf: currentTf });
+    }
   };
 
   mApp.ws.onmessage = function (evt) {
@@ -265,62 +271,10 @@ function disconnectWS() {
 function handleWSMessage(msg) {
   if (!msg || !msg.type) return;
 
-  switch (msg.type) {
-    case 'bars':
-      mApp.candleData[msg.tf] = msg.data || msg.bars || [];
-      if (msg.tf === mApp.tf && typeof refreshMirrorChart === 'function') refreshMirrorChart();
-      break;
-
-    case 'detections': {
-      const rawDet = msg.data || msg;
-      if (rawDet.detections_by_primitive) {
-        mApp.detectionData = rawDet;
-      } else {
-        mApp.detectionData = { detections_by_primitive: rawDet };
-      }
-      if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-      if (typeof updateFeedFromDetections === 'function') updateFeedFromDetections(mApp.detectionData);
-      updateFiveFactorRow();
-      updateSetupSummary();
-      renderDayTabs();
-      break;
-    }
-
-    case 'world_state':
-      mApp.worldState = msg.data || msg;
-      updateWorldStateBanner();
-      break;
-
-    case 'sessions':
-      mApp.sessionData = msg.data || [];
-      if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-      break;
-
-    case 'world_state_snapshots':
-      mApp.worldStateSnapshots = msg.data || [];
-      if (typeof renderStateTimeline === 'function') renderStateTimeline();
-      break;
-
-    case 'signals':
-      mApp.signals = msg.data || msg.signals || [];
-      if (typeof updateSignalMarkers === 'function') updateSignalMarkers();
-      if (typeof addSignalsToFeed === 'function') addSignalsToFeed(mApp.signals);
-      break;
-
-    case 'status': {
-      var stData = msg.data || msg;
-      var st = (stData.state || '').toUpperCase();
-      if (st === 'LIVE') updateLiveBadge('live');
-      else if (st === 'STALE') updateLiveBadge('stale');
-      else if (st === 'MARKET_CLOSED') updateLiveBadge('closed');
-      else updateLiveBadge('connecting');
-      if (stData.last_bar) mApp.lastBarTime = stData.last_bar;
-      updateMetadata();
-      break;
-    }
-
-    default:
-      console.log('[MIRROR] Unknown WS message type:', msg.type);
+  // Delegate ALL data messages to the unified state module (mirror-state.js).
+  // handleLiveUpdate is version-gated and prevents stale-data races.
+  if (typeof handleLiveUpdate === 'function') {
+    handleLiveUpdate(msg);
   }
 }
 
@@ -328,86 +282,30 @@ function handleWSMessage(msg) {
  * REST API Client (Historical Mode)
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-async function loadHistoricalDate(dateStr) {
-  const loading = document.getElementById('loading-overlay');
-  if (loading) loading.classList.remove('hidden');
-
-  try {
-    const [barsResp, detsResp, sessResp] = await Promise.all([
-      fetch(`/api/bars/${dateStr}?tf=${mApp.tf}`),
-      fetch(`/api/detections/${dateStr}`),
-      fetch(`/api/sessions/${dateStr}`),
-    ]);
-
-    if (barsResp.ok) {
-      const barsData = await barsResp.json();
-      // API may return { tf: bars[] } or bare array
-      if (Array.isArray(barsData)) {
-        mApp.candleData[mApp.tf] = barsData;
-      } else {
-        // Merge all TF keys from response
-        for (const [tf, bars] of Object.entries(barsData)) {
-          mApp.candleData[tf] = bars;
-        }
-      }
-    } else {
-      console.warn('[MIRROR] Failed to load bars:', barsResp.status);
-    }
-
-    if (detsResp.ok) {
-      mApp.detectionData = await detsResp.json();
-    } else {
-      console.warn('[MIRROR] Failed to load detections:', detsResp.status);
-      mApp.detectionData = null;
-    }
-
-    if (sessResp.ok) {
-      const sessData = await sessResp.json();
-      mApp.sessionData = sessData.sessions || [];
-    }
-  } catch (e) {
-    console.error('[MIRROR] Failed to load historical data:', e);
-  }
-
-  if (loading) loading.classList.add('hidden');
-
-  // Refresh chart with new data
-  if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-  updateMetadata();
-}
+// loadHistoricalDate — removed: now handled by setView({ mode: 'historical', date })
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Navigation — Live / Historical Mode Switching
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
 function switchToLive() {
-  mApp.mode = 'live';
-  mApp.currentDate = null;
-  mApp.candleData = {};
-  mApp.detectionData = null;
-  mApp.signals = [];
+  disconnectWS();
 
-  // Update date picker to show no selection
-  const picker = document.getElementById('date-picker');
+  // Update date picker UI
+  var picker = document.getElementById('date-picker');
   if (picker) picker.value = '';
 
+  // Transition via setView — fetches initial data for current TF
+  setView({ mode: 'live', date: null });
+
+  // Reconnect WS for live pushes
   connectWS();
-  updateMetadata();
 }
 
 function switchToHistorical(dateStr) {
-  mApp.mode = 'historical';
-  mApp.currentDate = dateStr;
-  mApp.candleData = {};
-  mApp.detectionData = null;
-  mApp.signals = [];
-
-  // Disconnect live feed
   disconnectWS();
   updateLiveBadge('disconnected');
-
-  // Load REST data for the selected date
-  loadHistoricalDate(dateStr);
+  setView({ mode: 'historical', date: dateStr });
 }
 
 function setupDatePicker() {
@@ -432,10 +330,12 @@ function setupDatePicker() {
     .catch(() => {});
 
   picker.addEventListener('change', function () {
-    const val = picker.value;
+    var val = picker.value;
     if (!val) return;
     if (pickerEnd && pickerEnd.style.display !== 'none' && pickerEnd.value) {
-      loadWeekRange(val, pickerEnd.value);
+      disconnectWS();
+      updateLiveBadge('disconnected');
+      setView({ mode: 'historical', date: val, rangeStart: val, rangeEnd: pickerEnd.value });
     } else {
       switchToHistorical(val);
     }
@@ -443,10 +343,12 @@ function setupDatePicker() {
 
   if (pickerEnd) {
     pickerEnd.addEventListener('change', function () {
-      const start = picker.value;
-      const end = pickerEnd.value;
+      var start = picker.value;
+      var end = pickerEnd.value;
       if (start && end) {
-        loadWeekRange(start, end);
+        disconnectWS();
+        updateLiveBadge('disconnected');
+        setView({ mode: 'historical', date: start, rangeStart: start, rangeEnd: end });
       }
     });
   }
@@ -485,48 +387,16 @@ function renderTFButtons() {
     btn.dataset.tf = tf;
     btn.addEventListener('click', function () {
       if (tf === mApp.tf) return;
-      mApp.tf = tf;
       _savePreferences();
       renderTFButtons();
 
-      // Fetch bars for the new TF if not cached
-      if (!mApp.candleData[tf] || mApp.candleData[tf].length === 0) {
-        // Determine the date to load
-        let dateToLoad = mApp.currentDate;
-        if (!dateToLoad && mApp.candleData['5m'] && mApp.candleData['5m'].length > 0) {
-          const firstBar = mApp.candleData['5m'][0];
-          dateToLoad = (firstBar.time || '').substring(0, 10);
-        }
-        if (!dateToLoad) dateToLoad = new Date().toISOString().substring(0, 10);
-
-        // HTF (1H, 4H, 1D): load 10-day range for seamless scrolling
-        // LTF (1m, 5m, 15m): load single day (WS push handles updates)
-        var fetchUrl;
-        if (isHTF(tf)) {
-          var endDate = dateToLoad;
-          var startD = new Date(dateToLoad + 'T12:00:00Z');
-          var lookback = tf === '1D' ? 59 : tf === '4H' ? 29 : 9;
-          startD.setUTCDate(startD.getUTCDate() - lookback);
-          var startDate = startD.toISOString().split('T')[0];
-          fetchUrl = '/api/bars-range?start=' + startDate + '&end=' + endDate + '&tf=' + tf;
-        } else {
-          fetchUrl = '/api/bars/' + dateToLoad + '?tf=' + tf;
-        }
-
-        fetch(fetchUrl)
-          .then(r => r.ok ? r.json() : null)
-          .then(data => {
-            if (data && data.data) {
-              mApp.candleData[tf] = data.data;
-            }
-            if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-          })
-          .catch(() => {
-            if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-          });
-      } else {
-        if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
+      if (typeof feedState !== 'undefined') {
+        feedState.tfFilter = tf;
+        if (typeof renderFeed === 'function') renderFeed();
       }
+
+      // Single call — setView handles fetch + render
+      setView({ tf: tf });
     });
     container.appendChild(btn);
   }
@@ -714,8 +584,10 @@ function _loadPreferences() {
 
 function _savePreferences() {
   try {
+    // Read TF from viewState (source of truth), fall back to mApp
+    var tf = (typeof viewState !== 'undefined' && viewState.tf) ? viewState.tf : mApp.tf;
     localStorage.setItem(_PREFS_KEY, JSON.stringify({
-      tf: mApp.tf,
+      tf: tf,
       primitiveToggles: mApp.primitiveToggles,
     }));
   } catch (_) { /* storage full or blocked */ }
@@ -734,11 +606,14 @@ function setupKeyboardShortcuts() {
     if (tfMap[e.key]) {
       const newTf = tfMap[e.key];
       if (newTf !== mApp.tf) {
-        mApp.tf = newTf;
+        // Delegate to setView — handles fetch, render, and mApp sync
+        setView({ tf: newTf });
         _savePreferences();
         renderTFButtons();
-        const btn = document.querySelector(`.tf-btn[data-tf="${newTf}"]`);
-        if (btn) btn.click();
+        if (typeof feedState !== 'undefined') {
+          feedState.tfFilter = newTf;
+          if (typeof renderFeed === 'function') renderFeed();
+        }
       }
       e.preventDefault();
       return;
@@ -900,79 +775,23 @@ async function setupWeekPicker() {
     }
 
     picker.addEventListener('change', function () {
-      const val = picker.value;
+      var val = picker.value;
       if (!val) return;
-      const [start, end] = val.split('|');
-      loadWeekRange(start, end);
+      var parts = val.split('|');
+      disconnectWS();
+      updateLiveBadge('disconnected');
+      setView({ mode: 'historical', date: parts[0], rangeStart: parts[0], rangeEnd: parts[1] });
     });
   } catch (e) {
     console.warn('[MIRROR] Failed to load week manifest:', e);
   }
 }
 
-async function loadWeekRange(startDate, endDate) {
-  mApp.mode = 'historical';
-  mApp.currentDate = startDate;
-  disconnectWS();
-  updateLiveBadge('disconnected');
+// _M_TF_LOOKBACK removed — now VIEW_TF_LOOKBACK in mirror-state.js
 
-  const loading = document.getElementById('loading-overlay');
-  if (loading) loading.classList.remove('hidden');
+// loadWeekRange() removed — now handled by setView({ rangeStart, rangeEnd }) in mirror-state.js
 
-  try {
-    const tf = mApp.tf;
-    const [barsResp, sessResp] = await Promise.all([
-      fetch(`/api/bars-range?start=${startDate}&end=${endDate}&tf=${tf}`),
-      fetch(`/api/sessions-range?start=${startDate}&end=${endDate}`),
-    ]);
-
-    if (barsResp.ok) {
-      const barsData = await barsResp.json();
-      mApp.candleData[tf] = barsData.data || [];
-    }
-
-    if (sessResp.ok) {
-      const sessData = await sessResp.json();
-      mApp.sessionData = sessData.sessions || [];
-    }
-
-    // Load detections for each day in the range
-    const dStart = new Date(startDate + 'T12:00:00Z');
-    const dEnd = new Date(endDate + 'T12:00:00Z');
-    const merged = { detections_by_primitive: {}, diagnostic_signals: [] };
-    const d = new Date(dStart);
-    while (d <= dEnd) {
-      const ds = d.toISOString().split('T')[0];
-      try {
-        const dr = await fetch(`/api/detections/${ds}`);
-        if (dr.ok) {
-          const dd = await dr.json();
-          const byPrim = dd.detections_by_primitive || {};
-          for (const [prim, byTf] of Object.entries(byPrim)) {
-            if (!merged.detections_by_primitive[prim]) merged.detections_by_primitive[prim] = {};
-            for (const [tf2, dets] of Object.entries(byTf)) {
-              if (!merged.detections_by_primitive[prim][tf2]) merged.detections_by_primitive[prim][tf2] = [];
-              merged.detections_by_primitive[prim][tf2].push(...dets);
-            }
-          }
-          if (dd.diagnostic_signals) merged.diagnostic_signals.push(...dd.diagnostic_signals);
-        }
-      } catch (_) { /* skip failed day */ }
-      d.setUTCDate(d.getUTCDate() + 1);
-    }
-    mApp.detectionData = merged;
-  } catch (e) {
-    console.error('[MIRROR] Failed to load week range:', e);
-  }
-
-  if (loading) loading.classList.add('hidden');
-  if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
-  if (typeof updateFeedFromDetections === 'function') updateFeedFromDetections(mApp.detectionData);
-  updateFiveFactorRow();
-  updateSetupSummary();
-  renderDayTabs();
-  updateMetadata();
-}
+// _loadDetectionsRange() removed — now _loadDetectionsParallel() in mirror-state.js
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Setup Summary Panel
@@ -1015,6 +834,13 @@ function updateSetupSummary() {
 
 (async function boot() {
   _loadPreferences();
+
+  // Sync saved TF preference into viewState (source of truth)
+  if (typeof viewState !== 'undefined') {
+    viewState.tf = mApp.tf;
+    viewState.mode = 'live';
+  }
+
   initPrimitiveToggles();
   renderTFButtons();
   renderPrimitiveToggles();
@@ -1022,7 +848,12 @@ function updateSetupSummary() {
   setupDatePicker();
   setupNowButton();
   setupKeyboardShortcuts();
-  if (typeof initFeed === 'function') initFeed();
+  if (typeof initFeed === 'function') {
+    initFeed();
+    if (typeof feedState !== 'undefined') feedState.tfFilter = mApp.tf;
+  }
   setupWeekPicker();
+
+  // Initial data load via setView — connects WS internally for live mode
   connectWS();
 })();
