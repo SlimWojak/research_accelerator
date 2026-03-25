@@ -265,47 +265,32 @@ function createMirrorChart() {
  * Day Range Helper
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-/** Map a real timestamp to the nearest sequential timestamp.
- * Uses interpolation between adjacent bars for sub-bar precision
- * (critical for session bands on HTF where bars are widely spaced). */
+/** Map a real timestamp to the nearest sequential timestamp (snap to nearest bar).
+ * Session bands use this to align with candle positions on the chart.
+ * Snap error is at most half a bar width (acceptable on LTF; HTF hides bands). */
 function _findNearestSeqTime(realTS) {
   if (!realTS || !_mCandleTimesArr || _mCandleTimesArr.length === 0) return null;
   if (_mRealToSeq[realTS] != null) return _mRealToSeq[realTS];
 
-  // Binary search: find first bar >= realTS
+  // Binary search for nearest bar (array is sorted by real time)
   var lo = 0, hi = _mCandleTimesArr.length - 1;
   while (lo < hi) {
     var mid = (lo + hi) >> 1;
     if (_mCandleTimesArr[mid] < realTS) lo = mid + 1;
     else hi = mid;
   }
-
-  // Max tolerance: 2 bar intervals
-  var tfLower = (typeof mApp !== 'undefined' ? mApp.tf : '1H').toLowerCase();
-  var barSec = tfLower === '1d' ? 86400 : tfLower === '4h' ? 14400 : tfLower === '1h' ? 3600
-             : tfLower === '15m' ? 900 : tfLower === '5m' ? 300 : 60;
-
-  // Interpolate between surrounding bars for sub-bar precision
-  // This is critical for session bands on HTF (4H, 1D) where snapping
-  // to nearest bar creates visible offset from canonical session times.
-  if (lo > 0 && lo < _mCandleTimesArr.length) {
-    var realBefore = _mCandleTimesArr[lo - 1];
-    var realAfter = _mCandleTimesArr[lo];
-    var seqBefore = _mRealToSeq[realBefore];
-    var seqAfter = _mRealToSeq[realAfter];
-    if (seqBefore != null && seqAfter != null && realAfter !== realBefore) {
-      var frac = (realTS - realBefore) / (realAfter - realBefore);
-      return Math.round(seqBefore + frac * (seqAfter - seqBefore));
-    }
-  }
-
-  // Edge cases: before first bar or after last bar — snap to nearest
+  // Check lo and lo-1 for closest
   var best = _mCandleTimesArr[lo];
   var bestDiff = Math.abs(best - realTS);
   if (lo > 0) {
     var altDiff = Math.abs(_mCandleTimesArr[lo - 1] - realTS);
     if (altDiff < bestDiff) { best = _mCandleTimesArr[lo - 1]; bestDiff = altDiff; }
   }
+
+  // Max tolerance: 2 bar intervals (prevents cross-day mismatches)
+  var tfLower = (typeof mApp !== 'undefined' ? mApp.tf : '1H').toLowerCase();
+  var barSec = tfLower === '1d' ? 86400 : tfLower === '4h' ? 14400 : tfLower === '1h' ? 3600
+             : tfLower === '15m' ? 900 : tfLower === '5m' ? 300 : 60;
   if (bestDiff > barSec * 2) return null;
 
   return _mRealToSeq[best] != null ? _mRealToSeq[best] : null;
@@ -439,33 +424,31 @@ function refreshMirrorChart() {
     forexDay = typeof getForexDay === 'function' ? getForexDay(isoStr) : isoStr.split('T')[0];
   }
 
-  // Session bands — compute for all visible forex days (LTF and HTF both load multi-day)
+  // Session bands — only on LTF (1m, 5m, 15m, 1H).
+  // On 4H/1D the sessions overlap into a solid color wash — hide them.
+  var showSessions = mApp.tf === '1m' || mApp.tf === '5m' || mApp.tf === '15m' || mApp.tf === '1H';
   let allBands = [];
-  if (rawBars.length > 1) {
-    const seenDays = new Set();
-    for (const bar of rawBars) {
-      const bd = new Date(bar.realTime * 1000).toISOString();
-      const fd = typeof getForexDay === 'function' ? getForexDay(bd) : bd.split('T')[0];
-      seenDays.add(fd);
-    }
-    for (const fd of seenDays) {
-      allBands.push(...getMirrorSessionBands(fd));
-    }
-  } else {
+  if (showSessions && forexDay) {
+    // Show session bands for the active forex day only.
+    // Multi-day bands create opacity stacking (yellow/purple wash) — not useful.
     allBands = getMirrorSessionBands(forexDay);
-  }
-  // Convert session band real timestamps to sequential for rendering
-  if (_mRealToSeq && Object.keys(_mRealToSeq).length > 0) {
-    allBands = allBands.map(function(b) {
-      return {
-        startTS: _findNearestSeqTime(b.startTS),
-        endTS: _findNearestSeqTime(b.endTS),
-        color: b.color,
-        border: b.border,
-        session: b.session,
-        label: b.label,
-      };
-    }).filter(function(b) { return b.startTS != null && b.endTS != null; });
+
+    // Convert session band real timestamps to sequential for rendering
+    if (_mRealToSeq && Object.keys(_mRealToSeq).length > 0) {
+      allBands = allBands.map(function(b) {
+        return {
+          startTS: _findNearestSeqTime(b.startTS),
+          endTS: _findNearestSeqTime(b.endTS),
+          color: b.color,
+          border: b.border,
+          session: b.session,
+          label: b.label,
+        };
+      }).filter(function(b) {
+        // Filter out bands where start === end (degenerate — no visible region)
+        return b.startTS != null && b.endTS != null && b.startTS !== b.endTS;
+      });
+    }
   }
   if (_mSessionPrimitive) {
     _mSessionPrimitive.setBands(allBands);
