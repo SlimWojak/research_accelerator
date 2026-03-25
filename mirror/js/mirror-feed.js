@@ -462,18 +462,31 @@ function onFeedItemClick(item) {
   try {
     var ts = typeof toTS === 'function' ? toTS(item.time) : Math.floor(new Date(item.time).getTime() / 1000);
 
-    // Pan chart to detection time
+    // Pan chart to detection time — must use SEQUENTIAL timestamps
+    // since the chart axis is sequential (gap-free), not real time.
     if (typeof mApp !== 'undefined' && mApp.chart) {
-      var rangeSeconds = 300; // 5-min window each side default
-      // Adapt range to timeframe
-      var tfMinutes = parseTFMinutes(item.tf);
-      if (tfMinutes > 0) {
-        rangeSeconds = Math.max(tfMinutes * 60 * 10, 300);
+      // Convert real timestamp to sequential via the chart's mapping
+      var seqTs = null;
+      if (typeof _mRealToSeq !== 'undefined' && _mRealToSeq[ts] != null) {
+        seqTs = _mRealToSeq[ts];
+      } else if (typeof _findNearestSeqTime === 'function') {
+        seqTs = _findNearestSeqTime(ts);
       }
 
+      if (seqTs == null) {
+        console.warn('[mirror-feed] Cannot map detection time to chart position:', item.time);
+        return;
+      }
+
+      // Compute range in sequential space: N bars of context each side
+      var barsContext = 10; // 10 bars each side
+      var tfMinutes = parseTFMinutes(item.tf || (typeof mApp !== 'undefined' ? mApp.tf : '5m'));
+      var seqSpacing = tfMinutes > 0 ? tfMinutes * 60 : 300;
+      var rangeSeq = barsContext * seqSpacing;
+
       mApp.chart.timeScale().setVisibleRange({
-        from: ts - rangeSeconds,
-        to:   ts + rangeSeconds,
+        from: seqTs - rangeSeq,
+        to:   seqTs + rangeSeq,
       });
     }
 
