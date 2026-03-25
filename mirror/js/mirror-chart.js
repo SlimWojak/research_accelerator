@@ -2,7 +2,35 @@
  * mirror-chart.js — Lightweight Charts candlestick chart with detection
  *                   markers, session bands, signal overlays, and live bar
  *                   updates for the MIRROR live trading dashboard
- * ═══════════════════════════════════════════════════════════════════════════════ */
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * TIMEZONE CONTRACT (critical — read before modifying time handling):
+ * ─────────────────────────────────────────────────────────────────────
+ * All timestamps in this file operate in "NY time space" for chart display.
+ * Different data sources arrive in different timezones but converge:
+ *
+ * ┌─────────────────────┬────────────────┬──────────────────────────────┐
+ * │ Source               │ Format         │ Frontend conversion          │
+ * ├─────────────────────┼────────────────┼──────────────────────────────┤
+ * │ Bar times (backend)  │ UTC ISO string │ toNYTS() = toTS() + offset  │
+ * │ Session times (BE)   │ UTC ISO string │ toNYTS() = toTS() + offset  │
+ * │ Detection times (Dx) │ NY-local ISO*  │ toTS() only (already NY)    │
+ * └─────────────────────┴────────────────┴──────────────────────────────┘
+ *
+ * (*) Dexter producers write bar_time from tf_aggregator which operates in
+ *     NY time space. Detection timestamps are NY-local WITHOUT timezone
+ *     suffix. This means toTS() (which parses as UTC) produces the SAME
+ *     epoch as toNYTS() on a true UTC string — "two wrongs make a right".
+ *
+ * IMPORTANT: Never apply toNYTS() to detection timestamps — it would
+ * double-shift by _nyOffset. If Dexter ever changes to emit UTC detection
+ * times, findMirrorNearestCandleTime() must be updated to use toNYTS().
+ *
+ * The chart uses SEQUENTIAL timestamps (gap-free, adjacent bars) mapped
+ * via _mSeqToReal / _mRealToSeq. All chart navigation (setVisibleRange,
+ * day tabs, feed clicks) must use sequential timestamps, not real ones.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Per-Primitive Marker Styles (unified across tools) ─────────────────── */
 
@@ -193,12 +221,13 @@ function createMirrorChart() {
 
     const center = Math.floor((range.from + range.to) / 2);
 
-    // Day-level scroll sync
+    // Day-level scroll sync — update active day tab as user scrolls
     if (mApp.forexDays && mApp.forexDays.length > 0 && mApp.day) {
       for (const dk of mApp.forexDays) {
         const r = _mDayRange(dk);
         if (center >= r.from && center <= r.to && dk !== mApp.day) {
           mApp.day = dk;
+          if (typeof renderDayTabs === 'function') renderDayTabs();
           break;
         }
       }
@@ -232,29 +261,56 @@ function createMirrorChart() {
  * Day Range Helper
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-/** Map a real timestamp to the nearest sequential timestamp. */
+/** Map a real timestamp to the nearest sequential timestamp (binary search). */
 function _findNearestSeqTime(realTS) {
   if (!realTS || !_mCandleTimesArr || _mCandleTimesArr.length === 0) return null;
-  // Exact match
   if (_mRealToSeq[realTS] != null) return _mRealToSeq[realTS];
-  // Nearest
-  var best = null;
-  var bestDiff = Infinity;
-  for (var i = 0; i < _mCandleTimesArr.length; i++) {
-    var diff = Math.abs(_mCandleTimesArr[i] - realTS);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = _mCandleTimesArr[i];
-    }
+
+  // Binary search for nearest bar (array is sorted by real time)
+  var lo = 0, hi = _mCandleTimesArr.length - 1;
+  while (lo < hi) {
+    var mid = (lo + hi) >> 1;
+    if (_mCandleTimesArr[mid] < realTS) lo = mid + 1;
+    else hi = mid;
   }
-  return best != null ? (_mRealToSeq[best] != null ? _mRealToSeq[best] : null) : null;
+  // Check lo and lo-1 for closest
+  var best = _mCandleTimesArr[lo];
+  var bestDiff = Math.abs(best - realTS);
+  if (lo > 0) {
+    var altDiff = Math.abs(_mCandleTimesArr[lo - 1] - realTS);
+    if (altDiff < bestDiff) { best = _mCandleTimesArr[lo - 1]; bestDiff = altDiff; }
+  }
+
+  // Max tolerance: 2 bar intervals (prevents cross-day mismatches)
+  var tfLower = (typeof mApp !== 'undefined' ? mApp.tf : '1H').toLowerCase();
+  var barSec = tfLower === '1d' ? 86400 : tfLower === '4h' ? 14400 : tfLower === '1h' ? 3600
+             : tfLower === '15m' ? 900 : tfLower === '5m' ? 300 : 60;
+  if (bestDiff > barSec * 2) return null;
+
+  return _mRealToSeq[best] != null ? _mRealToSeq[best] : null;
 }
 
 function _mDayRange(dayStr) {
+  // Forex day runs 17:00 NY (prev calendar day) → 16:59 NY (forex day).
+  // Returns sequential timestamps for LWC chart navigation.
   const d = new Date(dayStr + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() - 1);
   const prevDate = d.toISOString().split('T')[0];
-  return { from: toTS(prevDate + 'T17:00:00'), to: toTS(dayStr + 'T16:59:00') };
+
+  // Compute real NY-space timestamps (same domain as _mCandleTimesArr)
+  const realFrom = toTS(prevDate + 'T17:00:00');
+  const realTo = toTS(dayStr + 'T16:59:00');
+
+  // Convert to sequential timestamps for chart axis
+  const seqFrom = _findNearestSeqTime(realFrom);
+  const seqTo = _findNearestSeqTime(realTo);
+
+  // Fallback: if no seq mapping available yet, use real timestamps
+  // (chart hasn't rendered — these won't be used for navigation)
+  return {
+    from: seqFrom != null ? seqFrom : realFrom,
+    to: seqTo != null ? seqTo : realTo,
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -263,6 +319,10 @@ function _mDayRange(dayStr) {
 
 function refreshMirrorChart() {
   if (typeof mApp === 'undefined') return;
+
+  // Guard: skip render while setView() is still fetching data
+  if (typeof viewState !== 'undefined' && viewState.loading) return;
+
   if (!mApp.chart || !mApp.candleSeries) {
     createMirrorChart();
   }
@@ -358,11 +418,9 @@ function refreshMirrorChart() {
     forexDay = typeof getForexDay === 'function' ? getForexDay(isoStr) : isoStr.split('T')[0];
   }
 
-  // Session bands — for HTF, compute bands for all visible days
-  const htf = typeof isHTF === 'function' && isHTF(mApp.tf);
+  // Session bands — compute for all visible forex days (LTF and HTF both load multi-day)
   let allBands = [];
-  if (htf && rawBars.length > 1) {
-    // Collect unique forex days from real bar times
+  if (rawBars.length > 1) {
     const seenDays = new Set();
     for (const bar of rawBars) {
       const bd = new Date(bar.realTime * 1000).toISOString();
@@ -393,6 +451,7 @@ function refreshMirrorChart() {
   }
 
   // Scroll behavior depends on mode
+  var htf = isHTF(mApp.tf);
   if (mApp.mode === 'live' && !htf) {
     mApp.chart.timeScale().scrollToRealTime();
   } else if (mApp.day && !htf) {
@@ -498,21 +557,10 @@ function buildMirrorMarkers() {
   for (const [primName, byTf] of Object.entries(mApp.detectionData.detections_by_primitive)) {
     const style = M_MARKER_STYLES[primName];
 
-    // For HTF views, include detections from all lower TFs (mapped to nearest HTF bar).
-    // For LTF views, only show the exact TF.
-    var tfDets = [];
+    // vLOCK: show only detections native to the displayed timeframe.
+    // "5m FVG = gap across 3 consecutive 5m candles. NOT: 1m detection projected onto 5m display."
     var currentTf = mApp.tf;
-    var htfView = typeof isHTF === 'function' && isHTF(currentTf);
-    if (htfView) {
-      // Collect detections from all TFs
-      for (var tfKey in byTf) {
-        if (Array.isArray(byTf[tfKey])) {
-          tfDets = tfDets.concat(byTf[tfKey]);
-        }
-      }
-    } else {
-      tfDets = byTf[currentTf] || byTf['global'] || [];
-    }
+    var tfDets = byTf[currentTf] || byTf['global'] || [];
 
     for (const det of tfDets) {
       const barTime = findMirrorNearestCandleTime(det.time);
@@ -923,7 +971,7 @@ function getMirrorSessionBands(forexDay) {
   if (mApp.sessionData && mApp.sessionData.length > 0) {
     const VISIBLE_SESSIONS = new Set(['asia', 'lokz', 'nyokz']);
     const htf = typeof isHTF === 'function' && isHTF(mApp.tf);
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(Date.now() / 1000) + (_nyOffset || 0);
 
     return mApp.sessionData
       .filter(b => VISIBLE_SESSIONS.has(b.session) && (!forexDay || b.forex_day === forexDay))
@@ -978,7 +1026,7 @@ function getMirrorSessionBands(forexDay) {
 
     const startTS = toTS(startStr);
     const endTS = toTS(endStr);
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(Date.now() / 1000) + (_nyOffset || 0);
 
     let border = def.border;
     if (startTS && endTS && now >= startTS && now <= endTS) {
@@ -1005,6 +1053,9 @@ function getMirrorSessionBands(forexDay) {
 function findMirrorNearestCandleTime(detTime) {
   if (!_mCandleTimeSet || !_mCandleTimesArr) return null;
 
+  // TIMEZONE: Detection times are NY-local (see TIMEZONE CONTRACT above).
+  // toTS() parses as UTC, producing the same epoch as toNYTS() on a UTC
+  // string. Do NOT use toNYTS() here — it would double-shift.
   const ts = toTS(detTime);
   if (ts == null) return null;
 
