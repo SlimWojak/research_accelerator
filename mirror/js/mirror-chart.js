@@ -213,7 +213,19 @@ function createMirrorChart() {
     },
     crosshair: {
       mode: LightweightCharts.CrosshairMode.Normal,
-      vertLine: { color: '#4a4e5a', width: 1, style: 2 },
+      vertLine: {
+        color: '#4a4e5a', width: 1, style: 2,
+        labelFormatter: (seqTime) => {
+          // Map sequential time → real NY time for crosshair label
+          var real = _seqToRealTime(seqTime);
+          var d = new Date(real * 1000);
+          var mon = String(d.getUTCMonth() + 1).padStart(2, '0');
+          var dd = String(d.getUTCDate()).padStart(2, '0');
+          var hh = String(d.getUTCHours()).padStart(2, '0');
+          var mm = String(d.getUTCMinutes()).padStart(2, '0');
+          return mon + '/' + dd + ' ' + hh + ':' + mm;
+        },
+      },
       horzLine: { color: '#4a4e5a', width: 1, style: 2, labelVisible: true },
     },
     rightPriceScale: {
@@ -477,10 +489,45 @@ function refreshMirrorChart() {
   // On 4H/1D the sessions overlap into a solid color wash — hide them.
   var showSessions = mApp.tf === '1m' || mApp.tf === '5m' || mApp.tf === '15m' || mApp.tf === '1H';
   let allBands = [];
-  if (showSessions && forexDay) {
-    // Show session bands for the active forex day only.
-    // Multi-day bands create opacity stacking (yellow/purple wash) — not useful.
-    allBands = getMirrorSessionBands(forexDay);
+  if (showSessions) {
+    // Determine which forex days to show sessions for.
+    // Active day if set; otherwise derive from bar data (covers historical views).
+    var sessionDays = new Set();
+    if (forexDay) sessionDays.add(forexDay);
+
+    // Also derive forex days from bar data to ensure historical views get sessions
+    if (rawBars.length > 0 && typeof getForexDay === 'function') {
+      // Sample bars at regular intervals to find all forex days without iterating every bar
+      var step = Math.max(1, Math.floor(rawBars.length / 50));
+      for (var si = 0; si < rawBars.length; si += step) {
+        var bd = new Date(rawBars[si].realTime * 1000).toISOString();
+        sessionDays.add(getForexDay(bd));
+      }
+      // Always include first and last bar's forex day
+      sessionDays.add(getForexDay(new Date(rawBars[0].realTime * 1000).toISOString()));
+      sessionDays.add(getForexDay(new Date(rawBars[rawBars.length - 1].realTime * 1000).toISOString()));
+    }
+
+    // Reduce opacity when showing multiple days to prevent wash effect
+    var multiDaySessions = sessionDays.size > 2;
+
+    for (var sd of sessionDays) {
+      var dayBands = getMirrorSessionBands(sd);
+      if (multiDaySessions) {
+        // Reduce opacity for multi-day views
+        dayBands = dayBands.map(function(b) {
+          return {
+            startTS: b.startTS,
+            endTS: b.endTS,
+            color: b.color.replace(/([\d.]+)\)$/, function(_, a) { return (parseFloat(a) * 0.5).toFixed(2) + ')'; }),
+            border: b.border.replace(/([\d.]+)\)$/, function(_, a) { return (parseFloat(a) * 0.5).toFixed(2) + ')'; }),
+            session: b.session,
+            label: b.label,
+          };
+        });
+      }
+      allBands.push.apply(allBands, dayBands);
+    }
 
     // Convert session band real timestamps to sequential for rendering
     if (_mRealToSeq && Object.keys(_mRealToSeq).length > 0) {
