@@ -497,14 +497,12 @@ class StagingFileHandler(FileSystemEventHandler):
             len(new_lines), date_str, state.last_bar_time,
         )
 
-        # Reload and push all standard timeframes
-        # LTF: single day. HTF: 10-day window for seamless scrolling.
-        htf_start = (date.fromisoformat(date_str) - timedelta(days=9)).isoformat()
+        # Reload and push all standard timeframes with multi-day ranges
+        _tf_lookback = {"1m": 1, "5m": 2, "15m": 4, "1H": 9, "4H": 29}
         for tf in ["1m", "5m", "15m", "1H", "4H"]:
-            if tf in ("1H", "4H"):
-                bars = _load_bars_range(htf_start, date_str, tf)
-            else:
-                bars = _load_bars_as_dicts(date_str, tf)
+            lb = _tf_lookback.get(tf, 1)
+            range_start = (date.fromisoformat(date_str) - timedelta(days=lb)).isoformat()
+            bars = _load_bars_range(range_start, date_str, tf)
             if tf == "5m":
                 state.cached_bars_5m = bars
             await broadcast({"type": "bars", "tf": tf, "data": bars})
@@ -781,6 +779,40 @@ async def get_detections(forex_day: str):
     return detections
 
 
+@app.get("/api/detections-range")
+async def get_detections_range(
+    start: str = Query(..., description="Start date YYYY-MM-DD"),
+    end: str = Query(..., description="End date YYYY-MM-DD"),
+):
+    """Merge detections across a date range into a single response."""
+    try:
+        date.fromisoformat(start)
+        date.fromisoformat(end)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid date format."})
+
+    merged: dict = {"detections_by_primitive": {}, "diagnostic_signals": []}
+    d = date.fromisoformat(start)
+    d_end = date.fromisoformat(end)
+    while d <= d_end:
+        day_data = _load_detections(d.isoformat())
+        if day_data:
+            by_prim = day_data.get("detections_by_primitive", {})
+            for prim, by_tf in by_prim.items():
+                if prim not in merged["detections_by_primitive"]:
+                    merged["detections_by_primitive"][prim] = {}
+                for tf, dets in by_tf.items():
+                    if tf not in merged["detections_by_primitive"][prim]:
+                        merged["detections_by_primitive"][prim][tf] = []
+                    merged["detections_by_primitive"][prim][tf].extend(dets)
+            diag = day_data.get("diagnostic_signals", [])
+            if diag:
+                merged["diagnostic_signals"].extend(diag)
+        d += timedelta(days=1)
+
+    return merged
+
+
 @app.get("/api/dates")
 async def get_dates():
     """List available detection dates."""
@@ -925,8 +957,28 @@ async def websocket_endpoint(ws: WebSocket):
                     if msg.get("type") == "ping":
                         await ws.send_text(json.dumps({"type": "pong"}))
                     elif msg.get("type") == "subscribe":
-                        # Future: handle per-client subscriptions
-                        pass
+                        # Client requests bars for a specific TF on connect.
+                        # Push bars for the requested TF if it differs from
+                        # the default 5m that was already sent above.
+                        req_tf = msg.get("tf", "5m")
+                        if req_tf and req_tf != "5m":
+                            try:
+                                load_date = _today_forex_day() if state.market_state == "LIVE" else _last_available_date()
+                                if load_date:
+                                    _tf_lookback = {"1m": 1, "5m": 2, "15m": 4, "1H": 9, "4H": 29, "1D": 59}
+                                    lb = _tf_lookback.get(req_tf, 2)
+                                    range_start = (date.fromisoformat(load_date) - timedelta(days=lb)).isoformat()
+                                    # Run blocking parquet I/O in thread pool to avoid stalling event loop
+                                    bars = await asyncio.to_thread(_load_bars_range, range_start, load_date, req_tf)
+                                    if bars:
+                                        await ws.send_text(json.dumps({
+                                            "type": "bars",
+                                            "tf": req_tf,
+                                            "data": bars,
+                                        }))
+                                        log.info("Sent %d bars for TF=%s to %s", len(bars), req_tf, client_id)
+                            except Exception as exc:
+                                log.warning("Subscribe TF=%s failed for %s: %s", req_tf, client_id, exc)
                 except json.JSONDecodeError:
                     pass
             except asyncio.TimeoutError:
