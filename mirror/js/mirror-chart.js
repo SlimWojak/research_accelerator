@@ -265,30 +265,47 @@ function createMirrorChart() {
  * Day Range Helper
  * ═══════════════════════════════════════════════════════════════════════════════ */
 
-/** Map a real timestamp to the nearest sequential timestamp (binary search). */
+/** Map a real timestamp to the nearest sequential timestamp.
+ * Uses interpolation between adjacent bars for sub-bar precision
+ * (critical for session bands on HTF where bars are widely spaced). */
 function _findNearestSeqTime(realTS) {
   if (!realTS || !_mCandleTimesArr || _mCandleTimesArr.length === 0) return null;
   if (_mRealToSeq[realTS] != null) return _mRealToSeq[realTS];
 
-  // Binary search for nearest bar (array is sorted by real time)
+  // Binary search: find first bar >= realTS
   var lo = 0, hi = _mCandleTimesArr.length - 1;
   while (lo < hi) {
     var mid = (lo + hi) >> 1;
     if (_mCandleTimesArr[mid] < realTS) lo = mid + 1;
     else hi = mid;
   }
-  // Check lo and lo-1 for closest
+
+  // Max tolerance: 2 bar intervals
+  var tfLower = (typeof mApp !== 'undefined' ? mApp.tf : '1H').toLowerCase();
+  var barSec = tfLower === '1d' ? 86400 : tfLower === '4h' ? 14400 : tfLower === '1h' ? 3600
+             : tfLower === '15m' ? 900 : tfLower === '5m' ? 300 : 60;
+
+  // Interpolate between surrounding bars for sub-bar precision
+  // This is critical for session bands on HTF (4H, 1D) where snapping
+  // to nearest bar creates visible offset from canonical session times.
+  if (lo > 0 && lo < _mCandleTimesArr.length) {
+    var realBefore = _mCandleTimesArr[lo - 1];
+    var realAfter = _mCandleTimesArr[lo];
+    var seqBefore = _mRealToSeq[realBefore];
+    var seqAfter = _mRealToSeq[realAfter];
+    if (seqBefore != null && seqAfter != null && realAfter !== realBefore) {
+      var frac = (realTS - realBefore) / (realAfter - realBefore);
+      return Math.round(seqBefore + frac * (seqAfter - seqBefore));
+    }
+  }
+
+  // Edge cases: before first bar or after last bar — snap to nearest
   var best = _mCandleTimesArr[lo];
   var bestDiff = Math.abs(best - realTS);
   if (lo > 0) {
     var altDiff = Math.abs(_mCandleTimesArr[lo - 1] - realTS);
     if (altDiff < bestDiff) { best = _mCandleTimesArr[lo - 1]; bestDiff = altDiff; }
   }
-
-  // Max tolerance: 2 bar intervals (prevents cross-day mismatches)
-  var tfLower = (typeof mApp !== 'undefined' ? mApp.tf : '1H').toLowerCase();
-  var barSec = tfLower === '1d' ? 86400 : tfLower === '4h' ? 14400 : tfLower === '1h' ? 3600
-             : tfLower === '15m' ? 900 : tfLower === '5m' ? 300 : 60;
   if (bestDiff > barSec * 2) return null;
 
   return _mRealToSeq[best] != null ? _mRealToSeq[best] : null;
@@ -454,9 +471,16 @@ function refreshMirrorChart() {
     _mSessionPrimitive.setBands(allBands);
   }
 
-  // Scroll behavior depends on mode
+  // Scroll behavior depends on mode and last action
   var htf = isHTF(mApp.tf);
-  if (mApp.mode === 'live' && !htf) {
+  var lastAction = (typeof viewState !== 'undefined') ? viewState.lastAction : null;
+
+  if (lastAction === 'tf-switch') {
+    // TF switch: fit all content to avoid two-candle zoom
+    mApp.chart.timeScale().fitContent();
+    // Clear the hint so subsequent WS-driven refreshes use normal behavior
+    viewState.lastAction = null;
+  } else if (mApp.mode === 'live' && !htf) {
     mApp.chart.timeScale().scrollToRealTime();
   } else if (mApp.day && !htf) {
     mApp.chart.timeScale().setVisibleRange(_mDayRange(mApp.day));

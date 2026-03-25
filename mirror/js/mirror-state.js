@@ -53,6 +53,10 @@ const viewState = {
 
   // Loading state
   loading: false,
+
+  // Last action hint — tells refreshMirrorChart how to scroll after render
+  // 'tf-switch' → fitContent, 'navigate' → day range, null → default behavior
+  lastAction: null,
 };
 
 /* ── Compute derived bar range from anchor + TF lookback ───────────────────── */
@@ -109,6 +113,13 @@ async function setView(patch) {
   if (patch.mode != null) viewState.mode = patch.mode;
   if (patch.tf != null) viewState.tf = patch.tf;
   if (patch.date !== undefined) viewState.anchorDate = patch.date;
+
+  // Track what kind of action triggered this (affects scroll behavior)
+  if (patch.tf && !patch.date && !patch.rangeStart) {
+    viewState.lastAction = 'tf-switch';
+  } else {
+    viewState.lastAction = 'navigate';
+  }
 
   // Live mode clears anchor date (follow current time)
   if (viewState.mode === 'live' && patch.date === undefined) {
@@ -220,6 +231,8 @@ async function setView(patch) {
 
     // Trigger ALL renders at once — data is complete
     if (typeof refreshMirrorChart === 'function') refreshMirrorChart();
+    if (typeof renderTFButtons === 'function') renderTFButtons();
+    if (typeof _savePreferences === 'function') _savePreferences();
     if (typeof updateFeedFromDetections === 'function') updateFeedFromDetections(viewState.detections);
     if (typeof updateWorldStateBanner === 'function') updateWorldStateBanner();
     if (typeof updateFiveFactorRow === 'function') updateFiveFactorRow();

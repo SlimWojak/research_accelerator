@@ -387,15 +387,15 @@ function renderTFButtons() {
     btn.dataset.tf = tf;
     btn.addEventListener('click', function () {
       if (tf === mApp.tf) return;
-      _savePreferences();
-      renderTFButtons();
 
+      // Update feed filter immediately (sync)
       if (typeof feedState !== 'undefined') {
         feedState.tfFilter = tf;
         if (typeof renderFeed === 'function') renderFeed();
       }
 
-      // Single call — setView handles fetch + render
+      // setView handles state update, fetch, render, and triggers
+      // renderTFButtons + _savePreferences via post-render callback
       setView({ tf: tf });
     });
     container.appendChild(btn);
@@ -606,14 +606,13 @@ function setupKeyboardShortcuts() {
     if (tfMap[e.key]) {
       const newTf = tfMap[e.key];
       if (newTf !== mApp.tf) {
-        // Delegate to setView — handles fetch, render, and mApp sync
-        setView({ tf: newTf });
-        _savePreferences();
-        renderTFButtons();
         if (typeof feedState !== 'undefined') {
           feedState.tfFilter = newTf;
           if (typeof renderFeed === 'function') renderFeed();
         }
+        // setView handles state update, fetch, render, and triggers
+        // renderTFButtons + _savePreferences via post-render callback
+        setView({ tf: newTf });
       }
       e.preventDefault();
       return;
