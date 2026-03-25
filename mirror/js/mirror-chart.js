@@ -59,7 +59,41 @@ let _mCandleTimesArr = null;
 let _mResizeObserver = null;
 let _mSeqToReal = {};    // sequential timestamp → real timestamp mapping
 let _mRealToSeq = {};    // real timestamp → sequential timestamp mapping
+let _mSeqTimesArr = [];  // sorted array of sequential timestamps (for binary search)
 let _mMultiDay = false;  // true when displaying multi-day data
+
+/** Map a sequential timestamp back to real NY time (with interpolation).
+ *  Used by tickMarkFormatter and crosshair — LWC passes tick positions
+ *  that may fall between candle seq times. */
+function _seqToRealTime(seqTS) {
+  // Exact match
+  if (_mSeqToReal[seqTS] != null) return _mSeqToReal[seqTS];
+  if (!_mSeqTimesArr || _mSeqTimesArr.length === 0) return seqTS;
+
+  // Binary search: find first seq time >= seqTS
+  var lo = 0, hi = _mSeqTimesArr.length - 1;
+  while (lo < hi) {
+    var mid = (lo + hi) >> 1;
+    if (_mSeqTimesArr[mid] < seqTS) lo = mid + 1;
+    else hi = mid;
+  }
+
+  // Interpolate between surrounding candles
+  if (lo > 0 && lo < _mSeqTimesArr.length) {
+    var seqBefore = _mSeqTimesArr[lo - 1];
+    var seqAfter = _mSeqTimesArr[lo];
+    var realBefore = _mSeqToReal[seqBefore];
+    var realAfter = _mSeqToReal[seqAfter];
+    if (realBefore != null && realAfter != null && seqAfter !== seqBefore) {
+      var frac = (seqTS - seqBefore) / (seqAfter - seqBefore);
+      return Math.round(realBefore + frac * (realAfter - realBefore));
+    }
+  }
+
+  // Edge: before first or after last — snap to nearest
+  if (lo === 0) return _mSeqToReal[_mSeqTimesArr[0]] || seqTS;
+  return _mSeqToReal[_mSeqTimesArr[_mSeqTimesArr.length - 1]] || seqTS;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
  * Session Bands Primitive (ISeriesPrimitive 3-class pattern)
@@ -155,6 +189,18 @@ function createMirrorChart() {
   _mChartCreated = true;
 
   const chart = LightweightCharts.createChart(container, {
+    localization: {
+      // Crosshair bottom label — map seq time → real NY time
+      timeFormatter: (seqTime) => {
+        var real = _seqToRealTime(seqTime);
+        var d = new Date(real * 1000);
+        var mon = String(d.getUTCMonth() + 1).padStart(2, '0');
+        var dd = String(d.getUTCDate()).padStart(2, '0');
+        var hh = String(d.getUTCHours()).padStart(2, '0');
+        var mm = String(d.getUTCMinutes()).padStart(2, '0');
+        return mon + '/' + dd + ' ' + hh + ':' + mm;
+      },
+    },
     layout: {
       background: { type: 'solid', color: '#131722' },
       textColor: '#d1d4dc',
@@ -180,8 +226,9 @@ function createMirrorChart() {
       secondsVisible: false,
       minBarSpacing: 3,
       tickMarkFormatter: (time) => {
-        // Data is in NY time space — UTC formatting gives NY times
-        var real = _mSeqToReal ? _mSeqToReal[time] : time;
+        // Map sequential timestamp → real NY time (with interpolation for
+        // tick positions that fall between candles)
+        var real = _seqToRealTime(time);
         var d = new Date(real * 1000);
         var hh = String(d.getUTCHours()).padStart(2, '0');
         var mm = String(d.getUTCMinutes()).padStart(2, '0');
@@ -380,12 +427,14 @@ function refreshMirrorChart() {
 
   _mSeqToReal = {};
   _mRealToSeq = {};
+  _mSeqTimesArr = [];
   // Use the first bar's real time as the base, then increment sequentially
   var seqBase = rawBars.length > 0 ? rawBars[0].realTime : 0;
   const chartData = rawBars.map((b, i) => {
     var seqTime = seqBase + (i * seqSpacing);
     _mSeqToReal[seqTime] = b.realTime;
     _mRealToSeq[b.realTime] = seqTime;
+    _mSeqTimesArr.push(seqTime);
     return {
       time: seqTime,
       open: b.open,
