@@ -1,0 +1,153 @@
+{
+  "evaluated_date": "2025-12-23",
+  "actual_cells": {
+    "daily_state": "Pullback",
+    "h4_timing": "no_transition",
+    "active_daily_range": "bullish extension active_extreme 1.18079",
+    "current_extreme": "None 1.18079",
+    "daily_location_daily_pda_respect_control": "premium",
+    "first_draw_main_dol": "continuous_replay_2025-12-23_active_range_extreme 1.18079; main_dol_status=blank:main_dol_rule_not_yet_ratified",
+    "delivery_failure": "false",
+    "map_direction_dependency": "bullish"
+  },
+  "notable_events": [
+    "PERDAY_2025-12-23 private graph construction_mode OK",
+    "manifest §2.1 displacement watchpoint carried for Olya review"
+  ],
+  "transitions": [
+    "Daily State: Pullback",
+    "Map Direction dependency: bullish"
+  ],
+  "q1_proof_predicates": [
+    {
+      "predicate": "meaningful_pullback_25pct",
+      "value": false,
+      "evidence_refs": [],
+      "refusal_reason": "missing_meaningful_pullback_25pct_evidence"
+    },
+    {
+      "predicate": "daily_mss",
+      "value": false,
+      "evidence_refs": [],
+      "refusal_reason": "missing_daily_mss_evidence"
+    },
+    {
+      "predicate": "daily_displacement",
+      "value": true,
+      "evidence_refs": [
+        "continuous_replay_2025-12-23_daily_displacement_displacement_1D_2025-12-21T00:00:00_bull"
+      ],
+      "refusal_reason": null
+    },
+    {
+      "predicate": "new_directional_high_low",
+      "value": false,
+      "evidence_refs": [],
+      "refusal_reason": "missing_prior_q1_proof_predicate"
+    }
+  ],
+  "map_v1_full_graph": {
+    "classification": "PRIVATE_INERT_MAP_V1_FULL_GRAPH",
+    "private_inert_until_gate_2_plus_g_ratification": true,
+    "construction_mode": "OK",
+    "direction_dependency": {
+      "role": "dependency_only_not_manifest_cell",
+      "map_direction_value": "bullish",
+      "source_ref": "continuous_replay_2025-12-23_map_direction_dependency",
+      "evidence_refs": [
+        "continuous_replay_2025-12-23_daily_displacement_displacement_1D_2025-12-21T00:00:00_bull"
+      ]
+    },
+    "daily_state": {
+      "daily_state_label": "Pullback",
+      "state_reason": "prior_daily_state_preserved",
+      "daily_state_ref": "continuous_replay_2025-12-23_daily_state_ref",
+      "h4_movement_sensor_ref": null,
+      "delivery_failure_ref": null,
+      "unknown_or_not_yet_implemented_reason": null
+    },
+    "h4_timing": {
+      "transition_result": "no_transition",
+      "h4_movement_state_candidate": null,
+      "transition_source": null,
+      "unknown_or_not_yet_implemented_reason": null,
+      "evaluated_time": null
+    },
+    "active_daily_range": {
+      "range_id": "range_9de9e7ef18a80837",
+      "origin_price": 1.158955,
+      "origin_time": "2025-12-01T00:00:00+00:00",
+      "origin_ref": "continuous_replay_2025-12-23_origin_ref",
+      "active_extreme_price": 1.18079,
+      "active_extreme_time": "2025-12-23T22:15:00+00:00",
+      "active_extreme_ref": "continuous_replay_2025-12-23_active_extreme_ref",
+      "equilibrium": 1.1698724999999999,
+      "meaningful_pullback_25pct_level": 1.17533125,
+      "lifecycle": "extension"
+    },
+    "current_extreme": {
+      "value_price": 1.18079,
+      "value_time": "2025-12-23T22:15:00+00:00",
+      "source_ref": "continuous_replay_2025-12-23_current_extreme_ref",
+      "update_mode": "continuous_extension"
+    },
+    "daily_location_daily_pda_respect_control": {
+      "range_position_label": "premium",
+      "active_range_ref": "range_9de9e7ef18a80837",
+      "equilibrium": 1.1698724999999999,
+      "pda": null,
+      "unknown_or_not_yet_implemented_reason": null
+    },
+    "first_draw_main_dol": {
+      "first_draw": {
+        "target_id": "continuous_replay_2025-12-23_active_range_extreme",
+        "candidate_type": "active_daily_range_high",
+        "timeframe": "Daily",
+        "side": "buy_side",
+        "candidate_price_or_zone": {
+          "price": 1.18079,
+          "zone_top": null,
+          "zone_bottom": null
+        },
+        "source_ref": "continuous_replay_2025-12-23_first_draw_ref",
+        "taken_removed_status": "unswept",
+        "evidence_refs": [
+          "continuous_replay_2025-12-23_first_draw_ref"
+        ],
+        "unknown_or_not_yet_implemented_reason": null
+      },
+      "main_DOL": {
+        "target_id": null,
+        "candidate_type": null,
+        "timeframe": null,
+        "side": null,
+        "candidate_price_or_zone": {
+          "price": null,
+          "zone_top": null,
+          "zone_bottom": null
+        },
+        "source_ref": null,
+        "taken_removed_status": null,
+        "evidence_refs": [],
+        "unknown_or_not_yet_implemented_reason": "main_dol_rule_not_yet_ratified"
+      },
+      "evaluated_time": null
+    },
+    "delivery_failure": {
+      "delivery_failure_flag": "false",
+      "event_ref": null,
+      "occurred_before_first_draw": null,
+      "implied_daily_reassessment_context": null,
+      "first_draw_ref": "continuous_replay_2025-12-23_first_draw_ref",
+      "first_draw_target_id": "continuous_replay_2025-12-23_active_range_extreme",
+      "evidence_refs": [],
+      "unknown_or_not_yet_implemented_reason": null
+    },
+    "cannot_determine_reasons": [],
+    "gate2_receipt_observations": [
+      "manifest_2_1_clean_directional_delivery_strong_valid_displacement_watchpoint_implemented_for_gate_2_observation"
+    ],
+    "evaluated_time": "2025-12-23T22:15:00+00:00"
+  },
+  "stable_hash": "7dde9c639420f050d7e3b66e35a70f4018031511c943207e9ba4ea781e314779"
+}
